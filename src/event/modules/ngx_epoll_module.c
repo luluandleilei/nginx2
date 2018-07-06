@@ -97,7 +97,7 @@ struct io_event {
 
 typedef struct {
     ngx_uint_t  events;
-    ngx_uint_t  aio_requests;
+    ngx_uint_t  aio_requests; //单个worker进程未处理(未完成)的异步IO最大数量
 } ngx_epoll_conf_t;
 
 

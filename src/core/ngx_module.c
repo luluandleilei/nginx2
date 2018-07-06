@@ -18,8 +18,8 @@ static ngx_uint_t ngx_module_ctx_index(ngx_cycle_t *cycle, ngx_uint_t type,
     ngx_uint_t index);
 
 
-ngx_uint_t         ngx_max_module;
-static ngx_uint_t  ngx_modules_n;
+ngx_uint_t         ngx_max_module;  //模块的最大数目（静态模块和动态模块）
+static ngx_uint_t  ngx_modules_n;   //XXX:静态模块的数目
 
 
 ngx_int_t

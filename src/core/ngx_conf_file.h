@@ -123,11 +123,11 @@ struct ngx_conf_s {
     ngx_conf_file_t      *conf_file;
     ngx_log_t            *log;
 
-    void                 *ctx;
-    ngx_uint_t            module_type;
-    ngx_uint_t            cmd_type;
+    void                 *ctx;          //当前被解析的命令的上下文(context)--对应模块类型的配置对象列表
+    ngx_uint_t            module_type;  //当前被解析命令所属的模块类型(module type) -- 模块类型下可以有多种cmd_type 
+    ngx_uint_t            cmd_type;     //当前被解析的命令的XXX(作用域)类型(eg: NGX_HTTP_MAIN_CONF, NGX_HTTP_SRV_CONF)
 
-    ngx_conf_handler_pt   handler;
+    ngx_conf_handler_pt   handler;      //当设置时用该特定handler处理cmd
     void                 *handler_conf;
 };
 
@@ -173,7 +173,7 @@ char * ngx_conf_deprecated(ngx_conf_t *cf, void *post, void *data);
 char *ngx_conf_check_num_bounds(ngx_conf_t *cf, void *post, void *data);
 
 
-#define ngx_get_conf(conf_ctx, module)  conf_ctx[module.index]
+#define ngx_get_conf(conf_ctx, module)  conf_ctx[module.index] //XXX: 获取核心(core)类型的模块的配置
 
 
 

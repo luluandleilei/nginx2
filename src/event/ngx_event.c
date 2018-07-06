@@ -917,6 +917,9 @@ ngx_events_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     ngx_event_max_module = ngx_count_modules(cf->cycle, NGX_EVENT_MODULE);
 
+    /* 分配存储每个event模块的配置对象索引列表 */
+    /* 分配管理所有event模块的配置对象的*/
+
     ctx = ngx_pcalloc(cf->pool, sizeof(void *));
     if (ctx == NULL) {
         return NGX_CONF_ERROR;
@@ -927,7 +930,10 @@ ngx_events_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
-    *(void **) conf = ctx;
+    *(void **) conf = ctx;  // 返回该索引列表给调用者
+
+    /* 为每个event module创建配置对象，并用索引列表指向*/
+    /* 调用每个event模块的create_conf函数  来创建模块对应的配置对象，并用索引列表指向*/
 
     for (i = 0; cf->cycle->modules[i]; i++) {
         if (cf->cycle->modules[i]->type != NGX_EVENT_MODULE) {
@@ -945,6 +951,8 @@ ngx_events_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         }
     }
 
+    /* 解析event配置，填充ctx配置对象列表*/
+
     pcf = *cf;
     cf->ctx = ctx;
     cf->module_type = NGX_EVENT_MODULE;
@@ -957,6 +965,8 @@ ngx_events_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     if (rv != NGX_CONF_OK) {
         return rv;
     }
+
+    /* 调用每个event模块的init_conf函数  来默认初始化对应的配置对象(若该对象未被初始化的话) */
 
     for (i = 0; cf->cycle->modules[i]; i++) {
         if (cf->cycle->modules[i]->type != NGX_EVENT_MODULE) {
