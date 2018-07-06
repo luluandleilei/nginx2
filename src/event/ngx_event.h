@@ -28,7 +28,7 @@ typedef struct {
 
 
 struct ngx_event_s {
-    void            *data;
+    void            *data;		//该event对象所属的connection对象
 
     unsigned         write:1;
 
@@ -439,14 +439,14 @@ extern ngx_os_io_t  ngx_io;
 
 typedef struct {
     ngx_uint_t    connections;
-    ngx_uint_t    use;
+    ngx_uint_t    use;			//使用的事件驱动模块的内间索引
 
     ngx_flag_t    multi_accept;
     ngx_flag_t    accept_mutex;
 
     ngx_msec_t    accept_mutex_delay;
 
-    u_char       *name;
+    u_char       *name;			//指向使用的时间驱动模块的名字的字符串(不需要释放，会不会为空的时候被引用)
 
 #if (NGX_DEBUG)
     ngx_array_t   debug_connection;
@@ -498,7 +498,7 @@ extern ngx_module_t           ngx_events_module;
 extern ngx_module_t           ngx_event_core_module;
 
 
-#define ngx_event_get_conf(conf_ctx, module)                                  \
+#define ngx_event_get_conf(conf_ctx, module)                                  \	//获取conf_ctx中某个event类型的模块对应的配置对象
              (*(ngx_get_conf(conf_ctx, ngx_events_module))) [module.ctx_index];
 
 

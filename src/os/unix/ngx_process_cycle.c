@@ -30,13 +30,13 @@ static void ngx_cache_loader_process_handler(ngx_event_t *ev);
 
 ngx_uint_t    ngx_process;
 ngx_uint_t    ngx_worker;
-ngx_pid_t     ngx_pid;
-ngx_pid_t     ngx_parent;
+ngx_pid_t     ngx_pid;		//当前进程pid
+ngx_pid_t     ngx_parent;	//父进程pid（仅对work子进程有效）
 
 sig_atomic_t  ngx_reap;
 sig_atomic_t  ngx_sigio;
-sig_atomic_t  ngx_sigalrm;
-sig_atomic_t  ngx_terminate;
+sig_atomic_t  ngx_sigalrm;		//表示收到SIGALRM信号
+sig_atomic_t  ngx_terminate;	//XXX：表示收到SIGINT信号
 sig_atomic_t  ngx_quit;
 sig_atomic_t  ngx_debug_quit;
 ngx_uint_t    ngx_exiting;
@@ -133,14 +133,14 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
     ngx_start_cache_manager_processes(cycle, 0);
 
     ngx_new_binary = 0;
-    delay = 0;
-    sigio = 0;
+    delay = 0;	//XXX:通知子进程结束后，等待子进程结束的时间(收到SIGCHLD表示子进程结束）
+    sigio = 0;	//	
     live = 1;
 
     for ( ;; ) {
         if (delay) {
             if (ngx_sigalrm) {
-                sigio = 0;
+                sigio = 0;		//等待超时，重新发送信号给所有子进程
                 delay *= 2;
                 ngx_sigalrm = 0;
             }

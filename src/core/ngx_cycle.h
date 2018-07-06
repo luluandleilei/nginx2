@@ -91,7 +91,7 @@ typedef struct {
     ngx_msec_t                timer_resolution;
     ngx_msec_t                shutdown_timeout;
 
-    ngx_int_t                 worker_processes;
+    ngx_int_t                 worker_processes;		//work进程的数目
     ngx_int_t                 debug_points;
 
     ngx_int_t                 rlimit_nofile;

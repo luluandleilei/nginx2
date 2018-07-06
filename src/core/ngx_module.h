@@ -235,7 +235,7 @@ struct ngx_module_s {
     ngx_command_t        *commands;     //模块支持的command
     ngx_uint_t            type;         //模块类型module type
 
-    ngx_int_t           (*init_master)(ngx_log_t *log);
+    ngx_int_t           (*init_master)(ngx_log_t *log);	//未使用
 
     ngx_int_t           (*init_module)(ngx_cycle_t *cycle);
 

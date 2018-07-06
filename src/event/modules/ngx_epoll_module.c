@@ -135,14 +135,14 @@ static struct epoll_event  *event_list;
 static ngx_uint_t           nevents;
 
 #if (NGX_HAVE_EVENTFD)
-static int                  notify_fd = -1;
+static int                  notify_fd = -1;	//ngx_epoll_notify_init
 static ngx_event_t          notify_event;
 static ngx_connection_t     notify_conn;
 #endif
 
 #if (NGX_HAVE_FILE_AIO)
 
-int                         ngx_eventfd = -1;
+int                         ngx_eventfd = -1;	//ngx_epoll_aio_init
 aio_context_t               ngx_aio_ctx = 0;
 
 static ngx_event_t          ngx_eventfd_event;

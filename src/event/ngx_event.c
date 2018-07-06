@@ -1224,6 +1224,8 @@ ngx_event_core_init_conf(ngx_cycle_t *cycle, void *conf)
     ngx_module_t        *module;
     ngx_event_module_t  *event_module;
 
+	/* 查找默认的(default)事件驱动模块 */
+	
     module = NULL;
 
 #if (NGX_HAVE_EPOLL) && !(NGX_TEST_BUILD_EPOLL)
@@ -1284,6 +1286,8 @@ ngx_event_core_init_conf(ngx_cycle_t *cycle, void *conf)
         return NGX_CONF_ERROR;
     }
 
+	/* 给event_core 模块设置默认值 */
+	
     ngx_conf_init_uint_value(ecf->connections, DEFAULT_CONNECTIONS);
     cycle->connection_n = ecf->connections;
 

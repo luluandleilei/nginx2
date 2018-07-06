@@ -11,7 +11,7 @@
 
 
 ngx_rbtree_t              ngx_event_timer_rbtree;
-static ngx_rbtree_node_t  ngx_event_timer_sentinel;
+static ngx_rbtree_node_t  ngx_event_timer_sentinel;	//哨兵
 
 /*
  * the event timer rbtree may contain the duplicate keys, however,

@@ -115,7 +115,7 @@ typedef char *(*ngx_conf_handler_pt)(ngx_conf_t *cf,
 
 struct ngx_conf_s {
     char                 *name;
-    ngx_array_t          *args;
+    ngx_array_t          *args;			//一条command
 
     ngx_cycle_t          *cycle;
     ngx_pool_t           *pool;
