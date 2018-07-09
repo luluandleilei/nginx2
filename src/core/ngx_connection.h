@@ -49,7 +49,7 @@ struct ngx_listening_s {
     ngx_msec_t          post_accept_timeout;
 
     ngx_listening_t    *previous;
-    ngx_connection_t   *connection;
+    ngx_connection_t   *connection;	//XXX:监听套接字对应的connection对象
 
     ngx_rbtree_t        rbtree;
     ngx_rbtree_node_t   sentinel;
@@ -121,12 +121,13 @@ typedef enum {
 #define NGX_HTTP_V2_BUFFERED   0x02
 
 
+//XXX:表示一个监听套接字或者已连接套接字及其状态，
 struct ngx_connection_s {
     void               *data;
     ngx_event_t        *read;
     ngx_event_t        *write;
 
-    ngx_socket_t        fd;
+    ngx_socket_t        fd;		//连接对象对应的套接字
 
     ngx_recv_pt         recv;
     ngx_send_pt         send;

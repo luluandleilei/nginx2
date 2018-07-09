@@ -28,19 +28,19 @@ static void ngx_cache_manager_process_handler(ngx_event_t *ev);
 static void ngx_cache_loader_process_handler(ngx_event_t *ev);
 
 
-ngx_uint_t    ngx_process;
+ngx_uint_t    ngx_process;	//当前进程的类型：NGX_PROCESS_XXX
 ngx_uint_t    ngx_worker;
 ngx_pid_t     ngx_pid;		//当前进程pid
 ngx_pid_t     ngx_parent;	//父进程pid（仅对work子进程有效）
 
-sig_atomic_t  ngx_reap;
+sig_atomic_t  ngx_reap;			//收到信号XXX;表示有工作进程退出,将重新fork生成一个新的工作进程
 sig_atomic_t  ngx_sigio;
-sig_atomic_t  ngx_sigalrm;		//表示收到SIGALRM信号
-sig_atomic_t  ngx_terminate;	//XXX：表示收到SIGINT信号
-sig_atomic_t  ngx_quit;
+sig_atomic_t  ngx_sigalrm;		//收到SIGALRM信号;表示定时器时间到期
+sig_atomic_t  ngx_terminate;	//XXX：收到SIGINT信号; 表示用户要求nginx终止，将结束进程(通过使用SIGKILL信号保证在一段时间后work进程必定被结束掉)
+sig_atomic_t  ngx_quit;			//收到信号XXX;表示用户要求nginx退出，将优雅的结束进程(master进程将做一些清理工作且等待work进程也完全清理并退出之后才终止)
 sig_atomic_t  ngx_debug_quit;
 ngx_uint_t    ngx_exiting;
-sig_atomic_t  ngx_reconfigure;
+sig_atomic_t  ngx_reconfigure;	//收到信号XXX;表示将重新加载配置
 sig_atomic_t  ngx_reopen;
 
 sig_atomic_t  ngx_change_binary;
@@ -61,7 +61,7 @@ static ngx_cache_manager_ctx_t  ngx_cache_manager_ctx = {
 };
 
 static ngx_cache_manager_ctx_t  ngx_cache_loader_ctx = {
-    ngx_cache_loader_process_handler, "cache loader process", 60000
+    ngx_cache_loader_process_handler, "cache loader process", 60000	//XXX:为什么要延时60s候才开始执行
 };
 
 
@@ -85,6 +85,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
     ngx_listening_t   *ls;
     ngx_core_conf_t   *ccf;
 
+	//XXX:信号处理
     sigemptyset(&set);
     sigaddset(&set, SIGCHLD);
     sigaddset(&set, SIGALRM);
@@ -137,6 +138,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
     sigio = 0;	//	
     live = 1;
 
+	//调用sigsuspend挂起等待接收到信号，处理信号，重新调用sigsuspend挂起等待接收到信号
     for ( ;; ) {
         if (delay) {
             if (ngx_sigalrm) {
@@ -161,7 +163,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
 
         ngx_log_debug0(NGX_LOG_DEBUG_EVENT, cycle->log, 0, "sigsuspend");
 
-        sigsuspend(&set);
+        sigsuspend(&set);	//XXX：挂起master进程，直到接收到信号为止
 
         ngx_time_update();
 
@@ -341,7 +343,8 @@ ngx_single_process_cycle(ngx_cycle_t *cycle)
     }
 }
 
-
+//fork产生子进程(work进程)
+//n -- 子进程的数目
 static void
 ngx_start_worker_processes(ngx_cycle_t *cycle, ngx_int_t n, ngx_int_t type)
 {
@@ -724,6 +727,7 @@ ngx_master_process_exit(ngx_cycle_t *cycle)
 }
 
 
+//工作进程执行函数
 static void
 ngx_worker_process_cycle(ngx_cycle_t *cycle, void *data)
 {
@@ -1137,6 +1141,7 @@ ngx_cache_manager_process_cycle(ngx_cycle_t *cycle, void *data)
      */
     ngx_process = NGX_PROCESS_HELPER;
 
+	//Cache进程不接收客户端请求，故关闭监听套接字
     ngx_close_listening_sockets(cycle);
 
     /* Set a moderate number of connections for a helper process. */
@@ -1148,11 +1153,11 @@ ngx_cache_manager_process_cycle(ngx_cycle_t *cycle, void *data)
     ev.handler = ctx->handler;
     ev.data = ident;
     ev.log = cycle->log;
-    ident[3] = (void *) -1;
+    ident[3] = (void *) -1;	//事件对象的data字段一般挂载的是connection对象，此处设置为-1刚好是吧connection对象的fd字段设置为-1，以避免在其他代码里走到异常逻辑
 
     ngx_use_accept_mutex = 0;
 
-    ngx_setproctitle(ctx->name);
+    ngx_setproctitle(ctx->name);	//设置进程title
 
     ngx_add_timer(&ev, ctx->delay);
 
@@ -1174,6 +1179,8 @@ ngx_cache_manager_process_cycle(ngx_cycle_t *cycle, void *data)
 }
 
 
+//调用每一个磁盘缓存管理对象的manager()函数
+//重新设置事件对象的下一次超时时间
 static void
 ngx_cache_manager_process_handler(ngx_event_t *ev)
 {
@@ -1203,6 +1210,7 @@ ngx_cache_manager_process_handler(ngx_event_t *ev)
 }
 
 
+//将磁盘中上次缓存的对象加载到内存中,当加载完成时候自动退出
 static void
 ngx_cache_loader_process_handler(ngx_event_t *ev)
 {
@@ -1212,6 +1220,7 @@ ngx_cache_loader_process_handler(ngx_event_t *ev)
 
     cycle = (ngx_cycle_t *) ngx_cycle;
 
+	//调用每一个磁盘缓存管理对象的loader()函数
     path = cycle->paths.elts;
     for (i = 0; i < cycle->paths.nelts; i++) {
 
@@ -1225,5 +1234,6 @@ ngx_cache_loader_process_handler(ngx_event_t *ev)
         }
     }
 
+	//加载完成，Cache Loader进程退出
     exit(0);
 }

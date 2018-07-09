@@ -31,8 +31,8 @@ char           **ngx_argv;
 char           **ngx_os_argv;
 
 ngx_int_t        ngx_process_slot;
-ngx_socket_t     ngx_channel;
-ngx_int_t        ngx_last_process;
+ngx_socket_t     ngx_channel;		//
+ngx_int_t        ngx_last_process;	//ngx_processes数组中下一个可以使用的空闲一个对象的索引
 ngx_process_t    ngx_processes[NGX_MAX_PROCESSES];
 
 
@@ -91,7 +91,8 @@ ngx_spawn_process(ngx_cycle_t *cycle, ngx_spawn_proc_pt proc, void *data,
     ngx_pid_t  pid;
     ngx_int_t  s;
 
-    if (respawn >= 0) {
+	//查找ngx_processes数组内第一个可用元素的下标，用s指向之
+    if (respawn >= 0) {	
         s = respawn;
 
     } else {

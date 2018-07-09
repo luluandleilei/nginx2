@@ -41,7 +41,7 @@ struct ngx_event_s {
      * the event was passed or would be passed to a kernel;
      * in aio mode - operation was posted.
      */
-    unsigned         active:1;
+    unsigned         active:1;		//XXX:表示该事件已经被加入到内核以被监控
 
     unsigned         disabled:1;
 

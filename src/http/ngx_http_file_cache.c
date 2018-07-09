@@ -1954,6 +1954,8 @@ ngx_http_file_cache_delete(ngx_http_file_cache_t *cache, ngx_queue_t *q,
 }
 
 
+//首先删除已过期的缓存文件
+//然后检查缓存总大小是否超限，如果超限则进行强制删除
 static ngx_msec_t
 ngx_http_file_cache_manager(void *data)
 {
@@ -1993,7 +1995,7 @@ ngx_http_file_cache_manager(void *data)
 
         wait = ngx_http_file_cache_forced_expire(cache);
 
-        if (wait > 0) {
+        if (wait > 0) {	//当前缓存文件（如果存在）都在使用中，所以需直接返回等待，避免CPU空旋for(;;)循环导致CPU计算能力浪费
             next = (ngx_msec_t) wait * 1000;
             break;
         }
@@ -2029,6 +2031,8 @@ done:
 }
 
 
+//给磁盘缓存管理对象对应路径下已有的缓存文件建立对应的红黑树，
+//从而让nginx可以继续使用上次缓存的文件
 static void
 ngx_http_file_cache_loader(void *data)
 {

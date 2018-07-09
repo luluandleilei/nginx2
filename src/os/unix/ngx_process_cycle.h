@@ -20,17 +20,17 @@
 #define NGX_CMD_REOPEN         5
 
 
-#define NGX_PROCESS_SINGLE     0
-#define NGX_PROCESS_MASTER     1
-#define NGX_PROCESS_SIGNALLER  2
-#define NGX_PROCESS_WORKER     3
-#define NGX_PROCESS_HELPER     4
+#define NGX_PROCESS_SINGLE     0	//单独进程
+#define NGX_PROCESS_MASTER     1	//主进程
+#define NGX_PROCESS_SIGNALLER  2	//信号进程，该进程用于发送信号给已经运行的nginx主进程
+#define NGX_PROCESS_WORKER     3	//工作进程
+#define NGX_PROCESS_HELPER     4	//辅助进程
 
 
 typedef struct {
     ngx_event_handler_pt       handler;
-    char                      *name;
-    ngx_msec_t                 delay;
+    char                      *name;	//进程名
+    ngx_msec_t                 delay;	//XXX:延时delay毫秒/秒?后开始执行
 } ngx_cache_manager_ctx_t;
 
 
