@@ -12,10 +12,10 @@
 
 
 typedef struct {
-    int     signo;
-    char   *signame;
-    char   *name;
-    void  (*handler)(int signo, siginfo_t *siginfo, void *ucontext);
+    int     signo;		//信号值，如SIGHUP
+    char   *signame;	//信号名，如"SIGHUP"
+    char   *name;		//该信号自定义作用名，如"reload"
+    void  (*handler)(int signo, siginfo_t *siginfo, void *ucontext); //信号处理函数指针, 为空将被设置为SIG_IGN
 } ngx_signal_t;
 
 
@@ -35,7 +35,8 @@ ngx_socket_t     ngx_channel;		//XXX: 当前Work进程XXX
 ngx_int_t        ngx_last_process;	//ngx_processes数组中下一个可以使用的空闲一个对象的索引
 ngx_process_t    ngx_processes[NGX_MAX_PROCESSES];
 
-
+//罗列了nginx将要处理的信号，handle为空表示用SIG_IGN进行处理
+//未罗列的信号将按照系统默认的方式进行处理
 ngx_signal_t  signals[] = {
     { ngx_signal_value(NGX_RECONFIGURE_SIGNAL),
       "SIG" ngx_value(NGX_RECONFIGURE_SIGNAL),
@@ -79,7 +80,7 @@ ngx_signal_t  signals[] = {
 
     { SIGPIPE, "SIGPIPE, SIG_IGN", "", NULL },
 
-    { 0, NULL, "", NULL }
+    { 0, NULL, "", NULL }	//哨兵元素
 };
 
 

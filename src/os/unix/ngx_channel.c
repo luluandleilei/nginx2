@@ -208,7 +208,7 @@ ngx_add_channel_event(ngx_cycle_t *cycle, ngx_fd_t fd, ngx_int_t event,
         return NGX_ERROR;
     }
 
-    c->pool = cycle->pool;
+    c->pool = cycle->pool;	//XXX: channel fd 具有与cycle一样的声明周期，故使用cycle.pool作为c.pool
 
     rev = c->read;
     wev = c->write;

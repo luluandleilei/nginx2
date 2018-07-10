@@ -726,6 +726,7 @@ ngx_configure_listening_sockets(ngx_cycle_t *cycle)
 
         ls[i].log = *ls[i].logp;
 
+		//设置接收缓冲区大小(监听套接字的属性是否会被已连接套接字继承？)
         if (ls[i].rcvbuf != -1) {
             if (setsockopt(ls[i].fd, SOL_SOCKET, SO_RCVBUF,
                            (const void *) &ls[i].rcvbuf, sizeof(int))
@@ -737,6 +738,7 @@ ngx_configure_listening_sockets(ngx_cycle_t *cycle)
             }
         }
 
+		//设置发送缓冲区大小
         if (ls[i].sndbuf != -1) {
             if (setsockopt(ls[i].fd, SOL_SOCKET, SO_SNDBUF,
                            (const void *) &ls[i].sndbuf, sizeof(int))
@@ -748,6 +750,7 @@ ngx_configure_listening_sockets(ngx_cycle_t *cycle)
             }
         }
 
+		//设置keepalive
         if (ls[i].keepalive) {
             value = (ls[i].keepalive == 1) ? 1 : 0;
 
@@ -1090,7 +1093,7 @@ ngx_close_listening_sockets(ngx_cycle_t *cycle)
 }
 
 
-//从连接池中获取一个ngx_connection_t结构体，同时获取相应的读/写事件，并初始化。
+//给描述符从连接池中分配一个对应的ngx_connection_t结构体，同时获取相应的读/写事件，并初始化。
 //参数:
 //s -- 这条连接的套接字句柄
 //log -- 记录日志的对象
@@ -1129,10 +1132,11 @@ ngx_get_connection(ngx_socket_t s, ngx_log_t *log)
     ngx_cycle->free_connections = c->data;
     ngx_cycle->free_connection_n--;
 
-    if (ngx_cycle->files && ngx_cycle->files[s] == NULL) {
+    if (ngx_cycle->files && ngx_cycle->files[s] == NULL) {	//XXX:ngx_cycle->files[s] != NULL时是个什么状况
         ngx_cycle->files[s] = c;
     }
 
+	/*初始化connection对象*/
     rev = c->read;
     wev = c->write;
 
@@ -1143,6 +1147,7 @@ ngx_get_connection(ngx_socket_t s, ngx_log_t *log)
     c->fd = s;
     c->log = log;
 
+	/*初始化读写event对象*/
     instance = rev->instance;
 
     ngx_memzero(rev, sizeof(ngx_event_t));

@@ -876,6 +876,7 @@ ngx_destroy_cycle_pools(ngx_conf_t *conf)
 }
 
 
+//XXX:共享内存管理机制的初始化
 static ngx_int_t
 ngx_init_zone_pool(ngx_cycle_t *cycle, ngx_shm_zone_t *zn)
 {
@@ -1219,6 +1220,8 @@ ngx_shared_memory_add(ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag)
     ngx_shm_zone_t   *shm_zone;
     ngx_list_part_t  *part;
 
+	/*遍历全局共享内存链表查找以及冲突检测，对于已经存在且不存在冲突的共享内存直接返回*/
+
     part = &cf->cycle->shared_memory.part;
     shm_zone = part->elts;
 
@@ -1266,6 +1269,8 @@ ngx_shared_memory_add(ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag)
         return &shm_zone[i];
     }
 
+	/*不在全局共享内存链表中，从全局共享内存链表中重新分配一个，并初始化，返回该对象的引用*/
+	
     shm_zone = ngx_list_push(&cf->cycle->shared_memory);
 
     if (shm_zone == NULL) {

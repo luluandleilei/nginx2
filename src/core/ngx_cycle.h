@@ -27,12 +27,12 @@ typedef struct ngx_shm_zone_s  ngx_shm_zone_t;
 typedef ngx_int_t (*ngx_shm_zone_init_pt) (ngx_shm_zone_t *zone, void *data);
 
 struct ngx_shm_zone_s {
-    void                     *data;	//共享内存特定数据,由申请此共享内存的模块设置	
-    ngx_shm_t                 shm;	//共享内存特定初始化函数
-    ngx_shm_zone_init_pt      init;
-    void                     *tag;	//共享内存标签，用于标明该共享内存属于哪个模块
+    void                     *data;		//共享内存特定数据,由申请此共享内存的模块设置	
+    ngx_shm_t                 shm;	
+    ngx_shm_zone_init_pt      init;		//共享内存特定初始化函数,由申请此共享内存的模块设置
+    void                     *tag;		//共享内存标签，用于标识该共享内存属于哪个模块
     void                     *sync;
-    ngx_uint_t                noreuse;  /* unsigned  noreuse:1; */
+    ngx_uint_t                noreuse;	//(重新加载配置时)共享内存是否可以被重用,由申请此共享内存的模块设置
 };
 
 
@@ -45,7 +45,7 @@ struct ngx_cycle_s {
 
     ngx_uint_t                log_use_stderr;  /* unsigned  log_use_stderr:1; */
 
-    ngx_connection_t        **files;			//对于poll、rtsig这样的事件模块，会以有效文件句柄数来预先建立这些ngx_connection_t结构体，以加速事件的收集、分发。这时files就会保存所有ngx_connection_t的指针组成的数组，files_n就是指针的总数，而文件句柄的值用来访问files数组成员
+    ngx_connection_t        **files;			//fd(文件描述符)到connection对象的映射表(数组)，用于poll，rtsig事件驱动模块中查找fd对应connection对象//对于poll、rtsig这样的事件模块，会以有效文件句柄数来预先建立这些ngx_connection_t结构体，以加速事件的收集、分发。这时files就会保存所有ngx_connection_t的指针组成的数组，files_n就是指针的总数，而文件句柄的值用来访问files数组成员
     ngx_connection_t         *free_connections;	//可用连接池，与free_connection_n配合使用
     ngx_uint_t                free_connection_n;//可用连接池中连接的总数
 
@@ -92,7 +92,7 @@ typedef struct {
     ngx_msec_t                timer_resolution;	//系统调用gettimeofday的执行频率。默认情况下，每次内核的事件调用(如epoll)返回时，都会执行一次getimeofday，实现用内核时钟来更新Nginx中的缓存时钟，若设置timer_resolution则定期更新Nginx中的缓存时钟           
     ngx_msec_t                shutdown_timeout;	
 
-    ngx_int_t                 worker_processes;	//work进程的数目
+    ngx_int_t                 worker_processes;	//worker进程的数目
     ngx_int_t                 debug_points;		//Nginx在一些关键的错误逻辑中设置了调试点。如果设置了debug_points为NGX_DEBUG_POINTS_STOP，那么Nginx执行到这些调试点时就会发出SIGSTOP信号以用于调试，如果设置了debug_points为NGX_DEBUG_POINTS_ABORT，那么Nginx执行到这些调试点时就会产生一个coredump文件，可以使用gdb来查看Nginx当时的各种信息
 
     ngx_int_t                 rlimit_nofile;	//每个工作进程的打开文件数的最大值限制(RLIMIT_NOFILE)	
@@ -112,7 +112,7 @@ typedef struct {
     ngx_str_t                 lock_file;			//lock文件的路径
 
     ngx_str_t                 pid;		//保存master进程ID的pid文件存放路径
-    ngx_str_t                 oldpid;
+    ngx_str_t                 oldpid;	
 
     ngx_array_t               env;			//ngx_str_t类型的动态数组, 存储环境变量
     char                    **environment;

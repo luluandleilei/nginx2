@@ -35,13 +35,13 @@ static void *ngx_event_core_create_conf(ngx_cycle_t *cycle);
 static char *ngx_event_core_init_conf(ngx_cycle_t *cycle, void *conf);
 
 
-static ngx_uint_t     ngx_timer_resolution;
-sig_atomic_t          ngx_event_timer_alarm;
+static ngx_uint_t     ngx_timer_resolution;		//ngx_core_module模块的timer_resolution命令指定的时间更新间隔
+sig_atomic_t          ngx_event_timer_alarm;	//全局变量，当它设为1时表示需要更新时间 //在ngx_event_action_t的process_events方法中，每一个事件驱动模块都需要在ngx_event_timer_alarm为1时 //调用ngx_time_update方法更新系统时间，在更新系统时间结束后需要将ngx_event_timer_alarm设为0	
 
-static ngx_uint_t     ngx_event_max_module;
+static ngx_uint_t     ngx_event_max_module;	//event类型模块的总个数
 
-ngx_uint_t            ngx_event_flags;
-ngx_event_actions_t   ngx_event_actions;	//nginx事件驱动接口对象,被初始化为具体的使用的事件驱动程序（epoll.action, select.action）
+ngx_uint_t            ngx_event_flags;		//由实际使用的io复用机制设置的标志
+ngx_event_actions_t   ngx_event_actions;	//nginx事件驱动接口对象,被初始化为具体的使用的事件驱动程序（epoll.action, select.action）//nginx事件框架处理事件时封装的接口，实际使用的io复用机制的action方法
 
 
 static ngx_atomic_t   connection_counter = 1;
@@ -50,10 +50,10 @@ ngx_atomic_t         *ngx_connection_counter = &connection_counter;
 
 ngx_atomic_t         *ngx_accept_mutex_ptr;
 ngx_shmtx_t           ngx_accept_mutex;
-ngx_uint_t            ngx_use_accept_mutex;
+ngx_uint_t            ngx_use_accept_mutex;	 	//表示是否使用accept_mutex负载均衡锁
 ngx_uint_t            ngx_accept_events;
 ngx_uint_t            ngx_accept_mutex_held;
-ngx_msec_t            ngx_accept_mutex_delay;
+ngx_msec_t            ngx_accept_mutex_delay;	//?//负载均衡锁会使有些worker进程在拿不到锁时至少延迟accept_mutex_delay毫秒再重新获取负载均衡锁
 ngx_int_t             ngx_accept_disabled;
 
 
@@ -93,11 +93,14 @@ static ngx_command_t  ngx_events_commands[] = {
 
 static ngx_core_module_t  ngx_events_module_ctx = {
     ngx_string("events"),
-    NULL,
+    NULL,	 //ngx_events_module模块并不会解析配置项参数，只是在出现events配置项后会调用各事件模块去解析events{}块内的配置项，故不需要实现create_conf方法来创建存储配置项的结构体
     ngx_event_init_conf
 };
 
 
+//定义了一种新的模块类型--事件模块(定义每个事件模块都需要实现的ngx_event_module_t接口)
+//为所有的事件模块解析"events {}" 中的配置项，同时管理这些事件模块存储配置项的结构体
+//当然，在解析配置项时会调用其在ngx_command_t数组中定义的回调方法
 ngx_module_t  ngx_events_module = {
     NGX_MODULE_V1,
     &ngx_events_module_ctx,                /* module context */

@@ -347,7 +347,9 @@ ngx_epoll_init(ngx_cycle_t *cycle, ngx_msec_t timer)
         ngx_epoll_aio_init(cycle, epcf);
 #endif
 
-#if (NGX_HAVE_EPOLLRDHUP)
+//XXX：NGX_HAVE_EPOLLRDHUP表示操作系统支持EPOLLRDHUP，但是我们还是要测试是否真的支持
+//用全局变量ngx_use_epoll_rdhup记录是否真正的支持EPOLLRDHUP
+#if (NGX_HAVE_EPOLLRDHUP)	
         ngx_epoll_test_rdhup(cycle);
 #endif
     }
@@ -590,22 +592,24 @@ ngx_epoll_add_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
 
     events = (uint32_t) event;
 
+	/*获取当前事件(ev)的反向事件(e)*/
     if (event == NGX_READ_EVENT) {
         e = c->write;
         prev = EPOLLOUT;
-#if (NGX_READ_EVENT != EPOLLIN|EPOLLRDHUP)
-        events = EPOLLIN|EPOLLRDHUP;
+#if (NGX_READ_EVENT != EPOLLIN|EPOLLRDHUP)	//将nginx的读写标识，转换为epoll特定的读写标识
+        events = EPOLLIN|EPOLLRDHUP;	
 #endif
 
     } else {
         e = c->read;
         prev = EPOLLIN|EPOLLRDHUP;
-#if (NGX_WRITE_EVENT != EPOLLOUT)
+#if (NGX_WRITE_EVENT != EPOLLOUT)	//将nginx的读写标识，转换为epoll特定的读写标识
         events = EPOLLOUT;
 #endif
     }
 
-    if (e->active) {
+	/*根据反向事件(e)是否已经被添加到epoll事件驱动中修正事件标识*/
+    if (e->active) {	
         op = EPOLL_CTL_MOD;
         events |= prev;
 
@@ -614,7 +618,7 @@ ngx_epoll_add_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
     }
 
 #if (NGX_HAVE_EPOLLEXCLUSIVE && NGX_HAVE_EPOLLRDHUP)
-    if (flags & NGX_EXCLUSIVE_EVENT) {
+    if (flags & NGX_EXCLUSIVE_EVENT) {	//XXX：EPOLLRDHUP 和EPOLLEXCLUSIVE不能共存？
         events &= ~EPOLLRDHUP;
     }
 #endif

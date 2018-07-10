@@ -56,7 +56,7 @@ struct ngx_event_s {
     unsigned         eof:1;		//标志位，为1时表示当前处理的字符流已经结束
     unsigned         error:1;	 //标志位，为1时表示事件在处理的过程中出现错误
 
-    unsigned         timedout:1;	 //标志位，为1时表示这个事件已经超时，用以提示事件的消费模块做超时处理
+    unsigned         timedout:1;	//标志位，为1时表示这个事件已经超时，用以提示事件的消费模块做超时处理
     unsigned         timer_set:1;	//标志位，为1时表示这个事件存在于定时器中
 
     unsigned         delayed:1;	//标志位，为1时表示需要延迟处理这个事件，它仅用于限速功能， //在定时器到期时才开始处理 //标志位，为1表明响应需要延迟发送
@@ -64,7 +64,7 @@ struct ngx_event_s {
     unsigned         deferred_accept:1;	//标志位，为1时表示延迟建立TCP连接--经过TCP三次握手后并不建立连接,而是要等到真正收到数据包后才会建立TCP连接
 
     /* the pending eof reported by kqueue, epoll or in aio chain operation */
-    unsigned         pending_eof:1;	//标志位，为1时表示等待字符流结束， 它只与kqueue和aio事件驱动机制有关
+    unsigned         pending_eof:1;	//标志位，为1时表示等待字符流结束， 它只与kqueue、epoll和aio事件驱动机制有关
 
     unsigned         posted:1;	 //表明事件是否在posted queue中
 
@@ -114,7 +114,7 @@ struct ngx_event_s {
     ngx_event_ovlp_t ovlp;	 // Windows系统下的一种事件驱动模型，
 #endif
 
-    ngx_uint_t       index;	//epoll事件驱动方式不使用index
+    ngx_uint_t       index;	//epoll事件驱动方式不使用index //当使用poll事件驱动时，当该event被添加到XXX中后，该event在event_list中的下标
 
     ngx_log_t       *log;	//可用于记录error_log日志的ngx_log_t对象
 
@@ -309,7 +309,7 @@ extern ngx_uint_t            ngx_use_epoll_rdhup;
 
 
 #if (NGX_HAVE_EPOLL) && !(NGX_HAVE_EPOLLRDHUP)
-#define EPOLLRDHUP         0
+#define EPOLLRDHUP         0	//当操作系统不支持EPOLLRDHUP时将其定义为0
 #endif
 
 
@@ -367,7 +367,7 @@ extern ngx_uint_t            ngx_use_epoll_rdhup;
 #define NGX_ONESHOT_EVENT  EPOLLONESHOT
 #endif
 
-#if (NGX_HAVE_EPOLLEXCLUSIVE)
+#if (NGX_HAVE_EPOLLEXCLUSIVE)	//NGX_HAVE_EPOLLEXCLUSIVE表示系统支持EPOLLEXCLUSIVE
 #define NGX_EXCLUSIVE_EVENT  EPOLLEXCLUSIVE
 #endif
 

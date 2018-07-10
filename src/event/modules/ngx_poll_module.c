@@ -21,7 +21,7 @@ static ngx_int_t ngx_poll_process_events(ngx_cycle_t *cycle, ngx_msec_t timer,
 static char *ngx_poll_init_conf(ngx_cycle_t *cycle, void *conf);
 
 
-static struct pollfd  *event_list;
+static struct pollfd  *event_list;	//XXX:保存所有的需要监测描述符对应的事件的列表
 static ngx_uint_t      nevents;
 
 
@@ -259,7 +259,7 @@ ngx_poll_process_events(ngx_cycle_t *cycle, ngx_msec_t timer, ngx_uint_t flags)
 
     ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0, "poll timer: %M", timer);
 
-    ready = poll(event_list, (u_int) nevents, (int) timer);
+    ready = poll(event_list, (u_int) nevents, (int) timer); //XXX:是否需要将event_list中的每个pollfd对象的revents置为0？
 
     err = (ready == -1) ? ngx_errno : 0;
 

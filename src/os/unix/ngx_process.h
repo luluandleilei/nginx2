@@ -37,10 +37,10 @@ typedef struct {
 
 
 typedef struct {
-    char         *path;
+    char         *path;	//程序路径
     char         *name;
-    char *const  *argv;
-    char *const  *envp;
+    char *const  *argv;	//程序参数
+    char *const  *envp; //程序环境变量
 } ngx_exec_ctx_t;
 
 

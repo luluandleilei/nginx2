@@ -45,7 +45,7 @@ typedef struct {
     ngx_uint_t        pfree;
 
     u_char           *start;
-    u_char           *end;
+    u_char           *end;		//shm.addr + shm.size
 
     ngx_shmtx_t       mutex;
 
@@ -55,7 +55,7 @@ typedef struct {
     unsigned          log_nomem:1;
 
     void             *data;
-    void             *addr;
+    void             *addr;		//shm.addr
 } ngx_slab_pool_t;
 
 

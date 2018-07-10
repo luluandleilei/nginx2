@@ -40,6 +40,12 @@ static ngx_conf_enum_t  ngx_debug_points[] = {
 
 static ngx_command_t  ngx_core_commands[] = {
 
+	/*
+	 Syntax:	daemon on | off;
+	 Default:	daemon on;
+	 Context:	main
+	 Determines whether nginx should become a daemon. Mainly used during development.
+	*/
     { ngx_string("daemon"),
       NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_FLAG,
       ngx_conf_set_flag_slot,
@@ -47,6 +53,12 @@ static ngx_command_t  ngx_core_commands[] = {
       offsetof(ngx_core_conf_t, daemon),
       NULL },
 
+	/*
+	 Syntax:	master_process on | off;
+ 	 Default:	master_process on;
+ 	 Context:	main
+ 	 Determines whether worker processes are started. This directive is intended for nginx developers.
+ 	*/
     { ngx_string("master_process"),
       NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_FLAG,
       ngx_conf_set_flag_slot,
@@ -54,6 +66,22 @@ static ngx_command_t  ngx_core_commands[] = {
       offsetof(ngx_core_conf_t, master),
       NULL },
 
+	/*
+	 Syntax:	timer_resolution interval;
+	 Default:	—
+	 Context:	main
+	 Reduces timer resolution in worker processes, thus reducing the number of gettimeofday() system 
+	 calls made. By default, gettimeofday() is called each time a kernel event is received. With 
+	 reduced resolution, gettimeofday() is only called once per specified interval.
+
+	 Example:
+	 	timer_resolution 100ms;
+	 	
+	 Internal implementation of the interval depends on the method used:
+		the EVFILT_TIMER filter if kqueue is used;
+		timer_create() if eventport is used;
+		setitimer() otherwise.
+	*/
     { ngx_string("timer_resolution"),
       NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_msec_slot,
@@ -61,6 +89,12 @@ static ngx_command_t  ngx_core_commands[] = {
       offsetof(ngx_core_conf_t, timer_resolution),
       NULL },
 
+	/*
+	 Syntax:	pid file;
+	 Default:	pid logs/nginx.pid;
+	 Context:	main
+	 Defines a file that will store the process ID of the main process.
+	*/
     { ngx_string("pid"),
       NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_str_slot,
@@ -68,6 +102,15 @@ static ngx_command_t  ngx_core_commands[] = {
       offsetof(ngx_core_conf_t, pid),
       NULL },
 
+	/*
+	 Syntax:	lock_file file;
+	 Default:	lock_file logs/nginx.lock;
+	 Context:	main
+	 nginx uses the locking mechanism to implement accept_mutex and serialize access to shared memory. 
+	 On most systems the locks are implemented using atomic operations, and this directive is ignored. 
+	 On other systems the “lock file” mechanism is used. This directive specifies a prefix for the 
+	 names of lock files.
+	*/
     { ngx_string("lock_file"),
       NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_str_slot,
@@ -75,6 +118,17 @@ static ngx_command_t  ngx_core_commands[] = {
       offsetof(ngx_core_conf_t, lock_file),
       NULL },
 
+	/*
+	 Syntax:	worker_processes number | auto;
+	 Default:	
+	 worker_processes 1;
+	 Context:	main
+	 Defines the number of worker processes.
+
+	 The optimal value depends on many factors including (but not limited to) the number of CPU cores,
+	 the number of hard disk drives that store data, and load pattern. When one is in doubt, setting it 
+	 to the number of available CPU cores would be a good start (the value “auto” will try to autodetect it).
+	*/
     { ngx_string("worker_processes"),
       NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
       ngx_set_worker_processes,
@@ -82,6 +136,16 @@ static ngx_command_t  ngx_core_commands[] = {
       0,
       NULL },
 
+	/*
+	 Syntax:	debug_points abort | stop;
+	 Default:	—
+	 Context:	main
+	 This directive is used for debugging.
+
+	 When internal error is detected, e.g. the leak of sockets on restart of working processes, 
+	 enabling debug_points leads to a core file creation (abort) or to stopping of a process (stop)
+	 for further analysis using a system debugger.
+	*/
     { ngx_string("debug_points"),
       NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_enum_slot,
@@ -89,6 +153,13 @@ static ngx_command_t  ngx_core_commands[] = {
       offsetof(ngx_core_conf_t, debug_points),
       &ngx_debug_points },
 
+	/*
+	 Syntax:	user user [group];
+	 Default: 	user nobody nobody;
+	 Context:	main
+	 Defines user and group credentials used by worker processes. If group is omitted, a group whose
+	 name equals that of user is used.
+	*/
     { ngx_string("user"),
       NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE12,
       ngx_set_user,
@@ -96,6 +167,16 @@ static ngx_command_t  ngx_core_commands[] = {
       0,
       NULL },
 
+	/*
+	 Syntax:	worker_priority number;
+	 Default:  	worker_priority 0;
+	 Context:	main
+	 Defines the scheduling priority for worker processes like it is done by the nice command: a 
+	 negative number means higher priority. Allowed range normally varies from -20 to 20.
+
+	 Example:
+		worker_priority -10;
+	*/
     { ngx_string("worker_priority"),
       NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
       ngx_set_priority,
@@ -103,6 +184,31 @@ static ngx_command_t  ngx_core_commands[] = {
       0,
       NULL },
 
+	/*
+	 Syntax:	worker_cpu_affinity cpumask ...;
+	 worker_cpu_affinity auto [cpumask];
+ 	 Default:	—
+	 Context:	main
+	 Binds worker processes to the sets of CPUs. Each CPU set is represented by a bitmask of allowed
+	 CPUs. There should be a separate set defined for each of the worker processes. By default, 
+	 worker processes are not bound to any specific CPUs.
+
+	 For example,
+		worker_processes    4;
+		worker_cpu_affinity 0001 0010 0100 1000;	
+	 binds each worker process to a separate CPU, while
+		worker_processes    2;
+		worker_cpu_affinity 0101 1010;
+	 binds the first worker process to CPU0/CPU2, and the second worker process to CPU1/CPU3. The 
+	 second example is suitable for hyper-threading.
+
+	 The special value auto (1.9.10) allows binding worker processes automatically to available CPUs:
+		worker_processes auto;
+		worker_cpu_affinity auto;
+	 The optional mask parameter can be used to limit the CPUs available for automatic binding:
+		worker_cpu_affinity auto 01010101;
+	 The directive is only available on FreeBSD and Linux.
+	*/
     { ngx_string("worker_cpu_affinity"),
       NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_1MORE,
       ngx_set_cpu_affinity,
@@ -110,6 +216,13 @@ static ngx_command_t  ngx_core_commands[] = {
       0,
       NULL },
 
+	/*
+	 Syntax:	worker_rlimit_nofile number;
+	 Default:	—
+	 Context:	main
+	 Changes the limit on the maximum number of open files (RLIMIT_NOFILE) for worker processes. 
+	 Used to increase the limit without restarting the main process.
+	*/
     { ngx_string("worker_rlimit_nofile"),
       NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_num_slot,
@@ -117,6 +230,12 @@ static ngx_command_t  ngx_core_commands[] = {
       offsetof(ngx_core_conf_t, rlimit_nofile),
       NULL },
 
+	/*
+	 Syntax:	worker_rlimit_core size;
+	 Default:	—
+  	 Context:	main
+	 Changes the limit on the largest size of a core file (RLIMIT_CORE) for worker processes. Used
+	 to increase the limit without restarting the main process.*/
     { ngx_string("worker_rlimit_core"),
       NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_off_slot,
@@ -124,6 +243,15 @@ static ngx_command_t  ngx_core_commands[] = {
       offsetof(ngx_core_conf_t, rlimit_core),
       NULL },
 
+	/*
+	 Syntax:	worker_shutdown_timeout time;
+	 Default:	—
+	 Context:	main
+	 This directive appeared in version 1.11.11.
+
+	 Configures a timeout for a graceful shutdown of worker processes. When the time expires, nginx
+	 will try to close all the connections currently open to facilitate shutdown.
+	*/
     { ngx_string("worker_shutdown_timeout"),
       NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_msec_slot,
@@ -131,6 +259,14 @@ static ngx_command_t  ngx_core_commands[] = {
       offsetof(ngx_core_conf_t, shutdown_timeout),
       NULL },
 
+	/*
+	 Syntax:	working_directory directory;
+	 Default:	—
+	 Context:	main
+     Defines the current working directory for a worker process. It is primarily used when writing
+     a core-file, in which case a worker process should have write permission for the specified 
+     directory.
+    */
     { ngx_string("working_directory"),
       NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_str_slot,
@@ -138,6 +274,31 @@ static ngx_command_t  ngx_core_commands[] = {
       offsetof(ngx_core_conf_t, working_directory),
       NULL },
 
+	/*
+	 Syntax:	env variable[=value];
+	 Default: 	env TZ;
+	 Context:	main
+	 By default, nginx removes all environment variables inherited from its parent process except
+	 the TZ variable. This directive allows preserving some of the inherited variables, changing
+	 their values, or creating new environment variables. These variables are then:
+		*inherited during a live upgrade of an executable file;
+		*used by the ngx_http_perl_module module;
+		*used by worker processes. One should bear in mind that controlling system libraries in 
+		 this way is not always possible as it is common for libraries to check variables only 
+		 during initialization, well before they can be set using this directive. An exception 
+		 from this is an above mentioned live upgrade of an executable file.
+
+	 The TZ variable is always inherited and available to the ngx_http_perl_module module, unless
+	 it is configured explicitly.
+
+	 Usage example:
+		env MALLOC_OPTIONS;
+		env PERL5LIB=/data/site/modules;
+		env OPENSSL_ALLOW_PROXY_CERTS=1;
+		
+	 The NGINX environment variable is used internally by nginx and should not be set directly by 
+	 the user.
+	*/
     { ngx_string("env"),
       NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
       ngx_set_env,
@@ -145,6 +306,16 @@ static ngx_command_t  ngx_core_commands[] = {
       0,
       NULL },
 
+	/*
+	 Syntax:	load_module file;
+	 Default:	—
+	 Context:	main
+	 This directive appeared in version 1.9.11.
+	 Loads a dynamic module.
+
+	 Example:
+		load_module modules/ngx_mail_module.so;
+	*/
     { ngx_string("load_module"),
       NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
       ngx_load_module,
@@ -340,6 +511,7 @@ main(int argc, char *const *argv)
 
 #if !(NGX_WIN32)
 
+	//完成信号处理的设置工作
     if (ngx_init_signals(cycle->log) != NGX_OK) {
         return 1;
     }
@@ -654,6 +826,8 @@ ngx_exec_new_binary(ngx_cycle_t *cycle, char *const *argv)
     ctx.name = "new binary process";
     ctx.argv = argv;
 
+	/*设置环境变量*/
+	
     n = 2;
     env = ngx_set_environment(cycle, &n);
     if (env == NULL) {
@@ -704,6 +878,8 @@ ngx_exec_new_binary(ngx_cycle_t *cycle, char *const *argv)
 
     ctx.envp = (char *const *) env;
 
+	/*备份当前进程的pid文件*/
+	
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
 
     if (ngx_rename_file(ccf->pid.data, ccf->oldpid.data) == NGX_FILE_ERROR) {
