@@ -27,7 +27,7 @@ static ngx_event_t     ngx_shutdown_event;
 
 ngx_uint_t             ngx_test_config;
 ngx_uint_t             ngx_dump_config;
-ngx_uint_t             ngx_quiet_mode;
+ngx_uint_t             ngx_quiet_mode;	//-q 启动参数设置,quiet模式
 
 
 /* STUB NAME */

@@ -27,11 +27,11 @@ static void ngx_unlock_mutexes(ngx_pid_t pid);
 
 
 int              ngx_argc;
-char           **ngx_argv;
-char           **ngx_os_argv;
+char           **ngx_argv;		//nginx对操作系统传递的argv的一份拷贝
+char           **ngx_os_argv;	//指向操作系统传递给进程的argv参数，//ngx_argv, ngx_os_argv有和区别
 
-ngx_int_t        ngx_process_slot;
-ngx_socket_t     ngx_channel;		//
+ngx_int_t        ngx_process_slot;	//XXX：master进程正在使用xxx;当前的work进程使用ngx_processes数组内的元素的下标
+ngx_socket_t     ngx_channel;		//XXX: 当前Work进程XXX
 ngx_int_t        ngx_last_process;	//ngx_processes数组中下一个可以使用的空闲一个对象的索引
 ngx_process_t    ngx_processes[NGX_MAX_PROCESSES];
 

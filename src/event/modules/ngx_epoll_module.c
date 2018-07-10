@@ -14,26 +14,26 @@
 
 /* epoll declarations */
 
-#define EPOLLIN        0x001
-#define EPOLLPRI       0x002
-#define EPOLLOUT       0x004
-#define EPOLLERR       0x008
-#define EPOLLHUP       0x010
+#define EPOLLIN        0x001	//表示对应的连接上有数据可以读出(TCP连接的远端主动关闭连接，也相当于可读事件，因为需要处理发送来的FIN包)
+#define EPOLLPRI       0x002	//表示对应的连接上有紧急数据需要读
+#define EPOLLOUT       0x004	//表示对应的连接上可以写入数据发送(主动向上游服务器发起非阻塞的TCP连接，连接建立成功的事件相当于可写事件)
+#define EPOLLERR       0x008	//表示对应的连接发生错误
+#define EPOLLHUP       0x010	//表示对应的连接被挂起
 #define EPOLLRDNORM    0x040
 #define EPOLLRDBAND    0x080
 #define EPOLLWRNORM    0x100
 #define EPOLLWRBAND    0x200
 #define EPOLLMSG       0x400
 
-#define EPOLLRDHUP     0x2000
+#define EPOLLRDHUP     0x2000	 //表示TCP连接的远端关闭或半关闭连接
 
 #define EPOLLEXCLUSIVE 0x10000000
-#define EPOLLONESHOT   0x40000000
-#define EPOLLET        0x80000000
+#define EPOLLONESHOT   0x40000000	//表示对这个事件只处理一次，下次需要处理时需要重新加入epoll
+#define EPOLLET        0x80000000	//表示将触发方式设置为边缘触发(ET)，系统默认为水平触发(LT)
 
-#define EPOLL_CTL_ADD  1
-#define EPOLL_CTL_DEL  2
-#define EPOLL_CTL_MOD  3
+#define EPOLL_CTL_ADD  1	//添加新的事件到epoll中
+#define EPOLL_CTL_DEL  2	//删除epoll中的事件
+#define EPOLL_CTL_MOD  3	//修改epoll中的事件
 
 typedef union epoll_data {
     void         *ptr;
@@ -130,9 +130,9 @@ static void ngx_epoll_eventfd_handler(ngx_event_t *ev);
 static void *ngx_epoll_create_conf(ngx_cycle_t *cycle);
 static char *ngx_epoll_init_conf(ngx_cycle_t *cycle, void *conf);
 
-static int                  ep = -1;
-static struct epoll_event  *event_list;
-static ngx_uint_t           nevents;
+static int                  ep = -1;	//epoll对象的描述符
+static struct epoll_event  *event_list;	//存储每次调用epoll_wait返回的事件的数组
+static ngx_uint_t           nevents;	//event_list数组元素的个数
 
 #if (NGX_HAVE_EVENTFD)
 static int                  notify_fd = -1;	//ngx_epoll_notify_init
@@ -151,13 +151,14 @@ static ngx_connection_t     ngx_eventfd_conn;
 #endif
 
 #if (NGX_HAVE_EPOLLRDHUP)
-ngx_uint_t                  ngx_use_epoll_rdhup;
+ngx_uint_t                  ngx_use_epoll_rdhup;	//XXX:表明epoll支持EPOLLRDHUB
 #endif
 
 static ngx_str_t      epoll_name = ngx_string("epoll");
 
 static ngx_command_t  ngx_epoll_commands[] = {
 
+	//这个配置项表示调用一次epoll_wait最多可以返回的事件数
     { ngx_string("epoll_events"),
       NGX_EVENT_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_num_slot,
@@ -165,6 +166,7 @@ static ngx_command_t  ngx_epoll_commands[] = {
       offsetof(ngx_epoll_conf_t, events),
       NULL },
 
+	//指明在开启异步I/O且使用io_setup系统调用初始化异步I/O上下文环境时，初始分配的异步I/O事件个数  
     { ngx_string("worker_aio_requests"),
       NGX_EVENT_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_num_slot,

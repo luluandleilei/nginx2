@@ -25,10 +25,11 @@
  */
 
 
-static ngx_str_t  *ngx_sys_errlist;
+static ngx_str_t  *ngx_sys_errlist;	//errno及其对应字符串描述的数组
 static ngx_str_t   ngx_unknown_error = ngx_string("Unknown error");
 
 
+/*根据err数字获取对应的字符串描述写入到errstr指定的空间中*/
 u_char *
 ngx_strerror(ngx_err_t err, u_char *errstr, size_t size)
 {
@@ -42,6 +43,7 @@ ngx_strerror(ngx_err_t err, u_char *errstr, size_t size)
 }
 
 
+/*初始化 ngx_sys_errlist 字符串数组*/
 ngx_int_t
 ngx_strerror_init(void)
 {

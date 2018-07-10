@@ -182,10 +182,10 @@ ngx_module_t  ngx_core_module = {
 static ngx_uint_t   ngx_show_help;
 static ngx_uint_t   ngx_show_version;
 static ngx_uint_t   ngx_show_configure;
-static u_char      *ngx_prefix;
-static u_char      *ngx_conf_file;
-static u_char      *ngx_conf_params;
-static char        *ngx_signal;
+static u_char      *ngx_prefix;			//-p 启动参数设置,应用程序、配置文件等的路径前缀
+static u_char      *ngx_conf_file;		//-c 启动参数设置,配置文件nginx.conf的路径
+static u_char      *ngx_conf_params;	//-g 启动参数设置,配置文件nginx.conf的全局指令 
+static char        *ngx_signal;			//-s 启动参数设置,发送的信号
 
 
 static char **ngx_os_environ;
@@ -914,6 +914,7 @@ ngx_process_options(ngx_cycle_t *cycle)
     u_char  *p;
     size_t   len;
 
+	//XXX:cycle->conf_prefix: -p > NGX_CONF_PREFIX > NGX_PREFIX > cwd
     if (ngx_prefix) {
         len = ngx_strlen(ngx_prefix);
         p = ngx_prefix;
@@ -959,7 +960,7 @@ ngx_process_options(ngx_cycle_t *cycle)
 #else
 
 #ifdef NGX_CONF_PREFIX
-        ngx_str_set(&cycle->conf_prefix, NGX_CONF_PREFIX);
+        ngx_str_set(&cycle->conf_prefix, NGX_CONF_PREFIX);	//XXX:NGX_CONF_PREFIX 默认为 "conf/"
 #else
         ngx_str_set(&cycle->conf_prefix, NGX_PREFIX);
 #endif
@@ -973,7 +974,7 @@ ngx_process_options(ngx_cycle_t *cycle)
         cycle->conf_file.data = ngx_conf_file;
 
     } else {
-        ngx_str_set(&cycle->conf_file, NGX_CONF_PATH);
+        ngx_str_set(&cycle->conf_file, NGX_CONF_PATH);	//NGX_CONF_PATH在编译前通过"./configure --conf-path=PATH"指定，默认为"conf/nginx.conf"
     }
 
     if (ngx_conf_full_name(cycle, &cycle->conf_file, 0) != NGX_OK) {

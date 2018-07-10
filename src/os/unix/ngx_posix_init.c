@@ -19,7 +19,7 @@ ngx_uint_t  ngx_tcp_nodelay_and_tcp_nopush;
 struct rlimit  rlmt;
 
 
-ngx_os_io_t ngx_os_io = {
+ngx_os_io_t ngx_os_io = {	//posix标准下的IO对象，将于ngx_io关联
     ngx_unix_recv,
     ngx_readv_chain,
     ngx_udp_unix_recv,

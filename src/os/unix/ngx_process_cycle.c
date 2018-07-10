@@ -31,16 +31,16 @@ static void ngx_cache_loader_process_handler(ngx_event_t *ev);
 ngx_uint_t    ngx_process;	//当前进程的类型：NGX_PROCESS_XXX
 ngx_uint_t    ngx_worker;
 ngx_pid_t     ngx_pid;		//当前进程pid
-ngx_pid_t     ngx_parent;	//父进程pid（仅对work子进程有效）
+ngx_pid_t     ngx_parent;	//当前进程的父进程pid
 
 sig_atomic_t  ngx_reap;			//收到信号XXX;表示有工作进程退出,将重新fork生成一个新的工作进程
 sig_atomic_t  ngx_sigio;
 sig_atomic_t  ngx_sigalrm;		//收到SIGALRM信号;表示定时器时间到期
 sig_atomic_t  ngx_terminate;	//XXX：收到SIGINT信号; 表示用户要求nginx终止，将结束进程(通过使用SIGKILL信号保证在一段时间后work进程必定被结束掉)
-sig_atomic_t  ngx_quit;			//收到信号XXX;表示用户要求nginx退出，将优雅的结束进程(master进程将做一些清理工作且等待work进程也完全清理并退出之后才终止)
+sig_atomic_t  ngx_quit;			//收到XXX信号;表示用户要求nginx退出，将优雅的结束进程(master进程将做一些清理工作且等待work进程也完全清理并退出之后才终止)
 sig_atomic_t  ngx_debug_quit;
 ngx_uint_t    ngx_exiting;
-sig_atomic_t  ngx_reconfigure;	//收到信号XXX;表示将重新加载配置
+sig_atomic_t  ngx_reconfigure;	//收到XXX信号;表示将重新加载配置
 sig_atomic_t  ngx_reopen;
 
 sig_atomic_t  ngx_change_binary;
@@ -136,7 +136,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
     ngx_new_binary = 0;
     delay = 0;	//XXX:通知子进程结束后，等待子进程结束的时间(收到SIGCHLD表示子进程结束）
     sigio = 0;	//	
-    live = 1;
+    live = 1;	//XXX:表示work进程在运行
 
 	//调用sigsuspend挂起等待接收到信号，处理信号，重新调用sigsuspend挂起等待接收到信号
     for ( ;; ) {

@@ -10,7 +10,7 @@
 #include <ngx_event.h>
 
 
-ngx_os_io_t  ngx_io;
+ngx_os_io_t  ngx_io;	//XXX:系统IO接口对象,将根据不同操作系统被初始化为不同的值
 
 
 static void ngx_drain_connections(ngx_cycle_t *cycle);
