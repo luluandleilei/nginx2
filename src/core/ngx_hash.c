@@ -248,6 +248,10 @@ ngx_hash_find_combined(ngx_hash_combined_t *hash, ngx_uint_t key, u_char *name,
 #define NGX_HASH_ELT_SIZE(name)                                               \
     (sizeof(void *) + ngx_align((name)->key.len + 2, sizeof(void *)))
 
+//ngx_hash_t的初始化
+//hinit是初始化的一些参数的一个集合。
+//names是初始化一个ngx_hash_t所需要的所有key的一个数组
+//nelts就是key的个数
 ngx_int_t
 ngx_hash_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names, ngx_uint_t nelts)
 {

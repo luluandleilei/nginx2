@@ -15,10 +15,10 @@
 
 typedef struct {
     void        *elts;	//数组的起始地址
-    ngx_uint_t   nelts;	//数组当前元素的个数
-    size_t       size;	//数组中每个元素的大小
-    ngx_uint_t   nalloc;//数组能够容纳的最多的元素个数
-    ngx_pool_t  *pool;
+    ngx_uint_t   nelts;	//数组中当前元素的个数
+    size_t       size;	//数组中单个元素的大小，单位是字节
+    ngx_uint_t   nalloc;//数组的容量。表示该数组在不引发扩容的前提下，可以最多存储的元素的个数。当nelts增长到达nalloc 时，如果再往此数组中存储元素，则会引发数组的扩容。数组的容量将会扩展到原有容量的2倍大小。实际上是分配新的一块内存，新的一块内存的大小是原有内存大小的2倍。原有的数据会被拷贝到新的一块内存中。
+    ngx_pool_t  *pool;	//该数组用来分配内存的内存池。
 } ngx_array_t;
 
 
