@@ -100,7 +100,7 @@ ngx_time_update(void)
 
     tp = &cached_time[slot];
 
-    if (tp->sec == sec) {
+    if (tp->sec == sec) {	//时间字符串以秒为精度，当秒未改变时，仅需要修正毫秒数
         tp->msec = msec;
         ngx_unlock(&ngx_time_lock);
         return;

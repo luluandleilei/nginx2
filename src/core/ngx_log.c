@@ -254,7 +254,7 @@ ngx_log_abort(ngx_err_t err, const char *fmt, ...)
                   "%*s", p - errstr, errstr);
 }
 
-
+//输出日志到标准错误
 void ngx_cdecl
 ngx_log_stderr(ngx_err_t err, const char *fmt, ...)
 {

@@ -47,8 +47,8 @@ struct ngx_pool_large_s {
 
 
 typedef struct {
-    u_char               *last;
-    u_char               *end;
+    u_char               *last;	//上次分配结束的下一个位置
+    u_char               *end;	
     ngx_pool_t           *next;
     ngx_uint_t            failed;
 } ngx_pool_data_t;
@@ -56,8 +56,8 @@ typedef struct {
 
 struct ngx_pool_s {
     ngx_pool_data_t       d;
-    size_t                max;
-    ngx_pool_t           *current;
+    size_t                max;		//一次性最大可以分配的空间的大小
+    ngx_pool_t           *current;	//当前可以分配
     ngx_chain_t          *chain;
     ngx_pool_large_t     *large;
     ngx_pool_cleanup_t   *cleanup;
