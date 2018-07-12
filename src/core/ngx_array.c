@@ -9,6 +9,10 @@
 #include <ngx_core.h>
 
 
+//创建一个新的数组对象，并返回这个对象
+//p:	数组分配内存使用的内存池；
+//n:	数组的初始容量大小，即在不扩容的情况下最多可以容纳的元素个数。
+//size:	单个元素的大小，单位是字节。
 ngx_array_t *
 ngx_array_create(ngx_pool_t *p, ngx_uint_t n, size_t size)
 {
@@ -27,6 +31,7 @@ ngx_array_create(ngx_pool_t *p, ngx_uint_t n, size_t size)
 }
 
 
+//销毁该数组对象，并释放其分配的内存回内存池
 void
 ngx_array_destroy(ngx_array_t *a)
 {
@@ -44,6 +49,10 @@ ngx_array_destroy(ngx_array_t *a)
 }
 
 
+//在数组a上新追加一个元素，并返回指向新元素的指针。需要把返回的指针使用类型转换，
+//转换为具体的类型，然后再给新元素本身或者是各字段（如果数组的元素是复杂类型）赋值。
+//注意事项: 由于使用ngx_palloc分配内存，数组在扩容时，旧的内存不会被释放，会造成内存的浪费。
+//因此，最好能提前规划好数组的容量，在创建或者初始化的时候一次搞定，避免多次扩容，造成内存浪费。
 void *
 ngx_array_push(ngx_array_t *a)
 {
@@ -91,6 +100,9 @@ ngx_array_push(ngx_array_t *a)
 }
 
 
+//在数组a上追加n个元素，并返回指向这些追加元素的首个元素的位置的指针
+//注意事项: 由于使用ngx_palloc分配内存，数组在扩容时，旧的内存不会被释放，会造成内存的浪费。
+//因此，最好能提前规划好数组的容量，在创建或者初始化的时候一次搞定，避免多次扩容，造成内存浪费。
 void *
 ngx_array_push_n(ngx_array_t *a, ngx_uint_t n)
 {

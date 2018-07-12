@@ -13,9 +13,14 @@
 #include <ngx_core.h>
 
 
+/*
+通过长度来表示字符串长度，减少计算字符串长度的次数
+可以重复引用一段字符串内存，data可以指向任意内存，长度表示结束， 而不用去copy一份自己的字符串 (因为如果要以’\0’结束，而不能更改原字符串，所以势必要copy一段字符串)
+正是基于此特性，在nginx中，必须谨慎的去修改一个字符串。在修改字符串时需要认真的去考虑：是否可以修改该字符串；字符串修改后，是否会对其它的引用造成影响。
+*/
 typedef struct {
     size_t      len;
-    u_char     *data;
+    u_char     *data;	//指向字符串数据的第一个字符，字符串的结束用长度来表示，而不是由’\0’来表示结束。
 } ngx_str_t;
 
 
@@ -37,24 +42,24 @@ typedef struct {
 } ngx_variable_value_t;
 
 
-#define ngx_string(str)     { sizeof(str) - 1, (u_char *) str }
-#define ngx_null_string     { 0, NULL }
-#define ngx_str_set(str, text)                                               \
+#define ngx_string(str)     { sizeof(str) - 1, (u_char *) str }	//将一个以’\0’结尾的常量字符串str构造一个nginx的字符串
+#define ngx_null_string     { 0, NULL }							//构造一个nginx的空字符串，一般用于初始化
+#define ngx_str_set(str, text)                                               \	//设置字符串str为常量字符串text
     (str)->len = sizeof(text) - 1; (str)->data = (u_char *) text
-#define ngx_str_null(str)   (str)->len = 0; (str)->data = NULL
+#define ngx_str_null(str)   (str)->len = 0; (str)->data = NULL	//设置字符串str为空串
 
 
 #define ngx_tolower(c)      (u_char) ((c >= 'A' && c <= 'Z') ? (c | 0x20) : c)
 #define ngx_toupper(c)      (u_char) ((c >= 'a' && c <= 'z') ? (c & ~0x20) : c)
 
-void ngx_strlow(u_char *dst, u_char *src, size_t n);
+void ngx_strlow(u_char *dst, u_char *src, size_t n);	//将src的前n个字符转换成小写存放在dst字符串当中，调用者需要保证dst指向的空间大于等于n，且指向的空间必须可写。
 
 
-#define ngx_strncmp(s1, s2, n)  strncmp((const char *) s1, (const char *) s2, n)
+#define ngx_strncmp(s1, s2, n)  strncmp((const char *) s1, (const char *) s2, n)	//区分大小写的字符串比较，只比较前n个字符。
 
 
 /* msvc and icc7 compile strcmp() to inline loop */
-#define ngx_strcmp(s1, s2)  strcmp((const char *) s1, (const char *) s2)
+#define ngx_strcmp(s1, s2)  strcmp((const char *) s1, (const char *) s2)	//区分大小写的不带长度的字符串比较。
 
 
 #define ngx_strstr(s1, s2)  strstr((const char *) s1, (const char *) s2)
@@ -148,16 +153,16 @@ ngx_copy(u_char *dst, u_char *src, size_t len)
 
 u_char *ngx_cpystrn(u_char *dst, u_char *src, size_t n);
 u_char *ngx_pstrdup(ngx_pool_t *pool, ngx_str_t *src);
-u_char * ngx_cdecl ngx_sprintf(u_char *buf, const char *fmt, ...);
-u_char * ngx_cdecl ngx_snprintf(u_char *buf, size_t max, const char *fmt, ...);
-u_char * ngx_cdecl ngx_slprintf(u_char *buf, u_char *last, const char *fmt,
+u_char * ngx_cdecl ngx_sprintf(u_char *buf, const char *fmt, ...);					//用于字符串格式化，
+u_char * ngx_cdecl ngx_snprintf(u_char *buf, size_t max, const char *fmt, ...);	//用于字符串格式化，参数max指明buf的空间大小
+u_char * ngx_cdecl ngx_slprintf(u_char *buf, u_char *last, const char *fmt,			//用于字符串格式化，参数last指明buf的空间大小
     ...);
 u_char *ngx_vslprintf(u_char *buf, u_char *last, const char *fmt, va_list args);
 #define ngx_vsnprintf(buf, max, fmt, args)                                   \
     ngx_vslprintf(buf, buf + (max), fmt, args)
 
-ngx_int_t ngx_strcasecmp(u_char *s1, u_char *s2);
-ngx_int_t ngx_strncasecmp(u_char *s1, u_char *s2, size_t n);
+ngx_int_t ngx_strcasecmp(u_char *s1, u_char *s2);					//区分大小写的不带长度的字符串比较
+ngx_int_t ngx_strncasecmp(u_char *s1, u_char *s2, size_t n);		//不区分大小写的带长度的字符串比较，只比较前n个字符。
 
 u_char *ngx_strnstr(u_char *s1, char *s2, size_t n);
 
@@ -184,9 +189,9 @@ u_char *ngx_hex_dump(u_char *dst, u_char *src, size_t len);
 #define ngx_base64_encoded_length(len)  (((len + 2) / 3) * 4)
 #define ngx_base64_decoded_length(len)  (((len + 3) / 4) * 3)
 
-void ngx_encode_base64(ngx_str_t *dst, ngx_str_t *src);
+void ngx_encode_base64(ngx_str_t *dst, ngx_str_t *src);	
 void ngx_encode_base64url(ngx_str_t *dst, ngx_str_t *src);
-ngx_int_t ngx_decode_base64(ngx_str_t *dst, ngx_str_t *src);
+ngx_int_t ngx_decode_base64(ngx_str_t *dst, ngx_str_t *src);			
 ngx_int_t ngx_decode_base64url(ngx_str_t *dst, ngx_str_t *src);
 
 uint32_t ngx_utf8_decode(u_char **p, size_t n);
@@ -202,10 +207,10 @@ u_char *ngx_utf8_cpystrn(u_char *dst, u_char *src, size_t n, size_t len);
 #define NGX_ESCAPE_MEMCACHED      5
 #define NGX_ESCAPE_MAIL_AUTH      6
 
-#define NGX_UNESCAPE_URI       1
-#define NGX_UNESCAPE_REDIRECT  2
+#define NGX_UNESCAPE_URI       1	//遇到’?’后就结束,遇到的需要转码的字符，都会转码
+#define NGX_UNESCAPE_REDIRECT  2	//遇到’?’后就结束,只对非可见字符进行转码
 
-uintptr_t ngx_escape_uri(u_char *dst, u_char *src, size_t size,
+uintptr_t ngx_escape_uri(u_char *dst, u_char *src, size_t size,							
     ngx_uint_t type);
 void ngx_unescape_uri(u_char **dst, u_char **src, size_t size, ngx_uint_t type);
 uintptr_t ngx_escape_html(u_char *dst, u_char *src, size_t size);

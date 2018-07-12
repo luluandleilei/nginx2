@@ -15,6 +15,12 @@ static void *ngx_palloc_block(ngx_pool_t *pool, size_t size);
 static void *ngx_palloc_large(ngx_pool_t *pool, size_t size);
 
 
+//创建一个初始节点大小为size的pool，
+//log为后续在该pool上进行操作时输出日志的对象。
+//size的大小必须小于等于NGX_MAX_ALLOC_FROM_POOL，且必须大于sizeof(ngx_pool_t)。
+//选择大于NGX_MAX_ALLOC_FROM_POOL的值会造成浪费，因为大于该限制的空间不会被用到
+//（只是说在第一个由ngx_pool_t对象管理的内存块上的内存，后续的分配如果第一个内存块上的空闲部分已用完，会再分配的）。
+//选择小于sizeof(ngx_pool_t)的值会造成程序崩溃。由于初始大小的内存块中要用一部分来存储ngx_pool_t这个信息本身。
 ngx_pool_t *
 ngx_create_pool(size_t size, ngx_log_t *log)
 {
@@ -119,6 +125,7 @@ ngx_reset_pool(ngx_pool_t *pool)
 }
 
 
+//从这个pool中分配一块为size大小的内存。注意，此函数分配的内存的起始地址按照NGX_ALIGNMENT进行了对齐。对齐操作会提高系统处理的速度，但会造成少量内存的浪费。
 void *
 ngx_palloc(ngx_pool_t *pool, size_t size)
 {
@@ -132,6 +139,7 @@ ngx_palloc(ngx_pool_t *pool, size_t size)
 }
 
 
+//从这个pool中分配一块为size大小的内存。但是此函数分配的内存并没有像上面的函数那样进行过对齐
 void *
 ngx_pnalloc(ngx_pool_t *pool, size_t size)
 {
@@ -394,7 +402,7 @@ ngx_pool_delete_file(void *data)
         }
     }
 
-    if (ngx_close_file(c->fd) == NGX_FILE_ERROR) {
+    if (ngx_close_file(c->fd) == NGX_FILE_ERROR) {		//XXX:删除了文件，在close文件描述符，这样有问题吗？
         ngx_log_error(NGX_LOG_ALERT, c->log, ngx_errno,
                       ngx_close_file_n " \"%s\" failed", c->name);
     }

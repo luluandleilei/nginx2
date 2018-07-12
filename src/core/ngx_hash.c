@@ -9,6 +9,10 @@
 #include <ngx_core.h>
 
 
+//hash里面查找key对应的value。
+//key是对真正的key（也就是name）计算出的hash值。
+//len是name的长度
+//如果查找成功，则返回指向value的指针，否则返回NULL
 void *
 ngx_hash_find(ngx_hash_t *hash, ngx_uint_t key, u_char *name, size_t len)
 {
@@ -49,6 +53,12 @@ ngx_hash_find(ngx_hash_t *hash, ngx_uint_t key, u_char *name, size_t len)
 }
 
 
+//ngx_hash_wildcard_t的查询是通过函数ngx_hash_find_wc_head或者ngx_hash_find_wc_tail来做的。
+//ngx_hash_find_wc_head是查询包含通配符在前的key的hash表的
+//hwc -- hash表对象的指针。
+//name -- 需要查询的域名，例如: www.abc.com
+//len -- name的长度
+//该函数返回匹配的通配符对应value。如果没有查到，返回NULL
 void *
 ngx_hash_find_wc_head(ngx_hash_wildcard_t *hwc, u_char *name, size_t len)
 {
@@ -143,6 +153,12 @@ ngx_hash_find_wc_head(ngx_hash_wildcard_t *hwc, u_char *name, size_t len)
 }
 
 
+//ngx_hash_wildcard_t的查询是通过函数ngx_hash_find_wc_head或者ngx_hash_find_wc_tail来做的。
+//ngx_hash_find_wc_tail是查询包含通配符在前的key的hash表的
+//hwc -- hash表对象的指针。
+//name -- 需要查询的域名，例如: www.abc.com
+//len -- name的长度
+//该函数返回匹配的通配符对应value。如果没有查到，返回NULL
 void *
 ngx_hash_find_wc_tail(ngx_hash_wildcard_t *hwc, u_char *name, size_t len)
 {
@@ -248,6 +264,11 @@ ngx_hash_find_combined(ngx_hash_combined_t *hash, ngx_uint_t key, u_char *name,
 #define NGX_HASH_ELT_SIZE(name)                                               \
     (sizeof(void *) + ngx_align((name)->key.len + 2, sizeof(void *)))
 
+//ngx_hash_t的初始化
+//hinit是初始化的一些参数的一个集合。
+//names是初始化一个ngx_hash_t所需要的所有key的一个数组
+//nelts就是key的个数
+//成功返回NGX_OK，失败返回NGX_ERROR
 ngx_int_t
 ngx_hash_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names, ngx_uint_t nelts)
 {
@@ -256,6 +277,8 @@ ngx_hash_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names, ngx_uint_t nelts)
     u_short         *test;
     ngx_uint_t       i, n, key, size, start, bucket_size;
     ngx_hash_elt_t  *elt, **buckets;
+
+	/*参数合法性检查*/
 
     if (hinit->max_size == 0) {
         ngx_log_error(NGX_LOG_EMERG, hinit->pool->log, 0,
@@ -266,7 +289,7 @@ ngx_hash_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names, ngx_uint_t nelts)
     }
 
     for (n = 0; n < nelts; n++) {
-        if (hinit->bucket_size < NGX_HASH_ELT_SIZE(&names[n]) + sizeof(void *))
+        if (hinit->bucket_size < NGX_HASH_ELT_SIZE(&names[n]) + sizeof(void *)) //NGX_HASH_ELT_SIZE(&names[n]) + sizeof(void *)为桶中仅仅存储一个元素所需要的空间
         {
             ngx_log_error(NGX_LOG_EMERG, hinit->pool->log, 0,
                           "could not build %s, you should "
@@ -276,20 +299,23 @@ ngx_hash_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names, ngx_uint_t nelts)
         }
     }
 
-    test = ngx_alloc(hinit->max_size * sizeof(u_short), hinit->pool->log);
+    test = ngx_alloc(hinit->max_size * sizeof(u_short), hinit->pool->log);	//test用于统计不同桶个数的情况下每个桶所需存储空间
     if (test == NULL) {
         return NGX_ERROR;
     }
 
-    bucket_size = hinit->bucket_size - sizeof(void *);
+    bucket_size = hinit->bucket_size - sizeof(void *);	//计算一个桶实际可用于存储元素的空间(除去末尾表示结束的空指针空间)
 
-    start = nelts / (bucket_size / (2 * sizeof(void *)));
+	/*计算可能的最少桶个数*/
+	
+    start = nelts / (bucket_size / (2 * sizeof(void *))); //最少桶个数(start) = 总元素个数/桶中可以存放的元素的最大个数; 桶中可以存放的元素的最大个数 = 桶大小/元素的最小大小
     start = start ? start : 1;
 
-    if (hinit->max_size > 10000 && nelts && hinit->max_size / nelts < 100) {
+    if (hinit->max_size > 10000 && nelts && hinit->max_size / nelts < 100) {	//XXX：什么意思？
         start = hinit->max_size - 1000;
     }
 
+	/*查找最佳的桶个数(桶个数尽可能的少)*/
     for (size = start; size <= hinit->max_size; size++) {
 
         ngx_memzero(test, size * sizeof(u_short));
@@ -331,6 +357,8 @@ ngx_hash_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names, ngx_uint_t nelts)
 
 found:
 
+	/*重新计算在桶个数为size时所需总的桶大小*/
+
     for (i = 0; i < size; i++) {
         test[i] = sizeof(void *);
     }
@@ -344,20 +372,21 @@ found:
         test[key] = (u_short) (test[key] + NGX_HASH_ELT_SIZE(&names[n]));
     }
 
-    len = 0;
+    len = 0;	//记录所有桶的总大小
 
     for (i = 0; i < size; i++) {
-        if (test[i] == sizeof(void *)) {
+        if (test[i] == sizeof(void *)) {  //桶中没有元素，忽略该桶大小
             continue;
         }
 
-        test[i] = (u_short) (ngx_align(test[i], ngx_cacheline_size));
+        test[i] = (u_short) (ngx_align(test[i], ngx_cacheline_size));	//将每一个桶大小按ngx_cacheline_size进行对齐
 
         len += test[i];
     }
 
+	/*分配桶个数，如必要分配哈希表*/
     if (hinit->hash == NULL) {
-        hinit->hash = ngx_pcalloc(hinit->pool, sizeof(ngx_hash_wildcard_t)
+        hinit->hash = ngx_pcalloc(hinit->pool, sizeof(ngx_hash_wildcard_t)		//XXX:为什么是sizeof(ngx_hash_wildcard_t)而不是sizeof(ngx_hash_t)
                                              + size * sizeof(ngx_hash_elt_t *));
         if (hinit->hash == NULL) {
             ngx_free(test);
@@ -375,7 +404,9 @@ found:
         }
     }
 
-    elts = ngx_palloc(hinit->pool, len + ngx_cacheline_size);
+	/*分配总的桶大小*/
+	
+    elts = ngx_palloc(hinit->pool, len + ngx_cacheline_size);	//加一个ngx_cacheline_size大小，用于将总桶大小空间按ngx_cacheline_size对齐
     if (elts == NULL) {
         ngx_free(test);
         return NGX_ERROR;
@@ -383,6 +414,7 @@ found:
 
     elts = ngx_align_ptr(elts, ngx_cacheline_size);
 
+	/*关联每个桶和齐对应的桶空间*/
     for (i = 0; i < size; i++) {
         if (test[i] == sizeof(void *)) {
             continue;
@@ -392,8 +424,10 @@ found:
         elts += test[i];
     }
 
+	/*将所有元素存储到对应的桶中*/
+
     for (i = 0; i < size; i++) {
-        test[i] = 0;
+        test[i] = 0; 	//test用于记录每个桶中存储下一个元素的位置的偏移量
     }
 
     for (n = 0; n < nelts; n++) {
@@ -409,9 +443,10 @@ found:
 
         ngx_strlow(elt->name, names[n].key.data, names[n].key.len);
 
-        test[key] = (u_short) (test[key] + NGX_HASH_ELT_SIZE(&names[n]));
+        test[key] = (u_short) (test[key] + NGX_HASH_ELT_SIZE(&names[n]));	//桶中元素按sizeof(void*)进行对齐
     }
 
+	//非空桶中，最后一个元素为NULL
     for (i = 0; i < size; i++) {
         if (buckets[i] == NULL) {
             continue;
@@ -461,6 +496,19 @@ found:
 }
 
 
+//ngx_hash_wildcard_t类型变量的构建是通过函数ngx_hash_wildcard_init完成的。
+//hinit -- 构造一个通配符hash表的一些参数的一个集合
+//name -- 构造此hash表的所有的通配符key的数组。特别要注意的是这里的key已经都是被预处理过的。
+//		例如：“*.abc.com”或者“.abc.com”被预处理完成以后，变成了“com.abc.”。而“mail.xxx.*”则被预处理为“mail.xxx.”。
+//		为什么会被处理这样？这里不得不简单地描述一下通配符hash表的实现原理。当构造此类型的hash表的时候，实际上是构
+//		造了一个hash表的一个“链表”，是通过hash表中的key“链接”起来的。比如：对于“*.abc.com”将会构造出2个hash表，第一
+//		个hash表中有一个key为com的表项，该表项的value包含有指向第二个hash表的指针，而第二个hash表中有一个表项abc，
+//		该表项的value包含有指向*.abc.com对应的value的指针。那么查询的时候，比如查询www.abc.com的时候，先查com，通过
+//		查com可以找到第二级的hash表，在第二级hash表中，再查找abc，依次类推，直到在某一级的hash表中查到的表项对应的
+//		value对应一个真正的值而非一个指向下一级hash表的指针的时候，查询过程结束。这里有一点需要特别注意的，就是names
+//		数组中元素的value值低两位bit必须为0（有特殊用途）。如果不满足这个条件，这个hash表查询不出正确结果。
+//nelts -- names数组元素的个数。
+//该函数执行成功返回NGX_OK，否则NGX_ERROR。
 ngx_int_t
 ngx_hash_wildcard_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names,
     ngx_uint_t nelts)

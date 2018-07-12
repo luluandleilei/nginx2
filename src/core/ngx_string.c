@@ -1134,6 +1134,8 @@ ngx_hex_dump(u_char *dst, u_char *src, size_t len)
 }
 
 
+//对src进行base64编码,调用前，需要保证dst中有足够的空间来存放结果，
+//如果不知道具体大小，可先调用ngx_base64_encoded_length
 void
 ngx_encode_base64(ngx_str_t *dst, ngx_str_t *src)
 {
@@ -1198,6 +1200,8 @@ ngx_encode_base64_internal(ngx_str_t *dst, ngx_str_t *src, const u_char *basis,
 }
 
 
+//对src进行base64解码,调用前，需要保证dst中有足够的空间来存放结果，
+//如果不知道具体大小，可先调用ngx_base64_decoded_length
 ngx_int_t
 ngx_decode_base64(ngx_str_t *dst, ngx_str_t *src)
 {
@@ -1437,6 +1441,9 @@ ngx_utf8_cpystrn(u_char *dst, u_char *src, size_t n, size_t len)
 }
 
 
+//对src进行编码，根据type来按不同的方式进行编码，
+//如果dst为NULL，则返回需要转义的字符的数量，由此可得到需要的空间大小。
+//type -- NGX_ESCAPE_*
 uintptr_t
 ngx_escape_uri(u_char *dst, u_char *src, size_t size, ngx_uint_t type)
 {
@@ -1606,8 +1613,13 @@ ngx_escape_uri(u_char *dst, u_char *src, size_t size, ngx_uint_t type)
 }
 
 
+//对src进行反编码，type可以是0、NGX_UNESCAPE_URI、NGX_UNESCAPE_REDIRECT这三个值。
+//如果是0，则表示src中的所有字符都要进行转码。
+//如果是NGX_UNESCAPE_URI与NGX_UNESCAPE_REDIRECT，则遇到’?’后就结束了，后面的字符就不管了。
+//而NGX_UNESCAPE_URI与NGX_UNESCAPE_REDIRECT之间的区别是NGX_UNESCAPE_URI对于遇到的需要转码的字符，都会转码，
+//而NGX_UNESCAPE_REDIRECT则只会对非可见字符进行转码。
 void
-ngx_unescape_uri(u_char **dst, u_char **src, size_t size, ngx_uint_t type)
+ngx_unescape_uri(u_char **dst, u_char **src, size_t size, ngx_uint_t type)	
 {
     u_char  *d, *s, ch, c, decoded;
     enum {
@@ -1736,6 +1748,7 @@ done:
 }
 
 
+//对html标签进行编码
 uintptr_t
 ngx_escape_html(u_char *dst, u_char *src, size_t size)
 {
