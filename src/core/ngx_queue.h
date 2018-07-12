@@ -15,6 +15,8 @@
 
 typedef struct ngx_queue_s  ngx_queue_t;
 
+//双向链表
+//在使用的时候，我们首先需要定义一个哨兵节点(对于后续具体存放数据的节点，我们称之为数据节点)
 struct ngx_queue_s {
     ngx_queue_t  *prev;
     ngx_queue_t  *next;
@@ -30,7 +32,7 @@ struct ngx_queue_s {
     (h == (h)->prev)
 
 
-#define ngx_queue_insert_head(h, x)                                           \
+#define ngx_queue_insert_head(h, x)                                           \	//往头部添加节点
     (x)->next = (h)->next;                                                    \
     (x)->next->prev = x;                                                      \
     (x)->prev = h;                                                            \
@@ -40,18 +42,18 @@ struct ngx_queue_s {
 #define ngx_queue_insert_after   ngx_queue_insert_head
 
 
-#define ngx_queue_insert_tail(h, x)                                           \
+#define ngx_queue_insert_tail(h, x)                                           \	//往尾部添加节点
     (x)->prev = (h)->prev;                                                    \
     (x)->prev->next = x;                                                      \
     (x)->next = h;                                                            \
     (h)->prev = x
 
 
-#define ngx_queue_head(h)                                                     \
+#define ngx_queue_head(h)                                                     \	//获得头节点
     (h)->next
 
 
-#define ngx_queue_last(h)                                                     \
+#define ngx_queue_last(h)                                                     \	//获得尾节点
     (h)->prev
 
 
@@ -77,7 +79,7 @@ struct ngx_queue_s {
 
 #else
 
-#define ngx_queue_remove(x)                                                   \
+#define ngx_queue_remove(x)                                                   \	//从链表中删除一个数据节点
     (x)->next->prev = (x)->prev;                                              \
     (x)->prev->next = (x)->next
 
@@ -93,7 +95,7 @@ struct ngx_queue_s {
     (q)->prev = n;
 
 
-#define ngx_queue_add(h, n)                                                   \
+#define ngx_queue_add(h, n)                                                   \	//将一个链表添加到另一个链表
     (h)->prev->next = (n)->next;                                              \
     (n)->next->prev = (h)->prev;                                              \
     (h)->prev = (n)->prev;                                                    \

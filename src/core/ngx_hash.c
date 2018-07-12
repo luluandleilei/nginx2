@@ -79,6 +79,7 @@ ngx_hash_find_wc_head(ngx_hash_wildcard_t *hwc, u_char *name, size_t len)
         n--;
     }
 
+	/*计算hash值。注意:构造带通配符的hash表时用于计算hash值的函数需要与此处计算的方法匹配*/
     key = 0;
 
     for (i = n; i < len; i++) {
@@ -223,6 +224,13 @@ ngx_hash_find_wc_tail(ngx_hash_wildcard_t *hwc, u_char *name, size_t len)
 }
 
 
+//在此组合hash表中，依次查询其三个子hash表，看是否匹配，一旦找到，立即返回查找结果，
+//也就是说如果有多个可能匹配，则只返回第一个匹配的结果
+//hash:	此组合hash表对象。
+//key:	根据name计算出的hash值。
+//name:	key的具体内容。
+//len:	name的长度。
+//返回查询的结果，未查到则返回NULL
 void *
 ngx_hash_find_combined(ngx_hash_combined_t *hash, ngx_uint_t key, u_char *name,
     size_t len)
@@ -315,7 +323,7 @@ ngx_hash_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names, ngx_uint_t nelts)
         start = hinit->max_size - 1000;
     }
 
-	/*查找最佳的桶个数(桶个数尽可能的少)*/
+	/*查找最佳的(桶个数尽可能的少)桶个数size*/
     for (size = start; size <= hinit->max_size; size++) {
 
         ngx_memzero(test, size * sizeof(u_short));
@@ -497,6 +505,7 @@ found:
 
 
 //ngx_hash_wildcard_t类型变量的构建是通过函数ngx_hash_wildcard_init完成的。
+//注意调用前需要对要插入的所有元素排序
 //hinit -- 构造一个通配符hash表的一些参数的一个集合
 //name -- 构造此hash表的所有的通配符key的数组。特别要注意的是这里的key已经都是被预处理过的。
 //		例如：“*.abc.com”或者“.abc.com”被预处理完成以后，变成了“com.abc.”。而“mail.xxx.*”则被预处理为“mail.xxx.”。
@@ -534,7 +543,7 @@ ngx_hash_wildcard_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names,
         return NGX_ERROR;
     }
 
-    for (n = 0; n < nelts; n = i) {
+    for (n = 0; n < nelts; n = i) {	//注意这里是：n = i
 
 #if 0
         ngx_log_error(NGX_LOG_ALERT, hinit->pool->log, 0,
@@ -557,7 +566,7 @@ ngx_hash_wildcard_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names,
 
         name->key.len = len;
         name->key.data = names[n].key.data;
-        name->key_hash = hinit->key(name->key.data, name->key.len);
+        name->key_hash = hinit->key(name->key.data, name->key.len);	//此处计算hash值时是不考虑前面的'.'的，后面通过value字段的最后一位是否为1来表示是否前面有'.'
         name->value = names[n].value;
 
 #if 0
@@ -590,16 +599,16 @@ ngx_hash_wildcard_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names,
 #endif
         }
 
-        for (i = n + 1; i < nelts; i++) {
+        for (i = n + 1; i < nelts; i++) { //查看是否有相同前缀的其他元素
             if (ngx_strncmp(names[n].key.data, names[i].key.data, len) != 0) {
-                break;
+                break;	//调用ngx_hash_wildcard_init前已经对元素进行了排序，一旦不匹配，后续节点必然不匹配
             }
 
             if (!dot
                 && names[i].key.len > len
-                && names[i].key.data[len] != '.')
+                && names[i].key.data[len] != '.')	//具有相同前缀情况处理,例如：".test.com", ".testa.com"
             {
-                break;
+                break;	//调用ngx_hash_wildcard_init前已经对元素进行了排序，一旦不匹配，后续节点必然不匹配
             }
 
             next_name = ngx_array_push(&next_names);
@@ -632,11 +641,11 @@ ngx_hash_wildcard_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names,
 
             wdc = (ngx_hash_wildcard_t *) h.hash;
 
-            if (names[n].key.len == len) {
+            if (names[n].key.len == len) {	//具有前缀子串关系的处理，例如："*.aaa.test.com", "*.test.com"
                 wdc->value = names[n].value;
             }
 
-            name->value = (void *) ((uintptr_t) wdc | (dot ? 3 : 2));
+            name->value = (void *) ((uintptr_t) wdc | (dot ? 3 : 2));	//value的第2位表示该value是一个data pointer还是一个wildcard hash
 
         } else if (dot) {
             name->value = (void *) ((uintptr_t) name->value | 1);
@@ -702,6 +711,11 @@ ngx_hash_strlow(u_char *dst, u_char *src, size_t n)
 }
 
 
+//初始化这个结构，主要是对这个结构中的ngx_array_t类型的字段进行初始化，成功返回NGX_OK。
+//在调用该函数之前需要定义一个这个类型的变量，并对字段pool和temp_pool赋值
+//ha:	该结构的对象指针。
+//type:	该字段有2个值可选择，即NGX_HASH_SMALL和NGX_HASH_LARGE。用来指明将要建立的hash表的类型，
+//		如果是NGX_HASH_SMALL，则有比较小的桶的个数和数组元素大小。NGX_HASH_LARGE则相反。
 ngx_int_t
 ngx_hash_keys_array_init(ngx_hash_keys_arrays_t *ha, ngx_uint_t type)
 {
@@ -757,6 +771,20 @@ ngx_hash_keys_array_init(ngx_hash_keys_arrays_t *ha, ngx_uint_t type)
 }
 
 
+//一般是循环调用这个函数，把一组键值对加入到这个结构体中。
+//该函数会自动实现普通key，带前向通配符的key和带后向通配符的key的分类和检查，并将这个些值存放到对应的字段中去，
+//然后就可以通过检查这个结构体中的keys、dns_wc_head、dns_wc_tail三个数组是否为空，来决定是否构建普通hash表，
+//前向通配符hash表和后向通配符hash表了（在构建这三个类型的hash表的时候，可以分别使用keys、dns_wc_head、dns_wc_tail三个数组）。
+//构建出这三个hash表以后，可以组合在一个ngx_hash_combined_t对象中，使用ngx_hash_find_combined进行查找。
+//或者是仍然保持三个独立的变量对应这三个hash表，自己决定何时以及在哪个hash表中进行查询。
+//ha:		该结构的对象指针。
+//key:		参数名自解释了。
+//value:	参数名自解释了。
+//flags:	有两个标志位可以设置，NGX_HASH_WILDCARD_KEY和NGX_HASH_READONLY_KEY。同时要设置的使用逻辑与操作符就可以了。
+//			NGX_HASH_READONLY_KEY被设置的时候，在计算hash值的时候，key的值不会被转成小写字符，否则会。
+//			NGX_HASH_WILDCARD_KEY被设置的时候，说明key里面可能含有通配符，会进行相应的处理。
+//			如果两个标志位都不设置，传0。
+//返回NGX_OK是加入成功。返回NGX_BUSY意味着key值重复。
 ngx_int_t
 ngx_hash_add_key(ngx_hash_keys_arrays_t *ha, ngx_str_t *key, void *value,
     ngx_uint_t flags)
@@ -777,45 +805,45 @@ ngx_hash_add_key(ngx_hash_keys_arrays_t *ha, ngx_str_t *key, void *value,
          *     "*.example.com", ".example.com", and "www.example.*"
          */
 
-        n = 0;
+        n = 0;	//统计key中包含的星号的个数
 
         for (i = 0; i < key->len; i++) {
 
             if (key->data[i] == '*') {
-                if (++n > 1) {
+                if (++n > 1) {	//包含多个星号，不支持该格式
                     return NGX_DECLINED;
                 }
             }
 
-            if (key->data[i] == '.' && key->data[i + 1] == '.') {
+            if (key->data[i] == '.' && key->data[i + 1] == '.') {	//包含连续的两个点，不支持该格式
                 return NGX_DECLINED;
             }
 
-            if (key->data[i] == '\0') {
+            if (key->data[i] == '\0') {	//包含字符'\0'，不支持该格式
                 return NGX_DECLINED;
             }
         }
 
-        if (key->len > 1 && key->data[0] == '.') {
+        if (key->len > 1 && key->data[0] == '.') {	//".example.com"
             skip = 1;
             goto wildcard;
         }
 
         if (key->len > 2) {
 
-            if (key->data[0] == '*' && key->data[1] == '.') {
+            if (key->data[0] == '*' && key->data[1] == '.') {	//"*.example.com"
                 skip = 2;
                 goto wildcard;
             }
 
-            if (key->data[i - 2] == '.' && key->data[i - 1] == '*') {
+            if (key->data[i - 2] == '.' && key->data[i - 1] == '*') {	//"www.example.*"
                 skip = 0;
                 last -= 2;
                 goto wildcard;
             }
         }
 
-        if (n) {
+        if (n) {	//包含星号，但不支持该格式
             return NGX_DECLINED;
         }
     }
@@ -898,7 +926,7 @@ wildcard:
                     continue;
                 }
 
-                if (ngx_strncmp(&key->data[1], name[i].data, len) == 0) {
+                if (ngx_strncmp(&key->data[1], name[i].data, len) == 0) {	//XXX:为什么前向通配符的".example.com"形式不能与精确的相同?
                     return NGX_BUSY;
                 }
             }

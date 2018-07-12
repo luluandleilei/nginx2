@@ -65,7 +65,7 @@ struct ngx_pool_s {
     ngx_pool_data_t       d;
     size_t                max;		//一次性最大可以分配的空间的大小
     ngx_pool_t           *current;	//当前可以分配
-    ngx_chain_t          *chain;
+    ngx_chain_t          *chain;	//XXX:缓存ngx_chain_t对象，因为需要频繁的分配和释放
     ngx_pool_large_t     *large;
     ngx_pool_cleanup_t   *cleanup;
     ngx_log_t            *log;

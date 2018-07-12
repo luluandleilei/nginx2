@@ -9,6 +9,10 @@
 #include <ngx_core.h>
 
 
+//创建temporary字段为1的buf（就是其内容可以被后续的filter模块进行修改
+//该函数创建一个ngx_but_t类型的对象，并返回指向这个对象的指针，创建失败返回NULL
+//pool:	分配该buf和buf使用的内存所使用的pool。
+//size:	该buf使用的内存的大小。
 ngx_buf_t *
 ngx_create_temp_buf(ngx_pool_t *pool, size_t size)
 {
@@ -44,6 +48,7 @@ ngx_create_temp_buf(ngx_pool_t *pool, size_t size)
 }
 
 
+//创建一个ngx_chain_t的对象，并返回指向对象的指针，失败返回NULL
 ngx_chain_t *
 ngx_alloc_chain_link(ngx_pool_t *pool)
 {
