@@ -415,8 +415,8 @@ struct ngx_http_request_s {
     ngx_str_t                         schema;
 
     ngx_chain_t                      *out;
-    ngx_http_request_t               *main;
-    ngx_http_request_t               *parent;
+    ngx_http_request_t               *main;			//Pointer to a main request object. This object is created to process a client HTTP request, as opposed to subrequests, which are created to perform a specific subtask within the main request.
+    ngx_http_request_t               *parent;		//Pointer to the parent request of a subrequest.
     ngx_http_postponed_request_t     *postponed;
     ngx_http_post_subrequest_t       *post_subrequest;
     ngx_http_posted_request_t        *posted_requests;
@@ -450,8 +450,8 @@ struct ngx_http_request_s {
 
     ngx_http_cleanup_t               *cleanup;
 
-    unsigned                          count:16;
-    unsigned                          subrequests:8;
+    unsigned                          count:16;			//Request reference counter. The field only makes sense for the main request. Increasing the counter is done by simple r->main->count++. To decrease the counter, call ngx_http_finalize_request(r, rc). Creating of a subrequest and running the request body read process both increment the counter.
+    unsigned                          subrequests:8;	//Current subrequest nesting level. Each subrequest inherits its parent's nesting level, decreased by one. An error is generated if the value reaches zero. The value for the main request is defined by the NGX_HTTP_MAX_SUBREQUESTS constant.
     unsigned                          blocked:8;
 
     unsigned                          aio:1;
@@ -486,7 +486,7 @@ struct ngx_http_request_s {
     unsigned                          request_body_file_log_level:3;
     unsigned                          request_body_no_buffering:1;
 
-    unsigned                          subrequest_in_memory:1;
+    unsigned                          subrequest_in_memory:1;	//Output is not sent to the client, but rather stored in memory. The flag only affects subrequests which are processed by one of the proxying modules. After a subrequest is finalized its output is available in a r->upstream->buffer of type ngx_buf_t.
     unsigned                          waited:1;
 
 #if (NGX_HTTP_CACHE)

@@ -33,13 +33,13 @@ typedef void (*ngx_event_handler_pt)(ngx_event_t *ev);
 typedef void (*ngx_connection_handler_pt)(ngx_connection_t *c);
 
 
-#define  NGX_OK          0
-#define  NGX_ERROR      -1
-#define  NGX_AGAIN      -2
-#define  NGX_BUSY       -3
-#define  NGX_DONE       -4
-#define  NGX_DECLINED   -5
-#define  NGX_ABORT      -6
+#define  NGX_OK          0	//Operation succeeded
+#define  NGX_ERROR      -1	//Operation failed
+#define  NGX_AGAIN      -2	//Operation incomplete; call the function again.
+#define  NGX_BUSY       -3	//Resource is not available.
+#define  NGX_DONE       -4	//Operation complete or continued elsewhere. Also used as an alternative success code.
+#define  NGX_DECLINED   -5	//Operation rejected, for example, because it is disabled in the configuration. This is never an error.
+#define  NGX_ABORT      -6	//Function was aborted. Also used as an alternative error code.
 
 
 #include <ngx_errno.h>

@@ -193,6 +193,12 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_main_conf_t, variables_hash_bucket_size),
       NULL },
 
+	/*
+	 Syntax:	server_names_hash_max_size size;
+	 Default: 	server_names_hash_max_size 512;
+	 Context:	http
+	 Sets the maximum size of the server names hash tables. The details of setting up hash tables are provided in a separate document.
+	*/
     { ngx_string("server_names_hash_max_size"),
       NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_num_slot,
@@ -200,6 +206,12 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_main_conf_t, server_names_hash_max_size),
       NULL },
 
+	/*
+	 Syntax:	server_names_hash_bucket_size size;
+	 Default: 	server_names_hash_bucket_size 32|64|128;
+	 Context:	http
+	 Sets the bucket size for the server names hash tables. The default value depends on the size of the processor’s cache line. The details of setting up hash tables are provided in a separate document.
+	*/
     { ngx_string("server_names_hash_bucket_size"),
       NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_num_slot,

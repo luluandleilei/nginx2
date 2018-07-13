@@ -66,8 +66,10 @@ typedef int               ngx_err_t;
 #endif
 
 
-#define ngx_errno                  errno
-#define ngx_socket_errno           errno
+//Accessing the values of ngx_errno or ngx_socket_errno more than once in a row can cause performance issues. 
+//If the error value might be used multiple times, store it in a local variable of type ngx_err_t. 
+#define ngx_errno                  errno		//The ngx_errno macro returns the last system error code. 
+#define ngx_socket_errno           errno		//The ngx_socket_errno macro returns the last socket error number
 #define ngx_set_errno(err)         errno = err
 #define ngx_set_socket_errno(err)  errno = err
 

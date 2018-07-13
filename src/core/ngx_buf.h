@@ -48,7 +48,7 @@ struct ngx_buf_s {
     unsigned         recycled:1;	//可以回收的。也就是这个buf是可以被释放的。这个字段通常是配合shadow字段一起使用的，对于使用ngx_create_temp_buf 函数创建的buf，并且是另外一个buf的shadow，那么可以使用这个字段来标示这个buf是可以被释放的
     unsigned         in_file:1;		//为1时表示该buf所包含的内容是在文件中
     unsigned         flush:1;		//遇到有flush字段被设置为1的的buf的chain，则该chain的数据即便不是最后结束的数据（last_buf被设置，标志所有要输出的内容都完了），也会进行输出，不会受postpone_output配置的限制，但是会受到发送速率等其他条件的限制。
-    unsigned         sync:1;
+    unsigned         sync:1;		//Flag indicating that the buffer carries no data or special signal like flush or last_buf. By default nginx considers such buffers an error condition, but this flag tells nginx to skip the error check
     unsigned         last_buf:1;		//数据被以多个chain传递给了过滤器，此字段为1表明这是最后一个buf
     unsigned         last_in_chain:1;	//在当前的chain里面，此buf是最后一个。特别要注意的是last_in_chain的buf不一定是last_buf，但是last_buf的buf一定是last_in_chain的。这是因为数据会被以多个chain传递给某个filter模块
 

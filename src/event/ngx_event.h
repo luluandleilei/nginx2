@@ -30,7 +30,7 @@ typedef struct {
 struct ngx_event_s {
     void            *data;		//事件相关的对象。通常data都是指向ngx_connection_t连接对象。开启文件异步I/O时，它可能会指向ngx_event_aio_t结构体 //指向该event所属的connection
 
-    unsigned         write:1;	//标志位，为1时表示事件是可写的。通常情况下，它表示对应的TCP连接目前状态是可写的，也就是连接处于可以发送网络包的状态 //指明是写事件还是读事件
+    unsigned         write:1;	//Flag indicating a write event. Absence of the flag indicates a read event.
 
     unsigned         accept:1;	//为1时表示为此事件可以建立新的连接。通常情况下，在ngx_cycle_t中的listening动态数组中，每一个监听对象ngx_listening_t对应的读事件中的accept标志位才会是1 //指明该事件属于监听套接字
 
@@ -41,32 +41,32 @@ struct ngx_event_s {
      * the event was passed or would be passed to a kernel;
      * in aio mode - operation was posted.
      */
-    unsigned         active:1;		//XXX:表示该事件已经被加入到内核以被监控 //标志位，为1时表示当前事件是活跃的，为0时表示事件是不活跃的。这个状态对应着事件驱动模块处理方式的不同。 //例如，在添加事件、删除事件和处理事件时，active标志位的不同都会对应着不同的处理方式。 在使用事件时，一般不会直接改变active标志位
+    unsigned         active:1;	//Flag indicating that the event is registered for receiving I/O notifications, normally from notification mechanisms like epoll, kqueue, poll.
 
     unsigned         disabled:1;	//标志位，为1时表示禁用事件，仅在kqueue或者rtsig事件驱动模块中有效，而对于epoll事件驱动模块则无意义
 
     /* the ready event; in aio mode 0 means that no operation can be posted */
-    unsigned         ready:1;	//标志位，为1时表示当前事件已经准备就绪，也就是说，允许这个事件的消费模块处理这个事件。 //在HTTP框架中，经常会检查事件的ready标志位以确定是否可以接收请求或发送响应
+    unsigned         ready:1;	//Flag indicating that the event has received an I/O notification.//标志位，为1时表示当前事件已经准备就绪，也就是说，允许这个事件的消费模块处理这个事件。 
 
     unsigned         oneshot:1;	//该标志位仅对kqueue，eventport等模块有意义， 而对于Linux上的epoll事件驱动模块则是无意义的
 
     /* aio operation is complete */
     unsigned         complete:1;	//该标志位用于异步AIO事件的处理 
 
-    unsigned         eof:1;		//标志位，为1时表示当前处理的字符流已经结束
-    unsigned         error:1;	 //标志位，为1时表示事件在处理的过程中出现错误
+    unsigned         eof:1;		//Flag indicating that EOF occurred while reading data.
+    unsigned         error:1;	//Flag indicating that an error occurred during reading (for a read event) or writing (for a write event).
 
-    unsigned         timedout:1;	//标志位，为1时表示这个事件已经超时，用以提示事件的消费模块做超时处理
-    unsigned         timer_set:1;	//标志位，为1时表示这个事件存在于定时器中
+    unsigned         timedout:1;	//Flag indicating that the event timer has expired.
+    unsigned         timer_set:1;	//Flag indicating that the event timer is set and not yet expired. //标志位，为1时表示这个事件存在于定时器中
 
-    unsigned         delayed:1;	//标志位，为1时表示需要延迟处理这个事件，它仅用于限速功能， //在定时器到期时才开始处理 //标志位，为1表明响应需要延迟发送
+    unsigned         delayed:1;		//Flag indicating that I/O is delayed due to rate limiting. //标志位，为1时表示需要延迟处理这个事件，它仅用于限速功能， //在定时器到期时才开始处理 //标志位，为1表明响应需要延迟发送
 
     unsigned         deferred_accept:1;	//标志位，为1时表示延迟建立TCP连接--经过TCP三次握手后并不建立连接,而是要等到真正收到数据包后才会建立TCP连接
 
     /* the pending eof reported by kqueue, epoll or in aio chain operation */
-    unsigned         pending_eof:1;	//标志位，为1时表示等待字符流结束， 它只与kqueue、epoll和aio事件驱动机制有关
+    unsigned         pending_eof:1;	//Flag indicating that EOF is pending on the socket, even though there may be some data available before it. The flag is delivered via the EPOLLRDHUP epoll event or EV_EOF kqueue flag.
 
-    unsigned         posted:1;	 //表明事件是否在posted queue中
+    unsigned         posted:1;	 //Flag indicating that the event is posted to a queue.
 
     unsigned         closed:1;	//标志位，为1时表示当前事件已经关闭，epoll模块没有使用它
 
@@ -74,7 +74,7 @@ struct ngx_event_s {
     unsigned         channel:1;		//该标志位目前无实际意义
     unsigned         resolver:1;	 //该标志位目前无实际意义
 
-    unsigned         cancelable:1;
+    unsigned         cancelable:1;	//Timer event flag indicating that the event should be ignored while shutting down the worker. Graceful worker shutdown is delayed until there are no non-cancelable timer events scheduled.
 
 #if (NGX_HAVE_KQUEUE)
     unsigned         kq_vnode:1;
@@ -107,7 +107,7 @@ struct ngx_event_s {
     unsigned         available:1;	//标志位， 在epoll事件驱动机制下表示一次尽可能多地建立TCP连接，它与multi_accept配置项对应*/
 #endif
 
-    ngx_event_handler_pt  handler;	//这个事件发生时的处理方法--将由每个事件消费模块都会实现，以此决定这个事件究竟如何"消费"
+    ngx_event_handler_pt  handler;	//Callback function to be invoked when the event happens.
 
 
 #if (NGX_HAVE_IOCP)
@@ -118,10 +118,10 @@ struct ngx_event_s {
 
     ngx_log_t       *log;	//可用于记录error_log日志的ngx_log_t对象
 
-    ngx_rbtree_node_t   timer;	//定时器事件节点， 用于定时器红黑树中
+    ngx_rbtree_node_t   timer;	//Red-black tree node for inserting the event into the timer tree.//定时器事件节点， 用于定时器红黑树中
 
     /* the posted queue */
-    ngx_queue_t      queue;	//post事件队列节点，用于post队列中
+    ngx_queue_t      queue;		//Queue node for posting the event to a queue.
 
 #if 0
 
