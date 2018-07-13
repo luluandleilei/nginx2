@@ -17,9 +17,9 @@
 struct ngx_thread_task_s {
     ngx_thread_task_t   *next;
     ngx_uint_t           id;
-    void                *ctx;
-    void               (*handler)(void *data, ngx_log_t *log);
-    ngx_event_t          event;
+    void                *ctx;	//执行任务的上下文(handler的第一个参数)
+    void               (*handler)(void *data, ngx_log_t *log); //需要异步执行的任务
+    ngx_event_t          event;	//任务关联的事件
 };
 
 

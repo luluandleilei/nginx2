@@ -924,8 +924,7 @@ ngx_http_ssi_output(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx)
         ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                        "ssi out: %p %p", cl->buf, cl->buf->pos);
         if (cl->buf == b) {
-            ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
-                          "the same buf was used in ssi");
+            ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0, "the same buf was used in ssi");
             ngx_debug_point();
             return NGX_ERROR;
         }

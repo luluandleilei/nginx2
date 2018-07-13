@@ -25,11 +25,9 @@ static ngx_int_t ngx_event_module_init(ngx_cycle_t *cycle);
 static ngx_int_t ngx_event_process_init(ngx_cycle_t *cycle);
 static char *ngx_events_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
-static char *ngx_event_connections(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+static char *ngx_event_connections(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_event_use(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-static char *ngx_event_debug_connection(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+static char *ngx_event_debug_connection(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 static void *ngx_event_core_create_conf(ngx_cycle_t *cycle);
 static char *ngx_event_core_init_conf(ngx_cycle_t *cycle, void *conf);
@@ -79,7 +77,12 @@ ngx_atomic_t         *ngx_stat_waiting = &ngx_stat_waiting0;
 
 
 static ngx_command_t  ngx_events_commands[] = {
-
+	/*
+	 Syntax:	events { ... }
+	 Default:	—
+	 Context:	main
+	 Provides the configuration file context in which the directives that affect connection processing are specified.
+	*/
     { ngx_string("events"),
       NGX_MAIN_CONF|NGX_CONF_BLOCK|NGX_CONF_NOARGS,
       ngx_events_block,
@@ -121,35 +124,72 @@ static ngx_str_t  event_core_name = ngx_string("event_core");
 
 
 static ngx_command_t  ngx_event_core_commands[] = {
-
+	/*
+	 Syntax:	worker_connections number;
+	 Default: 	worker_connections 512;
+	 Context:	events
+	 Sets the maximum number of simultaneous connections that can be opened by a worker process.
+	 It should be kept in mind that this number includes all connections (e.g. connections with 
+	 proxied servers, among others), not only connections with clients. Another consideration is
+	 that the actual number of simultaneous connections cannot exceed the current limit on the 
+	 maximum number of open files, which can be changed by worker_rlimit_nofile.
+	*/
     { ngx_string("worker_connections"),
       NGX_EVENT_CONF|NGX_CONF_TAKE1,
       ngx_event_connections,
       0,
       0,
       NULL },
-
+      
+	/*
+	 Syntax:	use method;
+	 Default:	—
+	 Context:	events
+ 	 Specifies the connection processing method to use. There is normally no need to specify it explicitly, because nginx will by default use the most efficient method.
+	*/
     { ngx_string("use"),
       NGX_EVENT_CONF|NGX_CONF_TAKE1,
       ngx_event_use,
       0,
       0,
       NULL },
-
+      
+	/*
+	 Syntax:	multi_accept on | off;
+	 Default:	
+	 multi_accept off;
+	 Context:	events
+	 If multi_accept is disabled, a worker process will accept one new connection at a time. Otherwise, a worker process will accept all new connections at a time.
+	 The directive is ignored if kqueue connection processing method is used, because it reports the number of new connections waiting to be accepted.
+	*/
     { ngx_string("multi_accept"),
       NGX_EVENT_CONF|NGX_CONF_FLAG,
       ngx_conf_set_flag_slot,
       0,
       offsetof(ngx_event_conf_t, multi_accept),
       NULL },
-
+      
+	/*
+	 Syntax:	accept_mutex on | off;
+	 Default: 	accept_mutex off;
+	 Context:	events
+	 If accept_mutex is enabled, worker processes will accept new connections by turn. Otherwise, all worker processes will be notified about new connections, and if volume of new connections is low, some of the worker processes may just waste system resources.
+	 There is no need to enable accept_mutex on systems that support the 'EPOLLEXCLUSIVE' flag (1.11.3) or when using 'reuseport'.
+	 Prior to version 1.11.3, the default value was on.//XXX: EPOLLEXCLUSIVE和reuseport可以避免惊群，但是怎么负载均衡
+	*/
     { ngx_string("accept_mutex"),
       NGX_EVENT_CONF|NGX_CONF_FLAG,
       ngx_conf_set_flag_slot,
       0,
       offsetof(ngx_event_conf_t, accept_mutex),
       NULL },
-
+      
+	/*
+	 Syntax:	accept_mutex_delay time;
+	 Default:  	accept_mutex_delay 500ms;
+	 Context:	events
+	 If accept_mutex is enabled, specifies the maximum time during which a worker process will try to restart accepting new connections if another worker process is currently accepting new connections.
+	*/
     { ngx_string("accept_mutex_delay"),
       NGX_EVENT_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_msec_slot,
@@ -157,6 +197,22 @@ static ngx_command_t  ngx_event_core_commands[] = {
       offsetof(ngx_event_conf_t, accept_mutex_delay),
       NULL },
 
+	/*
+	Syntax:	debug_connection address | CIDR | unix:;
+	Default:	—
+	Context:	events
+	Enables debugging log for selected client connections. Other connections will use logging level set by the error_log directive. Debugged connections are specified by IPv4 or IPv6 (1.3.0, 1.2.1) address or network. A connection may also be specified using a hostname. For connections using UNIX-domain sockets (1.3.0, 1.2.1), debugging log is enabled by the “unix:” parameter.
+		events {
+		    debug_connection 127.0.0.1;
+		    debug_connection localhost;
+		    debug_connection 192.0.2.0/24;
+		    debug_connection ::1;
+		    debug_connection 2001:0db8::/32;
+		    debug_connection unix:;
+		    ...
+		}
+	For this directive to work, nginx needs to be built with --with-debug.
+	*/
     { ngx_string("debug_connection"),
       NGX_EVENT_CONF|NGX_CONF_TAKE1,
       ngx_event_debug_connection,
@@ -946,8 +1002,7 @@ ngx_events_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         m = cf->cycle->modules[i]->ctx;
 
         if (m->create_conf) {
-            (*ctx)[cf->cycle->modules[i]->ctx_index] =
-                                                     m->create_conf(cf->cycle);
+            (*ctx)[cf->cycle->modules[i]->ctx_index] = m->create_conf(cf->cycle);
             if ((*ctx)[cf->cycle->modules[i]->ctx_index] == NULL) {
                 return NGX_CONF_ERROR;
             }
@@ -955,7 +1010,7 @@ ngx_events_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     /* 解析event配置，填充ctx配置对象列表*/
-
+	
     pcf = *cf;
     cf->ctx = ctx;
     cf->module_type = NGX_EVENT_MODULE;
@@ -1203,9 +1258,7 @@ ngx_event_core_create_conf(ngx_cycle_t *cycle)
 
 #if (NGX_DEBUG)
 
-    if (ngx_array_init(&ecf->debug_connection, cycle->pool, 4,
-                       sizeof(ngx_cidr_t)) == NGX_ERROR)
-    {
+    if (ngx_array_init(&ecf->debug_connection, cycle->pool, 4, sizeof(ngx_cidr_t)) == NGX_ERROR) {
         return NULL;
     }
 

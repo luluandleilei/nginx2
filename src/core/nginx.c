@@ -1220,9 +1220,7 @@ ngx_core_module_create_conf(ngx_cycle_t *cycle)
     ccf->user = (ngx_uid_t) NGX_CONF_UNSET_UINT;
     ccf->group = (ngx_gid_t) NGX_CONF_UNSET_UINT;
 
-    if (ngx_array_init(&ccf->env, cycle->pool, 1, sizeof(ngx_str_t))
-        != NGX_OK)
-    {
+    if (ngx_array_init(&ccf->env, cycle->pool, 1, sizeof(ngx_str_t)) != NGX_OK) {
         return NULL;
     }
 
@@ -1274,8 +1272,7 @@ ngx_core_module_init_conf(ngx_cycle_t *cycle, void *conf)
         return NGX_CONF_ERROR;
     }
 
-    ngx_memcpy(ngx_cpymem(ccf->oldpid.data, ccf->pid.data, ccf->pid.len),
-               NGX_OLDPID_EXT, sizeof(NGX_OLDPID_EXT));
+    ngx_memcpy(ngx_cpymem(ccf->oldpid.data, ccf->pid.data, ccf->pid.len), NGX_OLDPID_EXT, sizeof(NGX_OLDPID_EXT));
 
 
 #if !(NGX_WIN32)
@@ -1287,8 +1284,7 @@ ngx_core_module_init_conf(ngx_cycle_t *cycle, void *conf)
         ngx_set_errno(0);
         pwd = getpwnam(NGX_USER);
         if (pwd == NULL) {
-            ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno,
-                          "getpwnam(\"" NGX_USER "\") failed");
+            ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno, "getpwnam(\"" NGX_USER "\") failed");
             return NGX_CONF_ERROR;
         }
 
@@ -1298,8 +1294,7 @@ ngx_core_module_init_conf(ngx_cycle_t *cycle, void *conf)
         ngx_set_errno(0);
         grp = getgrnam(NGX_GROUP);
         if (grp == NULL) {
-            ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno,
-                          "getgrnam(\"" NGX_GROUP "\") failed");
+            ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno, "getgrnam(\"" NGX_GROUP "\") failed");
             return NGX_CONF_ERROR;
         }
 
@@ -1321,18 +1316,16 @@ ngx_core_module_init_conf(ngx_cycle_t *cycle, void *conf)
     lock_file = cycle->old_cycle->lock_file;
 
     if (lock_file.len) {
-        lock_file.len--;
+        lock_file.len--;	//XXX: ???
 
         if (ccf->lock_file.len != lock_file.len
-            || ngx_strncmp(ccf->lock_file.data, lock_file.data, lock_file.len)
-               != 0)
+            || ngx_strncmp(ccf->lock_file.data, lock_file.data, lock_file.len) != 0)
         {
-            ngx_log_error(NGX_LOG_EMERG, cycle->log, 0,
-                          "\"lock_file\" could not be changed, ignored");
+            ngx_log_error(NGX_LOG_EMERG, cycle->log, 0, "\"lock_file\" could not be changed, ignored");
         }
 
         cycle->lock_file.len = lock_file.len + 1;
-        lock_file.len += sizeof(".accept");
+        lock_file.len += sizeof(".accept");	//XXX:?
 
         cycle->lock_file.data = ngx_pstrdup(cycle->pool, &lock_file);
         if (cycle->lock_file.data == NULL) {
@@ -1341,15 +1334,12 @@ ngx_core_module_init_conf(ngx_cycle_t *cycle, void *conf)
 
     } else {
         cycle->lock_file.len = ccf->lock_file.len + 1;
-        cycle->lock_file.data = ngx_pnalloc(cycle->pool,
-                                      ccf->lock_file.len + sizeof(".accept"));
+        cycle->lock_file.data = ngx_pnalloc(cycle->pool, ccf->lock_file.len + sizeof(".accept"));
         if (cycle->lock_file.data == NULL) {
             return NGX_CONF_ERROR;
         }
 
-        ngx_memcpy(ngx_cpymem(cycle->lock_file.data, ccf->lock_file.data,
-                              ccf->lock_file.len),
-                   ".accept", sizeof(".accept"));
+        ngx_memcpy(ngx_cpymem(cycle->lock_file.data, ccf->lock_file.data, ccf->lock_file.len), ".accept", sizeof(".accept"));
     }
     }
 

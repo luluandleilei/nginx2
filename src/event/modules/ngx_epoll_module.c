@@ -402,8 +402,7 @@ ngx_epoll_notify_init(ngx_log_t *log)
         return NGX_ERROR;
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_EVENT, log, 0,
-                   "notify eventfd: %d", notify_fd);
+    ngx_log_debug1(NGX_LOG_DEBUG_EVENT, log, 0, "notify eventfd: %d", notify_fd);
 
     notify_event.handler = ngx_epoll_notify_handler;
     notify_event.log = log;
@@ -417,12 +416,10 @@ ngx_epoll_notify_init(ngx_log_t *log)
     ee.data.ptr = &notify_conn;
 
     if (epoll_ctl(ep, EPOLL_CTL_ADD, notify_fd, &ee) == -1) {
-        ngx_log_error(NGX_LOG_EMERG, log, ngx_errno,
-                      "epoll_ctl(EPOLL_CTL_ADD, eventfd) failed");
+        ngx_log_error(NGX_LOG_EMERG, log, ngx_errno, "epoll_ctl(EPOLL_CTL_ADD, eventfd) failed");
 
         if (close(notify_fd) == -1) {
-            ngx_log_error(NGX_LOG_ALERT, log, ngx_errno,
-                            "eventfd close() failed");
+            ngx_log_error(NGX_LOG_ALERT, log, ngx_errno, "eventfd close() failed");
         }
 
         return NGX_ERROR;
@@ -447,12 +444,10 @@ ngx_epoll_notify_handler(ngx_event_t *ev)
 
         err = ngx_errno;
 
-        ngx_log_debug3(NGX_LOG_DEBUG_EVENT, ev->log, 0,
-                       "read() eventfd %d: %z count:%uL", notify_fd, n, count);
+        ngx_log_debug3(NGX_LOG_DEBUG_EVENT, ev->log, 0, "read() eventfd %d: %z count:%uL", notify_fd, n, count);
 
         if ((size_t) n != sizeof(uint64_t)) {
-            ngx_log_error(NGX_LOG_ALERT, ev->log, err,
-                          "read() eventfd %d failed", notify_fd);
+            ngx_log_error(NGX_LOG_ALERT, ev->log, err, "read() eventfd %d failed", notify_fd);
         }
     }
 
@@ -775,8 +770,7 @@ ngx_epoll_notify(ngx_event_handler_pt handler)
     notify_event.data = handler;
 
     if ((size_t) write(notify_fd, &inc, sizeof(uint64_t)) != sizeof(uint64_t)) {
-        ngx_log_error(NGX_LOG_ALERT, notify_event.log, ngx_errno,
-                      "write() to eventfd %d failed", notify_fd);
+        ngx_log_error(NGX_LOG_ALERT, notify_event.log, ngx_errno, "write() to eventfd %d failed", notify_fd);
         return NGX_ERROR;
     }
 

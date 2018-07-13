@@ -18,7 +18,7 @@ struct ngx_file_s {
     ngx_str_t                  name;
     ngx_file_info_t            info;
 
-    off_t                      offset;
+    off_t                      offset;		//当前读到的文件偏移量位置
     off_t                      sys_offset;
 
     ngx_log_t                 *log;

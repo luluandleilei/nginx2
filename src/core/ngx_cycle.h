@@ -58,7 +58,7 @@ struct ngx_cycle_s {
 	//Array of modules of type ngx_module_t, both static and dynamic, loaded by the current configuration.
     ngx_module_t            **modules;		
     ngx_uint_t                modules_n;
-    ngx_uint_t                modules_used;    /* unsigned  modules_used:1; */
+    ngx_uint_t                modules_used;		//prevent loading of additional modules 
 
     ngx_queue_t               reusable_connections_queue;	//ngx_connection_t类型的双向链表容器，表示可重复使用的连接的队列
     ngx_uint_t                reusable_connections_n;
@@ -67,6 +67,7 @@ struct ngx_cycle_s {
 	//of different modules which call the ngx_create_listening() function. Listen sockets are created based on the 
 	//listening objects.
     ngx_array_t               listening;	
+	
 	//Array of paths of type ngx_path_t. 
 	//Paths are added by calling the function ngx_add_path() from modules which are going to operate on certain directories. 
 	//These directories are created by nginx after reading configuration, if missing. Moreover, two handlers can be added for each path:
@@ -85,7 +86,8 @@ struct ngx_cycle_s {
 	//in the open_files list and stores each file descriptor in the object's fd field. The files are opened in append 
 	//mode and are created if missing. The files in the list are reopened by nginx workers upon receiving the reopen 
 	//signal (most often USR1). In this case the descriptor in the fd field is changed to a new value.
-    ngx_list_t                open_files;	
+    ngx_list_t                open_files;
+	
 	//List of shared memory zones, each added by calling the ngx_shared_memory_add() function. Shared zones are mapped
 	//to the same address range in all nginx processes and are used to share common data, for example the HTTP cache 
 	//in-memory tree.

@@ -19,16 +19,16 @@
  *    TT        command type, i.e. HTTP "location" or "server" command
  */
 
-#define NGX_CONF_NOARGS      0x00000001
-#define NGX_CONF_TAKE1       0x00000002
-#define NGX_CONF_TAKE2       0x00000004
-#define NGX_CONF_TAKE3       0x00000008
-#define NGX_CONF_TAKE4       0x00000010
-#define NGX_CONF_TAKE5       0x00000020
-#define NGX_CONF_TAKE6       0x00000040
-#define NGX_CONF_TAKE7       0x00000080
+#define NGX_CONF_NOARGS      0x00000001	//不能有参数
+#define NGX_CONF_TAKE1       0x00000002	//仅一个参数
+#define NGX_CONF_TAKE2       0x00000004	//仅两个参数
+#define NGX_CONF_TAKE3       0x00000008	//仅三个参数
+#define NGX_CONF_TAKE4       0x00000010	//仅四个参数
+#define NGX_CONF_TAKE5       0x00000020	//仅五个参数
+#define NGX_CONF_TAKE6       0x00000040	//仅六个参数
+#define NGX_CONF_TAKE7       0x00000080	//仅七个参数
 
-#define NGX_CONF_MAX_ARGS    8
+#define NGX_CONF_MAX_ARGS    8	//最大参数个数
 
 #define NGX_CONF_TAKE12      (NGX_CONF_TAKE1|NGX_CONF_TAKE2)
 #define NGX_CONF_TAKE13      (NGX_CONF_TAKE1|NGX_CONF_TAKE3)
@@ -41,10 +41,10 @@
 
 #define NGX_CONF_ARGS_NUMBER 0x000000ff
 #define NGX_CONF_BLOCK       0x00000100
-#define NGX_CONF_FLAG        0x00000200
-#define NGX_CONF_ANY         0x00000400
-#define NGX_CONF_1MORE       0x00000800
-#define NGX_CONF_2MORE       0x00001000
+#define NGX_CONF_FLAG        0x00000200	//仅一个参数
+#define NGX_CONF_ANY         0x00000400	//任意多个参数
+#define NGX_CONF_1MORE       0x00000800	//至少一个参数
+#define NGX_CONF_2MORE       0x00001000	//至少两个参数
 
 #define NGX_DIRECT_CONF      0x00010000
 
@@ -99,7 +99,7 @@ typedef struct {
     ngx_file_t            file;
     ngx_buf_t            *buffer;
     ngx_buf_t            *dump;
-    ngx_uint_t            line;
+    ngx_uint_t            line;		//当前文件行数
 } ngx_conf_file_t;
 
 
@@ -115,7 +115,7 @@ typedef char *(*ngx_conf_handler_pt)(ngx_conf_t *cf,
 
 struct ngx_conf_s {
     char                 *name;
-    ngx_array_t          *args;			//一条command
+    ngx_array_t          *args;			//ngx_str_t类型的数组， 表示一条command
 
     ngx_cycle_t          *cycle;
     ngx_pool_t           *pool;
@@ -125,15 +125,14 @@ struct ngx_conf_s {
 
     void                 *ctx;          //当前被解析的命令的上下文(context)--对应模块类型的配置对象列表
     ngx_uint_t            module_type;  //当前被解析命令所属的模块类型(module type) -- 模块类型下可以有多种cmd_type 
-    ngx_uint_t            cmd_type;     //当前被解析的命令的XXX(作用域)类型(eg: NGX_HTTP_MAIN_CONF, NGX_HTTP_SRV_CONF)
+    ngx_uint_t            cmd_type;     //当前被解析的命令的作用域(区域)类型(eg: NGX_HTTP_MAIN_CONF, NGX_HTTP_SRV_CONF)
 
     ngx_conf_handler_pt   handler;      //当设置时用该特定handler处理cmd
     void                 *handler_conf;
 };
 
 
-typedef char *(*ngx_conf_post_handler_pt) (ngx_conf_t *cf,
-    void *data, void *conf);
+typedef char *(*ngx_conf_post_handler_pt) (ngx_conf_t *cf, void *data, void *conf);
 
 typedef struct {
     ngx_conf_post_handler_pt  post_handler;

@@ -43,18 +43,15 @@ ngx_int_t
 ngx_cycle_modules(ngx_cycle_t *cycle)
 {
     /*
-     * create a list of modules to be used for this cycle,
-     * copy static modules to it
+     * create a list of modules to be used for this cycle, copy static modules to it
      */
 
-    cycle->modules = ngx_pcalloc(cycle->pool, (ngx_max_module + 1)
-                                              * sizeof(ngx_module_t *));
+    cycle->modules = ngx_pcalloc(cycle->pool, (ngx_max_module + 1) * sizeof(ngx_module_t *));
     if (cycle->modules == NULL) {
         return NGX_ERROR;
     }
 
-    ngx_memcpy(cycle->modules, ngx_modules,
-               ngx_modules_n * sizeof(ngx_module_t *));
+    ngx_memcpy(cycle->modules, ngx_modules, ngx_modules_n * sizeof(ngx_module_t *));
 
     cycle->modules_n = ngx_modules_n;
 
@@ -85,8 +82,8 @@ ngx_count_modules(ngx_cycle_t *cycle, ngx_uint_t type)
     ngx_uint_t     i, next, max;
     ngx_module_t  *module;
 
-    next = 0;
-    max = 0;
+    next = 0;	//下一个可以使用的索引值
+    max = 0;	//最大索引值
 
     /* count appropriate modules, set up their indices */
 
@@ -97,7 +94,7 @@ ngx_count_modules(ngx_cycle_t *cycle, ngx_uint_t type)
             continue;
         }
 
-        if (module->ctx_index != NGX_MODULE_UNSET_INDEX) {
+        if (module->ctx_index != NGX_MODULE_UNSET_INDEX) {  //XXX:什么时候会发生？
 
             /* if ctx_index was assigned, preserve it */
 
@@ -130,7 +127,7 @@ ngx_count_modules(ngx_cycle_t *cycle, ngx_uint_t type)
      * and we'll have to roll back to the previous cycle
      */
 
-    if (cycle->old_cycle && cycle->old_cycle->modules) {
+    if (cycle->old_cycle && cycle->old_cycle->modules) {	//XXX：为什么需要考虑old_cycle
 
         for (i = 0; cycle->old_cycle->modules[i]; i++) {
             module = cycle->old_cycle->modules[i];
@@ -314,7 +311,7 @@ again:
     return index;
 }
 
-
+//从index开始查找type类型的一个未使用的ctx_index
 static ngx_uint_t
 ngx_module_ctx_index(ngx_cycle_t *cycle, ngx_uint_t type, ngx_uint_t index)
 {
@@ -340,7 +337,7 @@ again:
 
     /* check previous cycle */
 
-    if (cycle->old_cycle && cycle->old_cycle->modules) {
+    if (cycle->old_cycle && cycle->old_cycle->modules) {		//XXX:为什么要考虑old_cycle？
 
         for (i = 0; cycle->old_cycle->modules[i]; i++) {
             module = cycle->old_cycle->modules[i];

@@ -10,7 +10,7 @@
 #include <nginx.h>
 
 
-ngx_int_t   ngx_ncpu;
+ngx_int_t   ngx_ncpu;	//CPU个数
 ngx_int_t   ngx_max_sockets;
 ngx_uint_t  ngx_inherited_nonblocking;
 ngx_uint_t  ngx_tcp_nodelay_and_tcp_nopush;

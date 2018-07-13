@@ -180,9 +180,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
         fd = ngx_open_file(filename->data, NGX_FILE_RDONLY, NGX_FILE_OPEN, 0);
 
         if (fd == NGX_INVALID_FILE) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, ngx_errno,
-                               ngx_open_file_n " \"%s\" failed",
-                               filename->data);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, ngx_errno, ngx_open_file_n " \"%s\" failed", filename->data);
             return NGX_CONF_ERROR;
         }
 
@@ -191,8 +189,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
         cf->conf_file = &conf_file;
 
         if (ngx_fd_info(fd, &cf->conf_file->file.info) == NGX_FILE_ERROR) {
-            ngx_log_error(NGX_LOG_EMERG, cf->log, ngx_errno,
-                          ngx_fd_info_n " \"%s\" failed", filename->data);
+            ngx_log_error(NGX_LOG_EMERG, cf->log, ngx_errno, ngx_fd_info_n " \"%s\" failed", filename->data);
         }
 
         cf->conf_file->buffer = &buf;
@@ -269,8 +266,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
         if (rc == NGX_CONF_FILE_DONE) {
 
             if (type == parse_block) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "unexpected end of file, expecting \"}\"");
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unexpected end of file, expecting \"}\"");
                 goto failed;
             }
 
@@ -280,9 +276,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
         if (rc == NGX_CONF_BLOCK_START) {
 
             if (type == parse_param) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "block directives are not supported "
-                                   "in -g option");
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "block directives are not supported " "in -g option");
                 goto failed;
             }
         }
@@ -292,8 +286,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
         if (cf->handler) {
 
             /*
-             * the custom handler, i.e., that is used in the http's
-             * "types { ... }" directive
+             * the custom handler, i.e., that is used in the http's "types { ... }" directive
              */
 
             if (rc == NGX_CONF_BLOCK_START) {
@@ -335,9 +328,7 @@ done:
         }
 
         if (ngx_close_file(fd) == NGX_FILE_ERROR) {
-            ngx_log_error(NGX_LOG_ALERT, cf->log, ngx_errno,
-                          ngx_close_file_n " %s failed",
-                          filename->data);
+            ngx_log_error(NGX_LOG_ALERT, cf->log, ngx_errno, ngx_close_file_n " %s failed", filename->data);
             rc = NGX_ERROR;
         }
 
@@ -365,15 +356,16 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
 
     found = 0;
 
-    for (i = 0; cf->cycle->modules[i]; i++) {
+    for (i = 0; cf->cycle->modules[i]; i++) {	//遍历每一个模块
 
         cmd = cf->cycle->modules[i]->commands;
         if (cmd == NULL) {
             continue;
         }
 
-        for ( /* void */ ; cmd->name.len; cmd++) {
+        for ( /* void */ ; cmd->name.len; cmd++) {	//遍历某个模块的命令列表
 
+			//检查配置名是否匹配
             if (name->len != cmd->name.len) {
                 continue;
             }
@@ -384,34 +376,32 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
 
             found = 1;
 
+			//检查模块命令所属模块与当前解析的配置命令所属模块是否匹配
             if (cf->cycle->modules[i]->type != NGX_CONF_MODULE
-                && cf->cycle->modules[i]->type != cf->module_type)
+                && cf->cycle->modules[i]->type != cf->module_type)	
             {
                 continue;
             }
 
             /* is the directive's location right ? */
-
+			//检查配置命令的作用域是否在模块命令有效的作用域范围内
             if (!(cmd->type & cf->cmd_type)) {
                 continue;
             }
 
+			//检查模块命令类型与配置命令类型是否匹配(普通命令，块命令)
             if (!(cmd->type & NGX_CONF_BLOCK) && last != NGX_OK) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                  "directive \"%s\" is not terminated by \";\"",
-                                  name->data);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "directive \"%s\" is not terminated by \";\"", name->data);
                 return NGX_ERROR;
             }
 
             if ((cmd->type & NGX_CONF_BLOCK) && last != NGX_CONF_BLOCK_START) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "directive \"%s\" has no opening \"{\"",
-                                   name->data);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "directive \"%s\" has no opening \"{\"", name->data);
                 return NGX_ERROR;
             }
 
             /* is the directive's argument count right ? */
-
+			//检查配置命令提供的参数个数是否兼容模块命令的参数要求
             if (!(cmd->type & NGX_CONF_ANY)) {
 
                 if (cmd->type & NGX_CONF_FLAG) {
@@ -436,8 +426,7 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
 
                     goto invalid;
 
-                } else if (!(cmd->type & argument_number[cf->args->nelts - 1]))
-                {
+                } else if (!(cmd->type & argument_number[cf->args->nelts - 1])) {
                     goto invalid;
                 }
             }
@@ -446,7 +435,7 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
 
             conf = NULL;
 
-            if (cmd->type & NGX_DIRECT_CONF) {
+            if (cmd->type & NGX_DIRECT_CONF) {	//该命令上下文已经分配
                 conf = ((void **) cf->ctx)[cf->cycle->modules[i]->index];
 
             } else if (cmd->type & NGX_MAIN_CONF) {
@@ -470,30 +459,25 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
                 return NGX_ERROR;
             }
 
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "\"%s\" directive %s", name->data, rv);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"%s\" directive %s", name->data, rv);
 
             return NGX_ERROR;
         }
     }
 
     if (found) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "\"%s\" directive is not allowed here", name->data);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"%s\" directive is not allowed here", name->data);
 
         return NGX_ERROR;
     }
 
-    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                       "unknown directive \"%s\"", name->data);
+    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unknown directive \"%s\"", name->data);
 
     return NGX_ERROR;
 
 invalid:
 
-    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                       "invalid number of arguments in \"%s\" directive",
-                       name->data);
+    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid number of arguments in \"%s\" directive", name->data);
 
     return NGX_ERROR;
 }
@@ -513,7 +497,7 @@ ngx_conf_read_token(ngx_conf_t *cf)
 
     found = 0;
     need_space = 0;
-    last_space = 1;
+    last_space = 1;			//表示一个新的token(配置名或者配置值)的开始
     sharp_comment = 0;
     variable = 0;
     quoted = 0;
@@ -523,8 +507,8 @@ ngx_conf_read_token(ngx_conf_t *cf)
     cf->args->nelts = 0;
     b = cf->conf_file->buffer;
     dump = cf->conf_file->dump;
-    start = b->pos;
-    start_line = cf->conf_file->line;
+    start = b->pos;						//表示当前token的起始位置
+    start_line = cf->conf_file->line;	//表示当前token所在的文件行号
 
     file_size = ngx_file_size(&cf->conf_file->file.info);
 
@@ -537,15 +521,11 @@ ngx_conf_read_token(ngx_conf_t *cf)
                 if (cf->args->nelts > 0 || !last_space) {
 
                     if (cf->conf_file->file.fd == NGX_INVALID_FILE) {
-                        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                           "unexpected end of parameter, "
-                                           "expecting \";\"");
+                        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unexpected end of parameter, " "expecting \";\"");
                         return NGX_ERROR;
                     }
 
-                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                  "unexpected end of file, "
-                                  "expecting \";\" or \"}\"");
+                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unexpected end of file, " "expecting \";\" or \"}\"");
                     return NGX_ERROR;
                 }
 
@@ -564,15 +544,11 @@ ngx_conf_read_token(ngx_conf_t *cf)
                     ch = '\'';
 
                 } else {
-                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                       "too long parameter \"%*s...\" started",
-                                       10, start);
+                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "too long parameter \"%*s...\" started", 10, start);
                     return NGX_ERROR;
                 }
 
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "too long parameter, probably "
-                                   "missing terminating \"%c\" character", ch);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "too long parameter, probably " "missing terminating \"%c\" character", ch);
                 return NGX_ERROR;
             }
 
@@ -586,18 +562,14 @@ ngx_conf_read_token(ngx_conf_t *cf)
                 size = b->end - (b->start + len);
             }
 
-            n = ngx_read_file(&cf->conf_file->file, b->start + len, size,
-                              cf->conf_file->file.offset);
+            n = ngx_read_file(&cf->conf_file->file, b->start + len, size, cf->conf_file->file.offset);
 
             if (n == NGX_ERROR) {
                 return NGX_ERROR;
             }
 
             if (n != size) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   ngx_read_file_n " returned "
-                                   "only %z bytes instead of %z",
-                                   n, size);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, ngx_read_file_n " returned " "only %z bytes instead of %z", n, size);
                 return NGX_ERROR;
             }
 
@@ -630,7 +602,7 @@ ngx_conf_read_token(ngx_conf_t *cf)
         }
 
         if (need_space) {
-            if (ch == ' ' || ch == '\t' || ch == CR || ch == LF) {
+            if (ch == ' ' || ch == '\t' || ch == CR || ch == LF) {	
                 last_space = 1;
                 need_space = 0;
                 continue;
@@ -649,18 +621,17 @@ ngx_conf_read_token(ngx_conf_t *cf)
                 need_space = 0;
 
             } else {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "unexpected \"%c\"", ch);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unexpected \"%c\"", ch);
                 return NGX_ERROR;
             }
         }
 
         if (last_space) {
-            if (ch == ' ' || ch == '\t' || ch == CR || ch == LF) {
+            if (ch == ' ' || ch == '\t' || ch == CR || ch == LF) {	//跳过空白
                 continue;
             }
 
-            start = b->pos - 1;
+            start = b->pos - 1;	//记录第一个非空白字符作为token开始位置
             start_line = cf->conf_file->line;
 
             switch (ch) {
@@ -668,8 +639,7 @@ ngx_conf_read_token(ngx_conf_t *cf)
             case ';':
             case '{':
                 if (cf->args->nelts == 0) {
-                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                       "unexpected \"%c\"", ch);
+                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unexpected \"%c\"", ch);
                     return NGX_ERROR;
                 }
 
@@ -681,8 +651,7 @@ ngx_conf_read_token(ngx_conf_t *cf)
 
             case '}':
                 if (cf->args->nelts != 0) {
-                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                       "unexpected \"}\"");
+                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unexpected \"}\"");
                     return NGX_ERROR;
                 }
 
@@ -749,9 +718,7 @@ ngx_conf_read_token(ngx_conf_t *cf)
                     found = 1;
                 }
 
-            } else if (ch == ' ' || ch == '\t' || ch == CR || ch == LF
-                       || ch == ';' || ch == '{')
-            {
+            } else if (ch == ' ' || ch == '\t' || ch == CR || ch == LF || ch == ';' || ch == '{') {
                 last_space = 1;
                 found = 1;
             }
@@ -767,10 +734,7 @@ ngx_conf_read_token(ngx_conf_t *cf)
                     return NGX_ERROR;
                 }
 
-                for (dst = word->data, src = start, len = 0;
-                     src < b->pos - 1;
-                     len++)
-                {
+                for (dst = word->data, src = start, len = 0; src < b->pos - 1; len++) {
                     if (*src == '\\') {
                         switch (src[1]) {
                         case '"':
@@ -1045,10 +1009,7 @@ ngx_conf_set_flag_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         *fp = 0;
 
     } else {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                     "invalid value \"%s\" in \"%s\" directive, "
-                     "it must be \"on\" or \"off\"",
-                     value[1].data, cmd->name.data);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid value \"%s\" in \"%s\" directive, " "it must be \"on\" or \"off\"", value[1].data, cmd->name.data);
         return NGX_CONF_ERROR;
     }
 
@@ -1366,9 +1327,7 @@ ngx_conf_set_enum_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     e = cmd->post;
 
     for (i = 0; e[i].name.len != 0; i++) {
-        if (e[i].name.len != value[1].len
-            || ngx_strcasecmp(e[i].name.data, value[1].data) != 0)
-        {
+        if (e[i].name.len != value[1].len || ngx_strcasecmp(e[i].name.data, value[1].data) != 0) {
             continue;
         }
 
@@ -1377,8 +1336,7 @@ ngx_conf_set_enum_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_OK;
     }
 
-    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                       "invalid value \"%s\"", value[1].data);
+    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid value \"%s\"", value[1].data);
 
     return NGX_CONF_ERROR;
 }

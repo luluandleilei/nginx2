@@ -49,8 +49,7 @@ ngx_event_accept(ngx_event_t *ev)
     ls = lc->listening;
     ev->ready = 0;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_EVENT, ev->log, 0,
-                   "accept on %V, ready: %d", &ls->addr_text, ev->available);
+    ngx_log_debug2(NGX_LOG_DEBUG_EVENT, ev->log, 0, "accept on %V, ready: %d", &ls->addr_text, ev->available);
 
     do {
         socklen = sizeof(ngx_sockaddr_t);
@@ -69,8 +68,7 @@ ngx_event_accept(ngx_event_t *ev)
             err = ngx_socket_errno;
 
             if (err == NGX_EAGAIN) {
-                ngx_log_debug0(NGX_LOG_DEBUG_EVENT, ev->log, err,
-                               "accept() not ready");
+                ngx_log_debug0(NGX_LOG_DEBUG_EVENT, ev->log, err, "accept() not ready");
                 return;
             }
 
@@ -84,8 +82,7 @@ ngx_event_accept(ngx_event_t *ev)
             }
 
 #if (NGX_HAVE_ACCEPT4)
-            ngx_log_error(level, ev->log, err,
-                          use_accept4 ? "accept4() failed" : "accept() failed");
+            ngx_log_error(level, ev->log, err, use_accept4 ? "accept4() failed" : "accept() failed");
 
             if (use_accept4 && err == NGX_ENOSYS) {
                 use_accept4 = 0;
@@ -107,9 +104,7 @@ ngx_event_accept(ngx_event_t *ev)
             }
 
             if (err == NGX_EMFILE || err == NGX_ENFILE) {
-                if (ngx_disable_accept_events((ngx_cycle_t *) ngx_cycle, 1)
-                    != NGX_OK)
-                {
+                if (ngx_disable_accept_events((ngx_cycle_t *) ngx_cycle, 1) != NGX_OK) {
                     return;
                 }
 
@@ -133,15 +128,13 @@ ngx_event_accept(ngx_event_t *ev)
         (void) ngx_atomic_fetch_add(ngx_stat_accepted, 1);
 #endif
 
-        ngx_accept_disabled = ngx_cycle->connection_n / 8
-                              - ngx_cycle->free_connection_n;
+        ngx_accept_disabled = ngx_cycle->connection_n / 8 - ngx_cycle->free_connection_n;
 
         c = ngx_get_connection(s, ev->log);
 
         if (c == NULL) {
             if (ngx_close_socket(s) == -1) {
-                ngx_log_error(NGX_LOG_ALERT, ev->log, ngx_socket_errno,
-                              ngx_close_socket_n " failed");
+                ngx_log_error(NGX_LOG_ALERT, ev->log, ngx_socket_errno, ngx_close_socket_n " failed");
             }
 
             return;
@@ -182,8 +175,7 @@ ngx_event_accept(ngx_event_t *ev)
         if (ngx_inherited_nonblocking) {
             if (ngx_event_flags & NGX_USE_IOCP_EVENT) {
                 if (ngx_blocking(s) == -1) {
-                    ngx_log_error(NGX_LOG_ALERT, ev->log, ngx_socket_errno,
-                                  ngx_blocking_n " failed");
+                    ngx_log_error(NGX_LOG_ALERT, ev->log, ngx_socket_errno, ngx_blocking_n " failed");
                     ngx_close_accepted_connection(c);
                     return;
                 }
@@ -192,8 +184,7 @@ ngx_event_accept(ngx_event_t *ev)
         } else {
             if (!(ngx_event_flags & NGX_USE_IOCP_EVENT)) {
                 if (ngx_nonblocking(s) == -1) {
-                    ngx_log_error(NGX_LOG_ALERT, ev->log, ngx_socket_errno,
-                                  ngx_nonblocking_n " failed");
+                    ngx_log_error(NGX_LOG_ALERT, ev->log, ngx_socket_errno, ngx_nonblocking_n " failed");
                     ngx_close_accepted_connection(c);
                     return;
                 }
@@ -285,11 +276,9 @@ ngx_event_accept(ngx_event_t *ev)
 
         if (log->log_level & NGX_LOG_DEBUG_EVENT) {
             addr.data = text;
-            addr.len = ngx_sock_ntop(c->sockaddr, c->socklen, text,
-                                     NGX_SOCKADDR_STRLEN, 1);
+            addr.len = ngx_sock_ntop(c->sockaddr, c->socklen, text, NGX_SOCKADDR_STRLEN, 1);
 
-            ngx_log_debug3(NGX_LOG_DEBUG_EVENT, log, 0,
-                           "*%uA accept: %V fd:%d", c->number, &addr, s);
+            ngx_log_debug3(NGX_LOG_DEBUG_EVENT, log, 0, "*%uA accept: %V fd:%d", c->number, &addr, s);
         }
 
         }
