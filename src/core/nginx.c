@@ -620,6 +620,7 @@ ngx_show_version_info(void)
 }
 
 
+//参看nginx替换二进制文件
 static ngx_int_t
 ngx_add_inherited_sockets(ngx_cycle_t *cycle)
 {
@@ -914,6 +915,7 @@ ngx_exec_new_binary(ngx_cycle_t *cycle, char *const *argv)
 }
 
 
+//解析命令行参数记录到全局变量中
 static ngx_int_t
 ngx_get_options(int argc, char *const *argv)
 {
@@ -1042,6 +1044,8 @@ ngx_get_options(int argc, char *const *argv)
 }
 
 
+//备份master进程的命令行参数到ngx_os_environ
+//备份master进程的环境变量到ngx_os_environ
 static ngx_int_t
 ngx_save_argv(ngx_cycle_t *cycle, int argc, char *const *argv)
 {

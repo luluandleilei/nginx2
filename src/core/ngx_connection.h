@@ -16,7 +16,7 @@
 typedef struct ngx_listening_s  ngx_listening_t;
 
 struct ngx_listening_s {
-    ngx_socket_t        fd;
+    ngx_socket_t        fd;		////套接字
 
     struct sockaddr    *sockaddr;	//本地绑定的套接字地址结构
     socklen_t           socklen;    /* size of sockaddr */
@@ -58,12 +58,12 @@ struct ngx_listening_s {
 
     unsigned            open:1;
     unsigned            remain:1;
-    unsigned            ignore:1;
+    unsigned            ignore:1;	//为1表示跳过设置当前ngx_listening_t结构体中的套接字，为0时正常初始化套接字
 
     unsigned            bound:1;       /* already bound */
     unsigned            inherited:1;   /* inherited from previous process */
     unsigned            nonblocking_accept:1;
-    unsigned            listen:1;
+    unsigned            listen:1;		//是否为1表示当前结构体对应的套接字已经监听
     unsigned            nonblocking:1;
     unsigned            shared:1;    /* shared between threads or processes */
     unsigned            addr_ntop:1;
@@ -124,12 +124,15 @@ typedef enum {
 //XXX:表示一个监听套接字或者已连接套接字及其状态，
 //(被动连接)表示客户端主动发起的，Nginx服务器被动接受的TCP连接
 //不可以随意创建， 必须从连接池中获取该对象
+//The connection type ngx_connection_t is a wrapper around a socket descriptor.
 struct ngx_connection_s {
+	//Arbitrary connection context. Normally, it is a pointer to a higher-level object built on top
+	//of the connection, such as an HTTP request or a Stream session.
     void               *data;	 //连接未使用时，data成员用于充当连接池中空闲连接链表中的next指针。 //当连接被使用时，data的意义由使用它的nginx模块而定，如在HTTP框架中，data指向ngx_http_request_t请求
-    ngx_event_t        *read;	//连接对应的读事件
+    ngx_event_t        *read;	//Read and write events for the connection.//连接对应的读事件
     ngx_event_t        *write;	//连接对应的写事件
 
-    ngx_socket_t        fd;		//连接对象对应的套接字 //连接对应的套接字句柄
+    ngx_socket_t        fd;		//Socket descriptor//连接对象对应的套接字 //连接对应的套接字句柄
 
 	 //下面4个成员以方法指针的形式出现， 说明每个连接都可以采用不同的接收方法， 每个事件消费模块都可以灵活地决定其行为。
     //不同的事件驱动机制需要使用的接收、发送方法多半是不一样的。
@@ -142,25 +145,29 @@ struct ngx_connection_s {
 
     off_t               sent;	//连接上已经发送出去的字节数
 
-    ngx_log_t          *log;	//可以记录日志的ngx_log_t对象
+    ngx_log_t          *log;	//Connection log.//可以记录日志的ngx_log_t对象
 
-    ngx_pool_t         *pool;	//内存池。 一般在accept一个新连接时会创建一个内存池，而在这个连接结束时会销毁内存池。 //这个内存池的大小将由上面的listening监听对象中的pool_size成员决定 //注意， 这里所说的连接是指成功建立的TCP连接， 所有的ngx_connection_t结构体都是预分配的。
+    ngx_pool_t         *pool;	//Connection pool.//内存池。 一般在accept一个新连接时会创建一个内存池，而在这个连接结束时会销毁内存池。 //这个内存池的大小将由上面的listening监听对象中的pool_size成员决定 //注意， 这里所说的连接是指成功建立的TCP连接， 所有的ngx_connection_t结构体都是预分配的。
 
     int                 type;	//套接字类型SOCK_STREAM|SOCK_DATAGRAM
 
+	//sockaddr, socklen, addr_text — Remote socket address in binary and text forms.
     struct sockaddr    *sockaddr;	//连接客户端的sockaddr结构体		
     socklen_t           socklen;	//sockaddr结构体的长度		
     ngx_str_t           addr_text;	//连接客户端字符串形式的ip地址
 
+	//proxy_protocol_addr, proxy_protocol_port - PROXY protocol client address and port, if the PROXY protocol is enabled for the connection.
     ngx_str_t           proxy_protocol_addr;
     in_port_t           proxy_protocol_port;
 
 #if (NGX_SSL || NGX_COMPAT)
-    ngx_ssl_connection_t  *ssl;
+	//An nginx connection can transparently encapsulate the SSL layer. In this case the connection's ssl field holds a pointer to an ngx_ssl_connection_t structure, keeping all SSL-related data for the connection, including SSL_CTX and SSL. The recv, send, recv_chain, and send_chain handlers are set to SSL-enabled functions as well.
+    ngx_ssl_connection_t  *ssl;	//SSL context for the connection.
 #endif
 
     ngx_udp_connection_t  *udp;
 
+	//local_sockaddr, local_socklen — Local socket address in binary form. Initially, these fields are empty. Use the ngx_connection_local_sockaddr() function to get the local socket address.
     struct sockaddr    *local_sockaddr;	//本机的监听端口对应的sockaddr结构体，也就是listening监听对象中的sockaddr成员
     socklen_t           local_socklen;
 
@@ -181,8 +188,8 @@ struct ngx_connection_s {
     unsigned            destroyed:1;	//标志位，为 1时表示连接已经销毁。这里的连接指的是TCP连接，而不是ngx_connection_t结构体。 //当destroyed为 1时，结构体仍然存在，但其对应的套接字、内存池等已经不可用
 
     unsigned            idle:1;		//标志位，为 1时表示连接处于空闲状态，如keepalive请求中两次请求之间的状态
-    unsigned            reusable:1;	//标志位，为 1时表示连接可重用，它与上面的queue字段是对应使用的
-    unsigned            close:1;	//标志位，为 1时表示连接关闭
+    unsigned            reusable:1;	//Flag indicating the connection is in a state that makes it eligible for reuse.//标志位，为 1时表示连接可重用，它与上面的queue字段是对应使用的
+    unsigned            close:1;	//Flag indicating that the connection is being reused and needs to be closed. //标志位，为 1时表示连接关闭
     unsigned            shared:1;	
 
     unsigned            sendfile:1;		//标志位，为 1时表示正将文件中的数据发往连接的另一端

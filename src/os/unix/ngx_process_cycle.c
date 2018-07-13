@@ -45,7 +45,7 @@ sig_atomic_t  ngx_reopen;
 
 sig_atomic_t  ngx_change_binary;
 ngx_pid_t     ngx_new_binary;
-ngx_uint_t    ngx_inherited;
+ngx_uint_t    ngx_inherited;	//表示从环境变量中获取了继承的监听套接字到init_cycle中
 ngx_uint_t    ngx_daemonized;
 
 sig_atomic_t  ngx_noaccept;

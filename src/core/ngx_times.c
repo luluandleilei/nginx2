@@ -87,7 +87,7 @@ ngx_time_update(void)
     ngx_time_t      *tp;
     struct timeval   tv;
 
-    if (!ngx_trylock(&ngx_time_lock)) {
+    if (!ngx_trylock(&ngx_time_lock)) {	//XXX:为什么需要上锁？
         return;
     }
 
@@ -96,7 +96,7 @@ ngx_time_update(void)
     sec = tv.tv_sec;
     msec = tv.tv_usec / 1000;
 
-    ngx_current_msec = ngx_monotonic_time(sec, msec);
+    ngx_current_msec = ngx_monotonic_time(sec, msec); //XXX:?
 
     tp = &cached_time[slot];
 
@@ -117,7 +117,7 @@ ngx_time_update(void)
     tp->sec = sec;
     tp->msec = msec;
 
-    ngx_gmtime(sec, &gmt);
+    ngx_gmtime(sec, &gmt);	//XXX?
 
 
     p0 = &cached_http_time[slot][0];
