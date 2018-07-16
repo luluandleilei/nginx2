@@ -3057,8 +3057,7 @@ ngx_http_v2_create_stream(ngx_http_v2_connection_t *h2c, ngx_uint_t push)
 
     cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
 
-    r->header_in = ngx_create_temp_buf(r->pool,
-                                       cscf->client_header_buffer_size);
+    r->header_in = ngx_create_temp_buf(r->pool, cscf->client_header_buffer_size);
     if (r->header_in == NULL) {
         ngx_http_free_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
         return NULL;

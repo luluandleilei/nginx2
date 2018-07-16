@@ -840,14 +840,13 @@ ngx_http_init_static_location_trees(ngx_conf_t *cf,
 
 
 ngx_int_t
-ngx_http_add_location(ngx_conf_t *cf, ngx_queue_t **locations,
-    ngx_http_core_loc_conf_t *clcf)
+ngx_http_add_location(ngx_conf_t *cf, ngx_queue_t **locations, ngx_http_core_loc_conf_t *clcf)
 {
     ngx_http_location_queue_t  *lq;
 
+	//XXX:如必要为父location节点分配空间
     if (*locations == NULL) {
-        *locations = ngx_palloc(cf->temp_pool,
-                                sizeof(ngx_http_location_queue_t));
+        *locations = ngx_palloc(cf->temp_pool, sizeof(ngx_http_location_queue_t));
         if (*locations == NULL) {
             return NGX_ERROR;
         }
@@ -855,6 +854,7 @@ ngx_http_add_location(ngx_conf_t *cf, ngx_queue_t **locations,
         ngx_queue_init(*locations);
     }
 
+	//XXX:初始化子location对应的链表节点
     lq = ngx_palloc(cf->temp_pool, sizeof(ngx_http_location_queue_t));
     if (lq == NULL) {
         return NGX_ERROR;
@@ -880,6 +880,7 @@ ngx_http_add_location(ngx_conf_t *cf, ngx_queue_t **locations,
 
     ngx_queue_init(&lq->list);
 
+	//XXX:将子location(clcf)添加到父location((locations))的双向链表中
     ngx_queue_insert_tail(*locations, &lq->queue);
 
     return NGX_OK;

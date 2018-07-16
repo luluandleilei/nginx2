@@ -163,11 +163,11 @@ typedef struct {
     ngx_array_t                prefix_variables;  /* ngx_http_variable_t */
     ngx_uint_t                 ncaptures;
 
-    ngx_uint_t                 server_names_hash_max_size;
-    ngx_uint_t                 server_names_hash_bucket_size;
+    ngx_uint_t                 server_names_hash_max_size;		//the maximum size of the server names hash tables
+    ngx_uint_t                 server_names_hash_bucket_size;	//the bucket size for the server names hash tables
 
-    ngx_uint_t                 variables_hash_max_size;
-    ngx_uint_t                 variables_hash_bucket_size;
+    ngx_uint_t                 variables_hash_max_size;		//the maximum size of the variables hash table. 
+    ngx_uint_t                 variables_hash_bucket_size;	//the bucket size for the variables hash table
 
     ngx_hash_keys_arrays_t    *variables_keys;
 
@@ -189,17 +189,17 @@ typedef struct {
 
     ngx_str_t                   server_name;
 
-    size_t                      connection_pool_size;
-    size_t                      request_pool_size;
-    size_t                      client_header_buffer_size;
+    size_t                      connection_pool_size;	//Allows accurate tuning of per-connection memory allocations.
+    size_t                      request_pool_size;		//Allows accurate tuning of per-request memory allocations. 
+    size_t                      client_header_buffer_size;		//Sets buffer size for reading client request header. 
 
-    ngx_bufs_t                  large_client_header_buffers;
+    ngx_bufs_t                  large_client_header_buffers;	//Sets the maximum number and size of buffers used for reading large client request header.
 
-    ngx_msec_t                  client_header_timeout;
+    ngx_msec_t                  client_header_timeout;	//Defines a timeout for reading client request header. 
 
     ngx_flag_t                  ignore_invalid_headers;
     ngx_flag_t                  merge_slashes;
-    ngx_flag_t                  underscores_in_headers;
+    ngx_flag_t                  underscores_in_headers;	//Enables or disables the use of underscores in client request header fields.
 
     unsigned                    listen:1;
 #if (NGX_PCRE)
@@ -307,9 +307,9 @@ struct ngx_http_core_loc_conf_s {
 
     unsigned      noname:1;   /* "if () {}" block or limit_except */
     unsigned      lmt_excpt:1;
-    unsigned      named:1;
+    unsigned      named:1;			//XXX:the named location
 
-    unsigned      exact_match:1;
+    unsigned      exact_match:1;	//XXX:the exact location
     unsigned      noregex:1;
 
     unsigned      auto_redirect:1;
@@ -324,7 +324,7 @@ struct ngx_http_core_loc_conf_s {
 #endif
 
     /* pointer to the modules' loc_conf */
-    void        **loc_conf;
+    void        **loc_conf;		//指向所属location块内ngx_http_conf_ctx_t结构体中的loc_conf指针数组，它保存着当前location块内所有HTTP模块create_loc_conf方法产生的结构体指针
 
     uint32_t      limit_except;
     void        **limit_except_loc_conf;
@@ -347,7 +347,7 @@ struct ngx_http_core_loc_conf_s {
     off_t         directio;                /* directio */
     off_t         directio_alignment;      /* directio_alignment */
 
-    size_t        client_body_buffer_size; /* client_body_buffer_size */
+    size_t        client_body_buffer_size; /* client_body_buffer_size */	//Sets buffer size for reading client request body.
     size_t        send_lowat;              /* send_lowat */
     size_t        postpone_output;         /* postpone_output */
     size_t        limit_rate;              /* limit_rate */
@@ -376,8 +376,7 @@ struct ngx_http_core_loc_conf_s {
     ngx_uint_t    max_ranges;              /* max_ranges */
     ngx_uint_t    client_body_in_file_only; /* client_body_in_file_only */
 
-    ngx_flag_t    client_body_in_single_buffer;
-                                           /* client_body_in_singe_buffer */
+    ngx_flag_t    client_body_in_single_buffer; /* client_body_in_singe_buffer */
     ngx_flag_t    internal;                /* internal */
     ngx_flag_t    sendfile;                /* sendfile */
     ngx_flag_t    aio;                     /* aio */
@@ -430,10 +429,10 @@ struct ngx_http_core_loc_conf_s {
 
     ngx_log_t    *error_log;
 
-    ngx_uint_t    types_hash_max_size;
-    ngx_uint_t    types_hash_bucket_size;
+    ngx_uint_t    types_hash_max_size;		//Sets the maximum size of the types hash tables.
+    ngx_uint_t    types_hash_bucket_size;	//Sets the bucket size for the types hash tables.
 
-    ngx_queue_t  *locations;
+    ngx_queue_t  *locations;	//将同一个server块内多个表达location块的ngx_http_core_loc_conf_t结构体以双向链表方式组织起来，该location指针指向ngx_http_location_queue_t结构体	//属于当前块的所有location块通过ngx_http_location_queue_t结构体构成的双向链表
 
 #if 0
     ngx_http_core_loc_conf_t  *prev_location;
@@ -442,13 +441,13 @@ struct ngx_http_core_loc_conf_s {
 
 
 typedef struct {
-    ngx_queue_t                      queue;
-    ngx_http_core_loc_conf_t        *exact;
-    ngx_http_core_loc_conf_t        *inclusive;
-    ngx_str_t                       *name;
-    u_char                          *file_name;
-    ngx_uint_t                       line;
-    ngx_queue_t                      list;
+    ngx_queue_t                      queue;		//XXX:ngx_http_location_queue_t类型双向链表头节点(父location）或 ngx_http_location_queue_t类型双向链表的子节点(子location)
+    ngx_http_core_loc_conf_t        *exact;		//如果子location中的字符串可以精确匹配(包括正则表达式)，exect将指向对应的ngx_http_core_loc_conf_t结构体(子location)，否则值为NULL
+    ngx_http_core_loc_conf_t        *inclusive;	//如果子location中的字符串无法精确匹配(包括自定义的通配符)，inclusive将指向对应的ngx_http_core_loc_conf_t结构体(子location)，否则值为NULL
+    ngx_str_t                       *name;		//XXX: pointer to location name(子location)//指向location(子location)的名称
+    u_char                          *file_name;	//XXX：子location的命令对应的配置文件(子location)
+    ngx_uint_t                       line;		//XXX: 子location的命令对应的配置文件的行号(子location)
+    ngx_queue_t                      list;		//
 } ngx_http_location_queue_t;
 
 
