@@ -36,10 +36,10 @@ static char *ngx_event_core_init_conf(ngx_cycle_t *cycle, void *conf);
 static ngx_uint_t     ngx_timer_resolution;		//ngx_core_module模块的timer_resolution命令指定的时间更新间隔
 sig_atomic_t          ngx_event_timer_alarm;	//全局变量，当它设为1时表示需要更新时间 //在ngx_event_action_t的process_events方法中，每一个事件驱动模块都需要在ngx_event_timer_alarm为1时 //调用ngx_time_update方法更新系统时间，在更新系统时间结束后需要将ngx_event_timer_alarm设为0	
 
-static ngx_uint_t     ngx_event_max_module;	//event类型模块的总个数
+static ngx_uint_t     ngx_event_max_module;		//event类型模块的总个数
 
-ngx_uint_t            ngx_event_flags;		//由实际使用的io复用机制设置的标志
-ngx_event_actions_t   ngx_event_actions;	//nginx事件驱动接口对象,被初始化为具体的使用的事件驱动程序（epoll.action, select.action）//nginx事件框架处理事件时封装的接口，实际使用的io复用机制的action方法
+ngx_uint_t            ngx_event_flags;			//由实际使用的io复用机制设置的标志
+ngx_event_actions_t   ngx_event_actions;		//nginx事件驱动接口对象,被初始化为具体的使用的事件驱动程序（epoll.action, select.action）//nginx事件框架处理事件时封装的接口，实际使用的io复用机制的action方法
 
 
 static ngx_atomic_t   connection_counter = 1;
@@ -287,9 +287,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
                 flags |= NGX_POST_EVENTS;
 
             } else {
-                if (timer == NGX_TIMER_INFINITE
-                    || timer > ngx_accept_mutex_delay)
-                {
+                if (timer == NGX_TIMER_INFINITE || timer > ngx_accept_mutex_delay) {
                     timer = ngx_accept_mutex_delay;
                 }
             }
@@ -327,9 +325,7 @@ ngx_handle_read_event(ngx_event_t *rev, ngx_uint_t flags)
         /* kqueue, epoll */
 
         if (!rev->active && !rev->ready) {
-            if (ngx_add_event(rev, NGX_READ_EVENT, NGX_CLEAR_EVENT)
-                == NGX_ERROR)
-            {
+            if (ngx_add_event(rev, NGX_READ_EVENT, NGX_CLEAR_EVENT) == NGX_ERROR) {
                 return NGX_ERROR;
             }
         }
@@ -341,9 +337,7 @@ ngx_handle_read_event(ngx_event_t *rev, ngx_uint_t flags)
         /* select, poll, /dev/poll */
 
         if (!rev->active && !rev->ready) {
-            if (ngx_add_event(rev, NGX_READ_EVENT, NGX_LEVEL_EVENT)
-                == NGX_ERROR)
-            {
+            if (ngx_add_event(rev, NGX_READ_EVENT, NGX_LEVEL_EVENT) == NGX_ERROR) {
                 return NGX_ERROR;
             }
 
@@ -351,9 +345,7 @@ ngx_handle_read_event(ngx_event_t *rev, ngx_uint_t flags)
         }
 
         if (rev->active && (rev->ready || (flags & NGX_CLOSE_EVENT))) {
-            if (ngx_del_event(rev, NGX_READ_EVENT, NGX_LEVEL_EVENT | flags)
-                == NGX_ERROR)
-            {
+            if (ngx_del_event(rev, NGX_READ_EVENT, NGX_LEVEL_EVENT | flags) == NGX_ERROR) {
                 return NGX_ERROR;
             }
 
@@ -470,8 +462,7 @@ static char *
 ngx_event_init_conf(ngx_cycle_t *cycle, void *conf)
 {
     if (ngx_get_conf(cycle->conf_ctx, ngx_events_module) == NULL) {
-        ngx_log_error(NGX_LOG_EMERG, cycle->log, 0,
-                      "no \"events\" section in configuration");
+        ngx_log_error(NGX_LOG_EMERG, cycle->log, 0, "no \"events\" section in configuration");
         return NGX_CONF_ERROR;
     }
 
@@ -494,8 +485,7 @@ ngx_event_module_init(ngx_cycle_t *cycle)
     ecf = (*cf)[ngx_event_core_module.ctx_index];
 
     if (!ngx_test_config && ngx_process <= NGX_PROCESS_MASTER) {
-        ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0,
-                      "using the \"%s\" event method", ecf->name);
+        ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0, "using the \"%s\" event method", ecf->name);
     }
 
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
@@ -507,28 +497,25 @@ ngx_event_module_init(ngx_cycle_t *cycle)
     ngx_int_t      limit;
     struct rlimit  rlmt;
 
+	//当worker_connection配置指定的并发连接数大于。。。。时，给出警告信息
     if (getrlimit(RLIMIT_NOFILE, &rlmt) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                      "getrlimit(RLIMIT_NOFILE) failed, ignored");
+        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "getrlimit(RLIMIT_NOFILE) failed, ignored");
 
     } else {
         if (ecf->connections > (ngx_uint_t) rlmt.rlim_cur
             && (ccf->rlimit_nofile == NGX_CONF_UNSET
                 || ecf->connections > (ngx_uint_t) ccf->rlimit_nofile))
         {
-            limit = (ccf->rlimit_nofile == NGX_CONF_UNSET) ?
-                         (ngx_int_t) rlmt.rlim_cur : ccf->rlimit_nofile;
+            limit = (ccf->rlimit_nofile == NGX_CONF_UNSET) ? (ngx_int_t) rlmt.rlim_cur : ccf->rlimit_nofile;
 
-            ngx_log_error(NGX_LOG_WARN, cycle->log, 0,
-                          "%ui worker_connections exceed "
-                          "open file resource limit: %i",
-                          ecf->connections, limit);
+            ngx_log_error(NGX_LOG_WARN, cycle->log, 0, "%ui worker_connections exceed " "open file resource limit: %i", ecf->connections, limit);
         }
     }
     }
 #endif /* !(NGX_WIN32) */
 
 
+	//XXX:下面代码不明白
     if (ccf->master == 0) {
         return NGX_OK;
     }
@@ -571,10 +558,7 @@ ngx_event_module_init(ngx_cycle_t *cycle)
     ngx_accept_mutex_ptr = (ngx_atomic_t *) shared;
     ngx_accept_mutex.spin = (ngx_uint_t) -1;
 
-    if (ngx_shmtx_create(&ngx_accept_mutex, (ngx_shmtx_sh_t *) shared,
-                         cycle->lock_file.data)
-        != NGX_OK)
-    {
+    if (ngx_shmtx_create(&ngx_accept_mutex, (ngx_shmtx_sh_t *) shared, cycle->lock_file.data) != NGX_OK) {
         return NGX_ERROR;
     }
 
@@ -582,9 +566,7 @@ ngx_event_module_init(ngx_cycle_t *cycle)
 
     (void) ngx_atomic_cmp_set(ngx_connection_counter, 0, 1);
 
-    ngx_log_debug2(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
-                   "counter: %p, %uA",
-                   ngx_connection_counter, *ngx_connection_counter);
+    ngx_log_debug2(NGX_LOG_DEBUG_EVENT, cycle->log, 0, "counter: %p, %uA", ngx_connection_counter, *ngx_connection_counter);
 
     ngx_temp_number = (ngx_atomic_t *) (shared + 2 * cl);
 
@@ -973,7 +955,7 @@ ngx_events_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     /* count the number of the event modules and set up their indices */
-
+	
     ngx_event_max_module = ngx_count_modules(cf->cycle, NGX_EVENT_MODULE);
 
     /* 分配存储每个event模块的配置对象索引列表 */
@@ -1034,8 +1016,7 @@ ngx_events_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         m = cf->cycle->modules[i]->ctx;
 
         if (m->init_conf) {
-            rv = m->init_conf(cf->cycle,
-                              (*ctx)[cf->cycle->modules[i]->ctx_index]);
+            rv = m->init_conf(cf->cycle, (*ctx)[cf->cycle->modules[i]->ctx_index]);
             if (rv != NGX_CONF_OK) {
                 return rv;
             }
@@ -1060,8 +1041,7 @@ ngx_event_connections(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     value = cf->args->elts;
     ecf->connections = ngx_atoi(value[1].data, value[1].len);
     if (ecf->connections == (ngx_uint_t) NGX_ERROR) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid number \"%V\"", &value[1]);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid number \"%V\"", &value[1]);
 
         return NGX_CONF_ERROR;
     }
@@ -1089,8 +1069,7 @@ ngx_event_use(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     value = cf->args->elts;
 
     if (cf->cycle->old_cycle->conf_ctx) {
-        old_ecf = ngx_event_get_conf(cf->cycle->old_cycle->conf_ctx,
-                                     ngx_event_core_module);
+        old_ecf = ngx_event_get_conf(cf->cycle->old_cycle->conf_ctx, ngx_event_core_module);	//XXX:old_cycle中模块的index和ctx_index和cycle的index相同？
     } else {
         old_ecf = NULL;
     }
@@ -1107,10 +1086,7 @@ ngx_event_use(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
                 ecf->use = cf->cycle->modules[m]->ctx_index;
                 ecf->name = module->name->data;
 
-                if (ngx_process == NGX_PROCESS_SINGLE
-                    && old_ecf
-                    && old_ecf->use != ecf->use)
-                {
+                if (ngx_process == NGX_PROCESS_SINGLE && old_ecf && old_ecf->use != ecf->use) {
                     ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                "when the server runs without a master process "
                                "the \"%V\" event type must be the same as "
@@ -1128,8 +1104,7 @@ ngx_event_use(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         }
     }
 
-    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                       "invalid event type \"%V\"", &value[1]);
+    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid event type \"%V\"", &value[1]);
 
     return NGX_CONF_ERROR;
 }
@@ -1171,9 +1146,7 @@ ngx_event_debug_connection(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     if (rc != NGX_ERROR) {
         if (rc == NGX_DONE) {
-            ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
-                               "low address bits of %V are meaningless",
-                               &value[1]);
+            ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "low address bits of %V are meaningless", &value[1]);
         }
 
         cidr = ngx_array_push(&ecf->debug_connection);
@@ -1229,9 +1202,7 @@ ngx_event_debug_connection(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
 #else
 
-    ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
-                       "\"debug_connection\" is ignored, you need to rebuild "
-                       "nginx using --with-debug option to enable it");
+    ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "\"debug_connection\" is ignored, you need to rebuild " "nginx using --with-debug option to enable it");
 
 #endif
 

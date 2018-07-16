@@ -454,7 +454,7 @@ struct ngx_http_request_s {
     unsigned                          subrequests:8;	//Current subrequest nesting level. Each subrequest inherits its parent's nesting level, decreased by one. An error is generated if the value reaches zero. The value for the main request is defined by the NGX_HTTP_MAX_SUBREQUESTS constant.
     unsigned                          blocked:8;
 
-    unsigned                          aio:1;
+    unsigned                          aio:1;	//表示当前是否在进行aio操作
 
     unsigned                          http_state:4;
 

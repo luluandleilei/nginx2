@@ -32,16 +32,14 @@ ngx_read_file(ngx_file_t *file, u_char *buf, size_t size, off_t offset)
 {
     ssize_t  n;
 
-    ngx_log_debug4(NGX_LOG_DEBUG_CORE, file->log, 0,
-                   "read: %d, %p, %uz, %O", file->fd, buf, size, offset);
+    ngx_log_debug4(NGX_LOG_DEBUG_CORE, file->log, 0, "read: %d, %p, %uz, %O", file->fd, buf, size, offset);
 
 #if (NGX_HAVE_PREAD)
 
     n = pread(file->fd, buf, size, offset);
 
     if (n == -1) {
-        ngx_log_error(NGX_LOG_CRIT, file->log, ngx_errno,
-                      "pread() \"%s\" failed", file->name.data);
+        ngx_log_error(NGX_LOG_CRIT, file->log, ngx_errno, "pread() \"%s\" failed", file->name.data);
         return NGX_ERROR;
     }
 
@@ -92,15 +90,12 @@ typedef struct {
 
 
 ssize_t
-ngx_thread_read(ngx_file_t *file, u_char *buf, size_t size, off_t offset,
-    ngx_pool_t *pool)
+ngx_thread_read(ngx_file_t *file, u_char *buf, size_t size, off_t offset, ngx_pool_t *pool)
 {
     ngx_thread_task_t      *task;
     ngx_thread_file_ctx_t  *ctx;
 
-    ngx_log_debug4(NGX_LOG_DEBUG_CORE, file->log, 0,
-                   "thread read: %d, %p, %uz, %O",
-                   file->fd, buf, size, offset);
+    ngx_log_debug4(NGX_LOG_DEBUG_CORE, file->log, 0, "thread read: %d, %p, %uz, %O", file->fd, buf, size, offset);
 
     task = file->thread_task;
 
@@ -119,14 +114,12 @@ ngx_thread_read(ngx_file_t *file, u_char *buf, size_t size, off_t offset,
         task->event.complete = 0;
 
         if (ctx->write) {
-            ngx_log_error(NGX_LOG_ALERT, file->log, 0,
-                          "invalid thread call, read instead of write");
+            ngx_log_error(NGX_LOG_ALERT, file->log, 0, "invalid thread call, read instead of write");
             return NGX_ERROR;
         }
 
         if (ctx->err) {
-            ngx_log_error(NGX_LOG_CRIT, file->log, ctx->err,
-                          "pread() \"%s\" failed", file->name.data);
+            ngx_log_error(NGX_LOG_CRIT, file->log, ctx->err, "pread() \"%s\" failed", file->name.data);
             return NGX_ERROR;
         }
 
@@ -175,9 +168,7 @@ ngx_thread_read_handler(void *data, ngx_log_t *log)
     ngx_time_update();
 #endif
 
-    ngx_log_debug4(NGX_LOG_DEBUG_CORE, log, 0,
-                   "pread: %z (err: %d) of %uz @%O",
-                   n, ctx->err, ctx->size, ctx->offset);
+    ngx_log_debug4(NGX_LOG_DEBUG_CORE, log, 0, "pread: %z (err: %d) of %uz @%O", n, ctx->err, ctx->size, ctx->offset);
 }
 
 #else

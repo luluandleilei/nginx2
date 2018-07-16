@@ -16,10 +16,10 @@
 
 struct ngx_thread_task_s {
     ngx_thread_task_t   *next;
-    ngx_uint_t           id;
+    ngx_uint_t           id;	//任务ID，用于唯一标识一个线程池中的任务
     void                *ctx;	//执行任务的上下文(handler的第一个参数)
     void               (*handler)(void *data, ngx_log_t *log); //需要异步执行的任务
-    ngx_event_t          event;	//任务关联的事件
+    ngx_event_t          event;	//(复用event对象)用于记录一些状态和task完成时的回调函数
 };
 
 

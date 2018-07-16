@@ -582,8 +582,7 @@ ngx_output_chain_copy_buf(ngx_output_chain_ctx_t *ctx)
             src->file->thread_handler = ctx->thread_handler;
             src->file->thread_ctx = ctx->filter_ctx;
 
-            n = ngx_thread_read(src->file, dst->pos, (size_t) size,
-                                src->file_pos, ctx->pool);
+            n = ngx_thread_read(src->file, dst->pos, (size_t) size, src->file_pos, ctx->pool);
             if (n == NGX_AGAIN) {
                 ctx->thread_task = src->file->thread_task;
                 return NGX_AGAIN;
@@ -592,8 +591,7 @@ ngx_output_chain_copy_buf(ngx_output_chain_ctx_t *ctx)
         } else
 #endif
         {
-            n = ngx_read_file(src->file, dst->pos, (size_t) size,
-                              src->file_pos);
+            n = ngx_read_file(src->file, dst->pos, (size_t) size, src->file_pos);
         }
 
 #if (NGX_HAVE_ALIGNED_DIRECTIO)

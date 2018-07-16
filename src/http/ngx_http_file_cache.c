@@ -24,8 +24,7 @@ static ssize_t ngx_http_file_cache_aio_read(ngx_http_request_t *r,
 static void ngx_http_cache_aio_event_handler(ngx_event_t *ev);
 #endif
 #if (NGX_THREADS)
-static ngx_int_t ngx_http_cache_thread_handler(ngx_thread_task_t *task,
-    ngx_file_t *file);
+static ngx_int_t ngx_http_cache_thread_handler(ngx_thread_task_t *task, ngx_file_t *file);
 static void ngx_http_cache_thread_event_handler(ngx_event_t *ev);
 #endif
 static ngx_int_t ngx_http_file_cache_exists(ngx_http_file_cache_t *cache,
@@ -771,8 +770,7 @@ ngx_http_cache_thread_handler(ngx_thread_task_t *task, ngx_file_t *file)
         tp = ngx_thread_pool_get((ngx_cycle_t *) ngx_cycle, &name);
 
         if (tp == NULL) {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                          "thread pool \"%V\" not found", &name);
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "thread pool \"%V\" not found", &name);
             return NGX_ERROR;
         }
     }
@@ -802,8 +800,7 @@ ngx_http_cache_thread_event_handler(ngx_event_t *ev)
 
     ngx_http_set_log_request(c->log, r);
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "http file cache thread: \"%V?%V\"", &r->uri, &r->args);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0, "http file cache thread: \"%V?%V\"", &r->uri, &r->args);
 
     r->main->blocked--;
     r->aio = 0;

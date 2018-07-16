@@ -66,7 +66,7 @@ static ngx_int_t ngx_http_add_addrs6(ngx_conf_t *cf, ngx_http_port_t *hport,
     ngx_http_conf_addr_t *addr);
 #endif
 
-ngx_uint_t   ngx_http_max_module;
+ngx_uint_t   ngx_http_max_module;	//HTTTP模块个数
 
 
 ngx_http_output_header_filter_pt  ngx_http_top_header_filter;
@@ -149,16 +149,14 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     /* the http main_conf context, it is the same in the all http contexts */
 
-    ctx->main_conf = ngx_pcalloc(cf->pool,
-                                 sizeof(void *) * ngx_http_max_module);
+    ctx->main_conf = ngx_pcalloc(cf->pool, sizeof(void *) * ngx_http_max_module);
     if (ctx->main_conf == NULL) {
         return NGX_CONF_ERROR;
     }
 
 
     /*
-     * the http null srv_conf context, it is used to merge
-     * the server{}s' srv_conf's
+     * the http null srv_conf context, it is used to merge the server{}s' srv_conf's
      */
 
     ctx->srv_conf = ngx_pcalloc(cf->pool, sizeof(void *) * ngx_http_max_module);
@@ -168,8 +166,7 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
 
     /*
-     * the http null loc_conf context, it is used to merge
-     * the server{}s' loc_conf's
+     * the http null loc_conf context, it is used to merge the server{}s' loc_conf's
      */
 
     ctx->loc_conf = ngx_pcalloc(cf->pool, sizeof(void *) * ngx_http_max_module);
@@ -179,8 +176,7 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
 
     /*
-     * create the main_conf's, the null srv_conf's, and the null loc_conf's
-     * of the all http modules
+     * create the main_conf's, the null srv_conf's, and the null loc_conf's of the all http modules
      */
 
     for (m = 0; cf->cycle->modules[m]; m++) {

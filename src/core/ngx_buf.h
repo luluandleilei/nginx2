@@ -115,8 +115,7 @@ struct ngx_output_chain_ctx_s {
 #endif
 
 #if (NGX_THREADS || NGX_COMPAT)
-    ngx_int_t                  (*thread_handler)(ngx_thread_task_t *task,
-                                                 ngx_file_t *file);
+    ngx_int_t                  (*thread_handler)(ngx_thread_task_t *task, ngx_file_t *file);
     ngx_thread_task_t           *thread_task;
 #endif
 

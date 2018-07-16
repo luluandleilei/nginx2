@@ -51,7 +51,7 @@ struct ngx_event_s {
     unsigned         oneshot:1;	//该标志位仅对kqueue，eventport等模块有意义， 而对于Linux上的epoll事件驱动模块则是无意义的
 
     /* aio operation is complete */
-    unsigned         complete:1;	//该标志位用于异步AIO事件的处理 
+    unsigned         complete:1;	//表示异步输入输出操作完成
 
     unsigned         eof:1;		//Flag indicating that EOF occurred while reading data.
     unsigned         error:1;	//Flag indicating that an error occurred during reading (for a read event) or writing (for a write event).
@@ -438,7 +438,7 @@ extern ngx_os_io_t  ngx_io;
 
 
 typedef struct {
-    ngx_uint_t    connections;	//每个worker进程可以同时处理的最大连接数，也是连接池的大小
+    ngx_uint_t    connections;	//the maximum number of simultaneous connections that can be opened by a worker process//每个worker进程可以同时处理的最大连接数，也是连接池的大小
     ngx_uint_t    use;			//使用的事件驱动模块的内间索引 //选用的事件模块在所有事件模块中的序号(ctx_index)
 
     ngx_flag_t    multi_accept;	//标志位，为1时表示当事件模型通知有新连接时，尽可能地对本次调度中客户端发起的所有TCP请求都建立连接(accept)
@@ -446,7 +446,7 @@ typedef struct {
 
     ngx_msec_t    accept_mutex_delay;	//负载均衡锁会使有些worker进程在拿不到锁时至少延迟accept_mutex_delay毫秒再重新获取负载均衡锁
 
-    u_char       *name;			//指向使用的时间驱动模块的名字的字符串(不需要释放，会不会为空的时候被引用)//所选用的事件模块的名字，它与use成员是匹配的
+    u_char       *name;			//the name of the connection processing method to use//指向使用的时间驱动模块的名字的字符串(不需要释放，会不会为空的时候被引用)//所选用的事件模块的名字，它与use成员是匹配的
 
 #if (NGX_DEBUG)
     ngx_array_t   debug_connection;	//ngx_cidr_t类型的数组 //在--with-debug编译模式下，可以仅这对某些客户端建立的连接输出调试级别的日志， //而debug_connection数组用于保存这些客户端的地址信息

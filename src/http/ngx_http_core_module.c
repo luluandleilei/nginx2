@@ -48,29 +48,18 @@ static char *ngx_http_core_types(ngx_conf_t *cf, ngx_command_t *cmd,
 static char *ngx_http_core_type(ngx_conf_t *cf, ngx_command_t *dummy,
     void *conf);
 
-static char *ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
-static char *ngx_http_core_server_name(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+static char *ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *ngx_http_core_server_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_http_core_root(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-static char *ngx_http_core_limit_except(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
-static char *ngx_http_core_set_aio(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
-static char *ngx_http_core_directio(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
-static char *ngx_http_core_error_page(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
-static char *ngx_http_core_open_file_cache(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
-static char *ngx_http_core_error_log(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
-static char *ngx_http_core_keepalive(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
-static char *ngx_http_core_internal(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
-static char *ngx_http_core_resolver(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+static char *ngx_http_core_limit_except(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *ngx_http_core_set_aio(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *ngx_http_core_directio(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *ngx_http_core_error_page(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *ngx_http_core_open_file_cache(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *ngx_http_core_error_log(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *ngx_http_core_keepalive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *ngx_http_core_internal(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *ngx_http_core_resolver(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 #if (NGX_HTTP_GZIP)
 static ngx_int_t ngx_http_gzip_accept_encoding(ngx_str_t *ae);
 static ngx_uint_t ngx_http_gzip_quantity(u_char *p, u_char *last);
@@ -954,7 +943,34 @@ static ngx_command_t  ngx_http_core_commands[] = {
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_core_loc_conf_t, subrequest_output_buffer_size),
       NULL },
-
+	/*
+	 Syntax:	aio on | off | threads[=pool];
+	 Default: 	aio off;
+	 Context:	http, server, location
+	 This directive appeared in version 0.8.11.
+	 On Linux, AIO can be used starting from kernel version 2.6.22. Also, it is necessary to enable directio, or otherwise reading will be blocking:
+		location /video/ {
+		    aio            on;
+		    directio       512;
+		    output_buffers 1 128k;
+		}
+	 On Linux, directio can only be used for reading blocks that are aligned on 512-byte boundaries (or 4K for XFS). File’s unaligned end is read in blocking mode. The same holds true for byte range requests and for FLV requests not from the beginning of a file: reading of unaligned data at the beginning and end of a file will be blocking.
+	 When both AIO and sendfile are enabled on Linux, AIO is used for files that are larger than or equal to the size specified in the directio directive, while sendfile is used for files of smaller sizes or when directio is disabled.
+		location /video/ {
+		    sendfile       on;
+		    aio            on;
+		    directio       8m;
+		}
+	 Finally, files can be read and sent using multi-threading (1.7.11), without blocking a worker process:
+		location /video/ {
+		    sendfile       on;
+		    aio            threads;
+		}
+	 Read and send file operations are offloaded to threads of the specified pool. If the pool name is omitted, the pool with the name “default” is used. The pool name can also be set with variables:
+		aio threads=pool$disk;
+	 By default, multi-threading is disabled, it should be enabled with the --with-threads configuration parameter. Currently, multi-threading is compatible only with the epoll, kqueue, and eventport methods. Multi-threaded sending of files is only supported on Linux.
+	 See also the 'sendfile' directive.
+	*/
     { ngx_string("aio"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_http_core_set_aio,
@@ -1111,6 +1127,14 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_loc_conf_t, reset_timedout_connection),
       NULL },
 
+	/*
+	 Syntax:	absolute_redirect on | off;
+	 Default: 	absolute_redirect on;
+	 Context:	http, server, location
+	 This directive appeared in version 1.11.8.
+	 If disabled, redirects issued by nginx will be relative.
+	 See also 'server_name_in_redirect' and 'port_in_redirect' directives.
+	*/
     { ngx_string("absolute_redirect"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
       ngx_conf_set_flag_slot,
@@ -3353,7 +3377,8 @@ ngx_http_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
 
     *cf = pcf;
 
-    if (rv == NGX_CONF_OK && !cscf->listen) {
+	//如果没有listen选项，则设置默认监听80端口或者8000端口
+    if (rv == NGX_CONF_OK && !cscf->listen) {	
         ngx_memzero(&lsopt, sizeof(ngx_http_listen_opt_t));
 
         sin = &lsopt.sockaddr.sockaddr_in;
@@ -3379,8 +3404,7 @@ ngx_http_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
 #endif
         lsopt.wildcard = 1;
 
-        (void) ngx_sock_ntop(&lsopt.sockaddr.sockaddr, lsopt.socklen,
-                             lsopt.addr, NGX_SOCKADDR_STRLEN, 1);
+        (void) ngx_sock_ntop(&lsopt.sockaddr.sockaddr, lsopt.socklen, lsopt.addr, NGX_SOCKADDR_STRLEN, 1);
 
         if (ngx_http_add_listen(cf, cscf, &lsopt) != NGX_OK) {
             return NGX_CONF_ERROR;
@@ -4978,9 +5002,7 @@ ngx_http_core_set_aio(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         clcf->aio = NGX_HTTP_AIO_ON;
         return NGX_CONF_OK;
 #else
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "\"aio on\" "
-                           "is unsupported on this platform");
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"aio on\" " "is unsupported on this platform");
         return NGX_CONF_ERROR;
 #endif
     }
@@ -4990,9 +5012,7 @@ ngx_http_core_set_aio(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     if (ngx_strcmp(value[1].data, "sendfile") == 0) {
         clcf->aio = NGX_HTTP_AIO_ON;
 
-        ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
-                           "the \"sendfile\" parameter of "
-                           "the \"aio\" directive is deprecated");
+        ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "the \"sendfile\" parameter of " "the \"aio\" directive is deprecated");
         return NGX_CONF_OK;
     }
 
@@ -5024,8 +5044,7 @@ ngx_http_core_set_aio(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             }
 
             if (cv.lengths != NULL) {
-                clcf->thread_pool_value = ngx_palloc(cf->pool,
-                                    sizeof(ngx_http_complex_value_t));
+                clcf->thread_pool_value = ngx_palloc(cf->pool, sizeof(ngx_http_complex_value_t));
                 if (clcf->thread_pool_value == NULL) {
                     return NGX_CONF_ERROR;
                 }
@@ -5049,9 +5068,7 @@ ngx_http_core_set_aio(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
         return NGX_CONF_OK;
 #else
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "\"aio threads\" "
-                           "is unsupported on this platform");
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"aio threads\" " "is unsupported on this platform");
         return NGX_CONF_ERROR;
 #endif
     }

@@ -151,7 +151,7 @@ typedef struct {
 
 
 typedef struct {
-    ngx_array_t                servers;         /* ngx_http_core_srv_conf_t */
+    ngx_array_t                servers;         /* ngx_http_core_srv_conf_t */ 	//
 
     ngx_http_phase_engine_t    phase_engine;
 
@@ -182,12 +182,12 @@ typedef struct {
     ngx_array_t                 server_names;
 
     /* server ctx */
-    ngx_http_conf_ctx_t        *ctx;
+    ngx_http_conf_ctx_t        *ctx;	//指向当前server块所属的ngx_http_conf_ctx_t结构体
 
     u_char                     *file_name;
     ngx_uint_t                  line;
 
-    ngx_str_t                   server_name;
+    ngx_str_t                   server_name;	//当前server块的虚拟主机名，如果存在的话，则会与HTTP请求中的Host头部做匹配，匹配上后由当前ngx_http_core_srv_conf_t处理请求
 
     size_t                      connection_pool_size;	//Allows accurate tuning of per-connection memory allocations.
     size_t                      request_pool_size;		//Allows accurate tuning of per-request memory allocations. 

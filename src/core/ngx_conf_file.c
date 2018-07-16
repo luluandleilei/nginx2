@@ -952,8 +952,7 @@ ngx_conf_flush_files(ngx_cycle_t *cycle)
 
 
 void ngx_cdecl
-ngx_conf_log_error(ngx_uint_t level, ngx_conf_t *cf, ngx_err_t err,
-    const char *fmt, ...)
+ngx_conf_log_error(ngx_uint_t level, ngx_conf_t *cf, ngx_err_t err, const char *fmt, ...)
 {
     u_char   errstr[NGX_MAX_CONF_ERRSTR], *p, *last;
     va_list  args;
@@ -974,14 +973,11 @@ ngx_conf_log_error(ngx_uint_t level, ngx_conf_t *cf, ngx_err_t err,
     }
 
     if (cf->conf_file->file.fd == NGX_INVALID_FILE) {
-        ngx_log_error(level, cf->log, 0, "%*s in command line",
-                      p - errstr, errstr);
+        ngx_log_error(level, cf->log, 0, "%*s in command line", p - errstr, errstr);
         return;
     }
 
-    ngx_log_error(level, cf->log, 0, "%*s in %s:%ui",
-                  p - errstr, errstr,
-                  cf->conf_file->file.name.data, cf->conf_file->line);
+    ngx_log_error(level, cf->log, 0, "%*s in %s:%ui", p - errstr, errstr, cf->conf_file->file.name.data, cf->conf_file->line);
 }
 
 
