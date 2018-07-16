@@ -43,8 +43,7 @@ static char *ngx_http_auth_request_merge_conf(ngx_conf_t *cf,
 static ngx_int_t ngx_http_auth_request_init(ngx_conf_t *cf);
 static char *ngx_http_auth_request(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
-static char *ngx_http_auth_request_set(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+static char *ngx_http_auth_request_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 
 static ngx_command_t  ngx_http_auth_request_commands[] = {
@@ -56,6 +55,13 @@ static ngx_command_t  ngx_http_auth_request_commands[] = {
       0,
       NULL },
 
+	/*
+	 Syntax:	auth_request_set $variable value;
+	 Default:	—
+	 Context:	http, server, location
+	 Sets the request variable to the given value after the authorization request completes. 
+	 The value may contain variables from the authorization request, such as $upstream_http_*.
+	*/
     { ngx_string("auth_request_set"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE2,
       ngx_http_auth_request_set,
@@ -392,8 +398,7 @@ ngx_http_auth_request_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     value = cf->args->elts;
 
     if (value[1].data[0] != '$') {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid variable name \"%V\"", &value[1]);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid variable name \"%V\"", &value[1]);
         return NGX_CONF_ERROR;
     }
 
@@ -401,8 +406,7 @@ ngx_http_auth_request_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     value[1].data++;
 
     if (arcf->vars == NGX_CONF_UNSET_PTR) {
-        arcf->vars = ngx_array_create(cf->pool, 1,
-                                      sizeof(ngx_http_auth_request_variable_t));
+        arcf->vars = ngx_array_create(cf->pool, 1, sizeof(ngx_http_auth_request_variable_t));
         if (arcf->vars == NULL) {
             return NGX_CONF_ERROR;
         }

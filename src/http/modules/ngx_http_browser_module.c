@@ -213,14 +213,11 @@ static ngx_http_modern_browser_mask_t  ngx_http_modern_browser_masks[] = {
 
 static ngx_http_variable_t  ngx_http_browser_vars[] = {
 
-    { ngx_string("msie"), NULL, ngx_http_msie_variable,
-      0, NGX_HTTP_VAR_CHANGEABLE, 0 },
+    { ngx_string("msie"), NULL, ngx_http_msie_variable, 0, NGX_HTTP_VAR_CHANGEABLE, 0 },
 
-    { ngx_string("modern_browser"), NULL, ngx_http_browser_variable,
-      NGX_HTTP_MODERN_BROWSER, NGX_HTTP_VAR_CHANGEABLE, 0 },
+    { ngx_string("modern_browser"), NULL, ngx_http_browser_variable, NGX_HTTP_MODERN_BROWSER, NGX_HTTP_VAR_CHANGEABLE, 0 },
 
-    { ngx_string("ancient_browser"), NULL, ngx_http_browser_variable,
-      NGX_HTTP_ANCIENT_BROWSER, NGX_HTTP_VAR_CHANGEABLE, 0 },
+    { ngx_string("ancient_browser"), NULL, ngx_http_browser_variable, NGX_HTTP_ANCIENT_BROWSER, NGX_HTTP_VAR_CHANGEABLE, 0 },
 
       ngx_http_null_variable
 };
@@ -381,8 +378,7 @@ ngx_http_browser(ngx_http_request_t *r, ngx_http_browser_conf_t *cf)
 
 
 static ngx_int_t
-ngx_http_msie_variable(ngx_http_request_t *r, ngx_http_variable_value_t *v,
-    uintptr_t data)
+ngx_http_msie_variable(ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data)
 {
     if (r->headers_in.msie) {
         *v = ngx_http_variable_true_value;

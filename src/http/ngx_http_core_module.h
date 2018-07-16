@@ -157,10 +157,10 @@ typedef struct {
 
     ngx_hash_t                 headers_in_hash;
 
-    ngx_hash_t                 variables_hash;
+    ngx_hash_t                 variables_hash;	//所有HTTP模块支持的变量构成hash表
 
-    ngx_array_t                variables;         /* ngx_http_variable_t */
-    ngx_array_t                prefix_variables;  /* ngx_http_variable_t */
+    ngx_array_t                variables;         /* ngx_http_variable_t */		//XXX:记录实际被引用的变量
+    ngx_array_t                prefix_variables;  /* ngx_http_variable_t */		//
     ngx_uint_t                 ncaptures;
 
     ngx_uint_t                 server_names_hash_max_size;		//the maximum size of the server names hash tables
@@ -169,7 +169,7 @@ typedef struct {
     ngx_uint_t                 variables_hash_max_size;		//the maximum size of the variables hash table. 
     ngx_uint_t                 variables_hash_bucket_size;	//the bucket size for the variables hash table
 
-    ngx_hash_keys_arrays_t    *variables_keys;
+    ngx_hash_keys_arrays_t    *variables_keys;	//缓存各个模块定义的变量(由于nginx的hash需要一次提供所有hash节点来构建hash表)
 
     ngx_array_t               *ports;
 
@@ -368,7 +368,7 @@ struct ngx_http_core_loc_conf_s {
 
     time_t        keepalive_header;        /* keepalive_timeout */
 
-    ngx_uint_t    keepalive_requests;      /* keepalive_requests */
+    ngx_uint_t    keepalive_requests;      /* keepalive_requests */	//Sets the maximum number of requests that can be served through one keep-alive connection
     ngx_uint_t    keepalive_disable;       /* keepalive_disable */
     ngx_uint_t    satisfy;                 /* satisfy */
     ngx_uint_t    lingering_close;         /* lingering_close */

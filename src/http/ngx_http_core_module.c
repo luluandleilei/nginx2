@@ -171,6 +171,7 @@ static ngx_command_t  ngx_http_core_commands[] = {
 	 Syntax:	variables_hash_max_size size;
 	 Default: 	variables_hash_max_size 1024;
 	 Context:	http
+	 
 	 Sets the maximum size of the variables hash table. 
 	 Prior to version 1.5.13, the default value was 512.
 	*/
@@ -943,32 +944,53 @@ static ngx_command_t  ngx_http_core_commands[] = {
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_core_loc_conf_t, subrequest_output_buffer_size),
       NULL },
+      
 	/*
 	 Syntax:	aio on | off | threads[=pool];
 	 Default: 	aio off;
 	 Context:	http, server, location
 	 This directive appeared in version 0.8.11.
-	 On Linux, AIO can be used starting from kernel version 2.6.22. Also, it is necessary to enable directio, or otherwise reading will be blocking:
+	 Enables or disables the use of asynchronous file I/O (AIO) on FreeBSD and Linux:
+		location /video/ {
+		    aio            on;
+		    output_buffers 1 64k;
+		}
+		
+	 On FreeBSD, AIO can be used starting from FreeBSD 4.3. Prior to FreeBSD 11.0, AIO can either be linked statically into a kernel:
+		options VFS_AIO
+	 or loaded dynamically as a kernel loadable module:
+		kldload aio
+	 
+	 On Linux, AIO can be used starting from kernel version 2.6.22. 
+	 Also, it is necessary to enable 'directio', or otherwise reading will be blocking:
 		location /video/ {
 		    aio            on;
 		    directio       512;
 		    output_buffers 1 128k;
 		}
-	 On Linux, directio can only be used for reading blocks that are aligned on 512-byte boundaries (or 4K for XFS). File’s unaligned end is read in blocking mode. The same holds true for byte range requests and for FLV requests not from the beginning of a file: reading of unaligned data at the beginning and end of a file will be blocking.
+		
+	 On Linux, 'directio' can only be used for reading blocks that are aligned on 512-byte boundaries (or 4K for XFS). 
+	 File’s unaligned end is read in blocking mode. 
+	 The same holds true for byte range requests and for FLV requests not from the beginning of a file: reading of unaligned data at the beginning and end of a file will be blocking.
 	 When both AIO and sendfile are enabled on Linux, AIO is used for files that are larger than or equal to the size specified in the directio directive, while sendfile is used for files of smaller sizes or when directio is disabled.
 		location /video/ {
 		    sendfile       on;
 		    aio            on;
 		    directio       8m;
 		}
+		
 	 Finally, files can be read and sent using multi-threading (1.7.11), without blocking a worker process:
 		location /video/ {
 		    sendfile       on;
 		    aio            threads;
 		}
+		
 	 Read and send file operations are offloaded to threads of the specified pool. If the pool name is omitted, the pool with the name “default” is used. The pool name can also be set with variables:
 		aio threads=pool$disk;
-	 By default, multi-threading is disabled, it should be enabled with the --with-threads configuration parameter. Currently, multi-threading is compatible only with the epoll, kqueue, and eventport methods. Multi-threaded sending of files is only supported on Linux.
+	 By default, multi-threading is disabled, it should be enabled with the --with-threads configuration parameter. 
+	 Currently, multi-threading is compatible only with the epoll, kqueue, and eventport methods. 
+	 Multi-threaded sending of files is only supported on Linux.
+
 	 See also the 'sendfile' directive.
 	*/
     { ngx_string("aio"),
@@ -992,6 +1014,17 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_loc_conf_t, aio_write),
       NULL },
 
+	/*
+	 Syntax:	read_ahead size;
+	 Default: 	read_ahead 0;
+	 Context:	http, server, location
+	 Sets the amount of pre-reading for the kernel when working with file.
+
+	 On Linux, the posix_fadvise(0, 0, 0, POSIX_FADV_SEQUENTIAL) system call is used, and so the size parameter is ignored.
+
+	 On FreeBSD, the fcntl(O_READAHEAD, size) system call, supported since FreeBSD 9.0-CURRENT, is used. 
+	 FreeBSD 7 has to be patched.
+	*/
     { ngx_string("read_ahead"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_size_slot,
@@ -999,6 +1032,18 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_loc_conf_t, read_ahead),
       NULL },
 
+	/*
+	 Syntax:	directio size | off;
+	 Default: 	directio off;
+	 Context:	http, server, location
+	 This directive appeared in version 0.7.7.
+
+	 Enables the use of the O_DIRECT flag (FreeBSD, Linux), the F_NOCACHE flag (macOS), or the directio() function (Solaris), when reading files that are larger than or equal to the specified size.
+	 The directive automatically disables (0.7.15) the use of 'sendfile' for a given request. 
+	 It can be useful for serving large files:
+		directio 4m;
+	 or when using 'aio' on Linux.
+	*/
     { ngx_string("directio"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_http_core_directio,
@@ -1006,6 +1051,16 @@ static ngx_command_t  ngx_http_core_commands[] = {
       0,
       NULL },
 
+	/*
+	 Syntax:	directio_alignment size;
+	 Default: 	directio_alignment 512;
+	 Context:	http, server, location
+	 This directive appeared in version 0.8.11.
+
+	 Sets the alignment for directio. 
+	 In most cases, a 512-byte alignment is enough. 
+	 However, when using XFS under Linux, it needs to be increased to 4K.
+	*/
     { ngx_string("directio_alignment"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_off_slot,
@@ -1013,6 +1068,17 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_loc_conf_t, directio_alignment),
       NULL },
 
+	/*
+	 Syntax:	tcp_nopush on | off;
+	 Default: 	tcp_nopush off;
+	 Context:	http, server, location
+	 Enables or disables the use of the TCP_NOPUSH socket option on FreeBSD or the TCP_CORK socket option on Linux. 
+	 The options are enabled only when 'sendfile' is used. 
+
+	 Enabling the option allows
+		sending the response header and the beginning of a file in one packet, on Linux and FreeBSD 4.*;
+		sending a file in full packets.
+	*/
     { ngx_string("tcp_nopush"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
       ngx_conf_set_flag_slot,
@@ -1020,6 +1086,14 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_loc_conf_t, tcp_nopush),
       NULL },
 
+	/*
+	 Syntax:	tcp_nodelay on | off;
+	 Default: 	tcp_nodelay on;
+	 Context:	http, server, location
+	 Enables or disables the use of the TCP_NODELAY option. 
+	 The option is enabled when a connection is transitioned into the keep-alive state. 
+	 Additionally, it is enabled on SSL connections, for unbuffered proxying, and for WebSocket proxying.
+	*/
     { ngx_string("tcp_nodelay"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
       ngx_conf_set_flag_slot,
@@ -1027,6 +1101,14 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_loc_conf_t, tcp_nodelay),
       NULL },
 
+	/*
+	 Syntax:	send_timeout time;
+	 Default: 	send_timeout 60s;
+	 Context:	http, server, location
+	 Sets a timeout for transmitting a response to the client. 
+	 The timeout is set only between two successive write operations, not for the transmission of the whole response. 
+	 If the client does not receive anything within this time, the connection is closed.
+	*/
     { ngx_string("send_timeout"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_msec_slot,
@@ -1034,6 +1116,15 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_loc_conf_t, send_timeout),
       NULL },
 
+	/*
+	 Syntax:	send_lowat size;
+	 Default: 	send_lowat 0;
+	 Context:	http, server, location
+	 If the directive is set to a non-zero value, nginx will try to minimize the number of send operations on client sockets by using either NOTE_LOWAT flag of the kqueue method or the SO_SNDLOWAT socket option. 
+	 In both cases the specified size is used.
+
+	 This directive is ignored on Linux, Solaris, and Windows.
+	*/
     { ngx_string("send_lowat"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_size_slot,
@@ -1041,6 +1132,13 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_loc_conf_t, send_lowat),
       &ngx_http_core_lowat_post },
 
+	/*
+	 Syntax:	postpone_output size;
+	 Default: 	postpone_output 1460;
+	 Context:	http, server, location
+	 If possible, the transmission of client data will be postponed until nginx has at least size bytes of data to send. 
+	 The zero value disables postponing data transmission.
+	*/
     { ngx_string("postpone_output"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_size_slot,
@@ -1048,6 +1146,27 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_loc_conf_t, postpone_output),
       NULL },
 
+	/*
+	 Syntax:	limit_rate rate;
+	 Default: 	limit_rate 0;
+	 Context:	http, server, location, if in location
+	 Limits the rate of response transmission to a client. 
+	 The rate is specified in bytes per second. The zero value disables rate limiting. 
+	 The limit is set per a request, and so if a client simultaneously opens two connections, the overall rate will be twice as much as the specified limit.
+
+	 Rate limit can also be set in the $limit_rate variable. 
+	 It may be useful in cases where rate should be limited depending on a certain condition:
+		server {
+
+		    if ($slow) {
+		        set $limit_rate 4k;
+		    }
+
+		    ...
+		}
+	 Rate limit can also be set in the “X-Accel-Limit-Rate” header field of a proxied server response. 
+	 This capability can be disabled using the proxy_ignore_headers, fastcgi_ignore_headers, uwsgi_ignore_headers, and scgi_ignore_headers directives.
+	*/
     { ngx_string("limit_rate"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF
                         |NGX_CONF_TAKE1,
@@ -1056,14 +1175,39 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_loc_conf_t, limit_rate),
       NULL },
 
+	/*
+	 Syntax:	limit_rate_after size;
+	 Default: 	limit_rate_after 0;
+	 Context:	http, server, location, if in location
+	 This directive appeared in version 0.8.0.
+	 Sets the initial amount after which the further transmission of a response to a client will be rate limited.
+	 
+	 Example:
+		location /flv/ {
+		    flv;
+		    limit_rate_after 500k;
+		    limit_rate       50k;
+		}
+	*/
     { ngx_string("limit_rate_after"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF
-                        |NGX_CONF_TAKE1,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_size_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_core_loc_conf_t, limit_rate_after),
       NULL },
 
+	/*
+	 Syntax:	keepalive_timeout timeout [header_timeout];
+	 Default: 	keepalive_timeout 75s;
+	 Context:	http, server, location
+	 The first parameter sets a timeout during which a keep-alive client connection will stay open on the server side. 
+	 The zero value disables keep-alive client connections. 
+	 The optional second parameter sets a value in the “Keep-Alive: timeout=time” response header field. 
+	 Two parameters may differ.
+
+	 The “Keep-Alive: timeout=time” header field is recognized by Mozilla and Konqueror.
+	 MSIE closes keep-alive connections by itself in about 60 seconds.
+	*/
     { ngx_string("keepalive_timeout"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE12,
       ngx_http_core_keepalive,
@@ -1071,6 +1215,15 @@ static ngx_command_t  ngx_http_core_commands[] = {
       0,
       NULL },
 
+	/*
+	 Syntax:	keepalive_requests number;
+	 Default: 	keepalive_requests 100;
+	 Context:	http, server, location
+	 This directive appeared in version 0.8.0.
+	 
+	 Sets the maximum number of requests that can be served through one keep-alive connection. 
+	 After the maximum number of requests are made, the connection is closed.
+	*/
     { ngx_string("keepalive_requests"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_num_slot,
@@ -1078,6 +1231,18 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_loc_conf_t, keepalive_requests),
       NULL },
 
+	/*
+	 Syntax:	keepalive_disable none | browser ...;
+	 Default: 	keepalive_disable msie6;
+	 Context:	http, server, location
+	 Disables keep-alive connections with misbehaving browsers. 
+	 The browser parameters specify which browsers will be affected. 
+	 The value msie6 disables keep-alive connections with old versions of MSIE, once a POST request is received. 
+	 The value safari disables keep-alive connections with Safari and Safari-like browsers on macOS and macOS-like operating systems. 
+	 The value none enables keep-alive connections with all browsers.
+
+	 Prior to version 1.1.18, the value safari matched all Safari and Safari-like browsers on all operating systems, and keep-alive connections with them were disabled by default.
+	*/
     { ngx_string("keepalive_disable"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE12,
       ngx_conf_set_bitmask_slot,
@@ -1085,6 +1250,23 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_loc_conf_t, keepalive_disable),
       &ngx_http_core_keepalive_disable },
 
+	/*
+	 Syntax:	satisfy all | any;
+	 Default: 	satisfy all;
+	 Context:	http, server, location
+	 Allows access if all (all) or at least one (any) of the ngx_http_access_module, ngx_http_auth_basic_module, ngx_http_auth_request_module, or ngx_http_auth_jwt_module modules allow access.
+
+	 Example:
+		location / {
+		    satisfy any;
+
+		    allow 192.168.1.0/32;
+		    deny  all;
+
+		    auth_basic           "closed site";
+		    auth_basic_user_file conf/htpasswd;
+		}
+	*/
     { ngx_string("satisfy"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_enum_slot,
@@ -1092,6 +1274,28 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_loc_conf_t, satisfy),
       &ngx_http_core_satisfy },
 
+	/*
+	 Syntax:	internal;
+	 Default:	—
+	 Context:	location
+	 Specifies that a given location can only be used for internal requests. 
+	 For external requests, the client error 404 (Not Found) is returned. Internal requests are the following:
+		requests redirected by the error_page, index, random_index, and try_files directives;
+		requests redirected by the “X-Accel-Redirect” response header field from an upstream server;
+		subrequests formed by the “include virtual” command of the ngx_http_ssi_module module, by the ngx_http_addition_module module directives, and by auth_request and mirror directives;
+		requests changed by the rewrite directive.
+
+	 Example:
+		error_page 404 /404.html;
+
+		location /404.html {
+		    internal;
+		}
+
+	 There is a limit of 10 internal redirects per request to prevent request processing cycles that can occur in incorrect configurations.
+	 If this limit is reached, the error 500 (Internal Server Error) is returned. 
+	 In such cases, the “rewrite or internal redirection cycle” message can be seen in the error log.
+	*/
     { ngx_string("internal"),
       NGX_HTTP_LOC_CONF|NGX_CONF_NOARGS,
       ngx_http_core_internal,
@@ -5593,8 +5797,7 @@ ngx_http_core_lowat_check(ngx_conf_t *cf, void *post, void *data)
 #elif !(NGX_HAVE_SO_SNDLOWAT)
     ssize_t *np = data;
 
-    ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
-                       "\"send_lowat\" is not supported, ignored");
+    ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "\"send_lowat\" is not supported, ignored");
 
     *np = 0;
 

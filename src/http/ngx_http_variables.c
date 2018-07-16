@@ -161,18 +161,14 @@ static ngx_int_t ngx_http_variable_time_local(ngx_http_request_t *r,
 
 static ngx_http_variable_t  ngx_http_core_variables[] = {
 
-    { ngx_string("http_host"), NULL, ngx_http_variable_header,
-      offsetof(ngx_http_request_t, headers_in.host), 0, 0 },
+    { ngx_string("http_host"), NULL, ngx_http_variable_header, offsetof(ngx_http_request_t, headers_in.host), 0, 0 },
 
-    { ngx_string("http_user_agent"), NULL, ngx_http_variable_header,
-      offsetof(ngx_http_request_t, headers_in.user_agent), 0, 0 },
+    { ngx_string("http_user_agent"), NULL, ngx_http_variable_header, offsetof(ngx_http_request_t, headers_in.user_agent), 0, 0 },
 
-    { ngx_string("http_referer"), NULL, ngx_http_variable_header,
-      offsetof(ngx_http_request_t, headers_in.referer), 0, 0 },
+    { ngx_string("http_referer"), NULL, ngx_http_variable_header, offsetof(ngx_http_request_t, headers_in.referer), 0, 0 },
 
 #if (NGX_HTTP_GZIP)
-    { ngx_string("http_via"), NULL, ngx_http_variable_header,
-      offsetof(ngx_http_request_t, headers_in.via), 0, 0 },
+    { ngx_string("http_via"), NULL, ngx_http_variable_header, offsetof(ngx_http_request_t, headers_in.via), 0, 0 },
 #endif
 
 #if (NGX_HTTP_X_FORWARDED_FOR)
@@ -383,13 +379,11 @@ static ngx_http_variable_t  ngx_http_core_variables[] = {
 };
 
 
-ngx_http_variable_value_t  ngx_http_variable_null_value =
-    ngx_http_variable("");
-ngx_http_variable_value_t  ngx_http_variable_true_value =
-    ngx_http_variable("1");
+ngx_http_variable_value_t  ngx_http_variable_null_value = ngx_http_variable("");
+ngx_http_variable_value_t  ngx_http_variable_true_value = ngx_http_variable("1");
 
 
-static ngx_uint_t  ngx_http_variable_depth = 100;
+static ngx_uint_t  ngx_http_variable_depth = 100;	//查询变量值时的最大递归深度
 
 
 ngx_http_variable_t *
@@ -402,30 +396,29 @@ ngx_http_add_variable(ngx_conf_t *cf, ngx_str_t *name, ngx_uint_t flags)
     ngx_http_core_main_conf_t  *cmcf;
 
     if (name->len == 0) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid variable name \"$\"");
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid variable name \"$\"");
         return NULL;
     }
 
+	//若为前缀匹配变量，将变量添加到前缀变量数组中
     if (flags & NGX_HTTP_VAR_PREFIX) {
         return ngx_http_add_prefix_variable(cf, name, flags);
     }
 
+	//添加新变量到ngx_http_core_main_conf_t.variables_keys中
+	//在http配置解析完成后会将ngx_http_core_main_conf_t.variables_keys中的变量对象组织成哈希表，存储在ngx_http_core_main_conf_t.variables_hash中
     cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
 
     key = cmcf->variables_keys->keys.elts;
     for (i = 0; i < cmcf->variables_keys->keys.nelts; i++) {
-        if (name->len != key[i].key.len
-            || ngx_strncasecmp(name->data, key[i].key.data, name->len) != 0)
-        {
+        if (name->len != key[i].key.len || ngx_strncasecmp(name->data, key[i].key.data, name->len) != 0) {
             continue;
         }
 
         v = key[i].value;
 
         if (!(v->flags & NGX_HTTP_VAR_CHANGEABLE)) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "the duplicate \"%V\" variable", name);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "the duplicate \"%V\" variable", name);
             return NULL;
         }
 
@@ -462,8 +455,7 @@ ngx_http_add_variable(ngx_conf_t *cf, ngx_str_t *name, ngx_uint_t flags)
     }
 
     if (rc == NGX_BUSY) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "conflicting variable name \"%V\"", name);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "conflicting variable name \"%V\"", name);
         return NULL;
     }
 
@@ -482,17 +474,14 @@ ngx_http_add_prefix_variable(ngx_conf_t *cf, ngx_str_t *name, ngx_uint_t flags)
 
     v = cmcf->prefix_variables.elts;
     for (i = 0; i < cmcf->prefix_variables.nelts; i++) {
-        if (name->len != v[i].name.len
-            || ngx_strncasecmp(name->data, v[i].name.data, name->len) != 0)
-        {
+        if (name->len != v[i].name.len || ngx_strncasecmp(name->data, v[i].name.data, name->len) != 0) {
             continue;
         }
 
         v = &v[i];
 
         if (!(v->flags & NGX_HTTP_VAR_CHANGEABLE)) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "the duplicate \"%V\" variable", name);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "the duplicate \"%V\" variable", name);
             return NULL;
         }
 
@@ -526,6 +515,8 @@ ngx_http_add_prefix_variable(ngx_conf_t *cf, ngx_str_t *name, ngx_uint_t flags)
 }
 
 
+//在 ngx_http_core_main_conf_t.variables 中查找某个变量名对应的变量对象的索引
+//若找不到，则新建一个，返回该新建变量对象的索引
 ngx_int_t
 ngx_http_get_variable_index(ngx_conf_t *cf, ngx_str_t *name)
 {
@@ -534,8 +525,7 @@ ngx_http_get_variable_index(ngx_conf_t *cf, ngx_str_t *name)
     ngx_http_core_main_conf_t  *cmcf;
 
     if (name->len == 0) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid variable name \"$\"");
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid variable name \"$\"");
         return NGX_ERROR;
     }
 
@@ -544,18 +534,13 @@ ngx_http_get_variable_index(ngx_conf_t *cf, ngx_str_t *name)
     v = cmcf->variables.elts;
 
     if (v == NULL) {
-        if (ngx_array_init(&cmcf->variables, cf->pool, 4,
-                           sizeof(ngx_http_variable_t))
-            != NGX_OK)
-        {
+        if (ngx_array_init(&cmcf->variables, cf->pool, 4, sizeof(ngx_http_variable_t)) != NGX_OK) {
             return NGX_ERROR;
         }
 
     } else {
         for (i = 0; i < cmcf->variables.nelts; i++) {
-            if (name->len != v[i].name.len
-                || ngx_strncasecmp(name->data, v[i].name.data, name->len) != 0)
-            {
+            if (name->len != v[i].name.len || ngx_strncasecmp(name->data, v[i].name.data, name->len) != 0) {
                 continue;
             }
 
@@ -595,8 +580,7 @@ ngx_http_get_indexed_variable(ngx_http_request_t *r, ngx_uint_t index)
     cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
 
     if (cmcf->variables.nelts <= index) {
-        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
-                      "unknown variable index: %ui", index);
+        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0, "unknown variable index: %ui", index);
         return NULL;
     }
 
@@ -607,17 +591,13 @@ ngx_http_get_indexed_variable(ngx_http_request_t *r, ngx_uint_t index)
     v = cmcf->variables.elts;
 
     if (ngx_http_variable_depth == 0) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                      "cycle while evaluating variable \"%V\"",
-                      &v[index].name);
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "cycle while evaluating variable \"%V\"", &v[index].name);
         return NULL;
     }
 
     ngx_http_variable_depth--;
 
-    if (v[index].get_handler(r, &r->variables[index], v[index].data)
-        == NGX_OK)
-    {
+    if (v[index].get_handler(r, &r->variables[index], v[index].data) == NGX_OK) {
         ngx_http_variable_depth++;
 
         if (v[index].flags & NGX_HTTP_VAR_NOCACHEABLE) {
@@ -656,6 +636,11 @@ ngx_http_get_flushed_variable(ngx_http_request_t *r, ngx_uint_t index)
 }
 
 
+/*
+返回值：
+	NULL -- 表示查找错误
+	not_found -- 表示没有找到该变量
+*/
 ngx_http_variable_value_t *
 ngx_http_get_variable(ngx_http_request_t *r, ngx_str_t *name, ngx_uint_t key)
 {
@@ -667,6 +652,7 @@ ngx_http_get_variable(ngx_http_request_t *r, ngx_str_t *name, ngx_uint_t key)
 
     cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
 
+	/*在完全匹配中进行查找*/
     v = ngx_hash_find(&cmcf->variables_hash, key, name->data, name->len);
 
     if (v) {
@@ -675,8 +661,7 @@ ngx_http_get_variable(ngx_http_request_t *r, ngx_str_t *name, ngx_uint_t key)
         }
 
         if (ngx_http_variable_depth == 0) {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                          "cycle while evaluating variable \"%V\"", name);
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "cycle while evaluating variable \"%V\"", name);
             return NULL;
         }
 
@@ -693,6 +678,7 @@ ngx_http_get_variable(ngx_http_request_t *r, ngx_str_t *name, ngx_uint_t key)
         return NULL;
     }
 
+	/*在前缀匹配中进行查找*/
     vv = ngx_palloc(r->pool, sizeof(ngx_http_variable_value_t));
     if (vv == NULL) {
         return NULL;
@@ -703,10 +689,8 @@ ngx_http_get_variable(ngx_http_request_t *r, ngx_str_t *name, ngx_uint_t key)
     v = cmcf->prefix_variables.elts;
     n = cmcf->prefix_variables.nelts;
 
-    for (i = 0; i < cmcf->prefix_variables.nelts; i++) {
-        if (name->len >= v[i].name.len && name->len > len
-            && ngx_strncmp(name->data, v[i].name.data, v[i].name.len) == 0)
-        {
+    for (i = 0; i < cmcf->prefix_variables.nelts; i++) {	//查找与变量名最长前缀匹配的变量对象
+        if (name->len >= v[i].name.len && name->len > len && ngx_strncmp(name->data, v[i].name.data, v[i].name.len) == 0) {
             len = v[i].name.len;
             n = i;
         }
@@ -815,8 +799,7 @@ ngx_http_variable_request_set_size(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_http_variable_header(ngx_http_request_t *r, ngx_http_variable_value_t *v,
-    uintptr_t data)
+ngx_http_variable_header(ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_table_elt_t  *h;
 
@@ -2561,6 +2544,8 @@ ngx_http_regex_exec(ngx_http_request_t *r, ngx_http_regex_t *re, ngx_str_t *s)
 #endif
 
 
+//初始化变量管理存储结构
+//添加内部变量到变量管理结构中
 ngx_int_t
 ngx_http_variables_add_core_vars(ngx_conf_t *cf)
 {
@@ -2575,18 +2560,13 @@ ngx_http_variables_add_core_vars(ngx_conf_t *cf)
     }
 
     cmcf->variables_keys->pool = cf->pool;
-    cmcf->variables_keys->temp_pool = cf->pool;
+    cmcf->variables_keys->temp_pool = cf->pool;	//XXX: 为什么用的cf->pool?
 
-    if (ngx_hash_keys_array_init(cmcf->variables_keys, NGX_HASH_SMALL)
-        != NGX_OK)
-    {
+    if (ngx_hash_keys_array_init(cmcf->variables_keys, NGX_HASH_SMALL) != NGX_OK) {
         return NGX_ERROR;
     }
 
-    if (ngx_array_init(&cmcf->prefix_variables, cf->pool, 8,
-                       sizeof(ngx_http_variable_t))
-        != NGX_OK)
-    {
+    if (ngx_array_init(&cmcf->prefix_variables, cf->pool, 8, sizeof(ngx_http_variable_t)) != NGX_OK) {
         return NGX_ERROR;
     }
 
@@ -2627,10 +2607,7 @@ ngx_http_variables_init_vars(ngx_conf_t *cf)
 
             av = key[n].value;
 
-            if (v[i].name.len == key[n].key.len
-                && ngx_strncmp(v[i].name.data, key[n].key.data, v[i].name.len)
-                   == 0)
-            {
+            if (v[i].name.len == key[n].key.len && ngx_strncmp(v[i].name.data, key[n].key.data, v[i].name.len) == 0) {
                 v[i].get_handler = av->get_handler;
                 v[i].data = av->data;
 
@@ -2639,9 +2616,7 @@ ngx_http_variables_init_vars(ngx_conf_t *cf)
 
                 av->index = i;
 
-                if (av->get_handler == NULL
-                    || (av->flags & NGX_HTTP_VAR_WEAK))
-                {
+                if (av->get_handler == NULL || (av->flags & NGX_HTTP_VAR_WEAK)) {
                     break;
                 }
 
@@ -2671,8 +2646,7 @@ ngx_http_variables_init_vars(ngx_conf_t *cf)
         }
 
         if (v[i].get_handler == NULL) {
-            ngx_log_error(NGX_LOG_EMERG, cf->log, 0,
-                          "unknown \"%V\" variable", &v[i].name);
+            ngx_log_error(NGX_LOG_EMERG, cf->log, 0, "unknown \"%V\" variable", &v[i].name);
 
             return NGX_ERROR;
         }
@@ -2699,10 +2673,7 @@ ngx_http_variables_init_vars(ngx_conf_t *cf)
     hash.pool = cf->pool;
     hash.temp_pool = NULL;
 
-    if (ngx_hash_init(&hash, cmcf->variables_keys->keys.elts,
-                      cmcf->variables_keys->keys.nelts)
-        != NGX_OK)
-    {
+    if (ngx_hash_init(&hash, cmcf->variables_keys->keys.elts, cmcf->variables_keys->keys.nelts) != NGX_OK) {
         return NGX_ERROR;
     }
 
