@@ -81,8 +81,7 @@ static ngx_int_t ngx_http_upstream_non_buffered_filter_init(void *data);
 static ngx_int_t ngx_http_upstream_non_buffered_filter(void *data,
     ssize_t bytes);
 #if (NGX_THREADS)
-static ngx_int_t ngx_http_upstream_thread_handler(ngx_thread_task_t *task,
-    ngx_file_t *file);
+static ngx_int_t ngx_http_upstream_thread_handler(ngx_thread_task_t *task, ngx_file_t *file);
 static void ngx_http_upstream_thread_event_handler(ngx_event_t *ev);
 #endif
 static ngx_int_t ngx_http_upstream_output_filter(void *data,
@@ -3717,17 +3716,14 @@ ngx_http_upstream_thread_handler(ngx_thread_task_t *task, ngx_file_t *file)
     tp = clcf->thread_pool;
 
     if (tp == NULL) {
-        if (ngx_http_complex_value(r, clcf->thread_pool_value, &name)
-            != NGX_OK)
-        {
+        if (ngx_http_complex_value(r, clcf->thread_pool_value, &name) != NGX_OK) {
             return NGX_ERROR;
         }
 
         tp = ngx_thread_pool_get((ngx_cycle_t *) ngx_cycle, &name);
 
         if (tp == NULL) {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                          "thread pool \"%V\" not found", &name);
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "thread pool \"%V\" not found", &name);
             return NGX_ERROR;
         }
     }

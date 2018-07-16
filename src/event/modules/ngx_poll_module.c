@@ -12,12 +12,9 @@
 
 static ngx_int_t ngx_poll_init(ngx_cycle_t *cycle, ngx_msec_t timer);
 static void ngx_poll_done(ngx_cycle_t *cycle);
-static ngx_int_t ngx_poll_add_event(ngx_event_t *ev, ngx_int_t event,
-    ngx_uint_t flags);
-static ngx_int_t ngx_poll_del_event(ngx_event_t *ev, ngx_int_t event,
-    ngx_uint_t flags);
-static ngx_int_t ngx_poll_process_events(ngx_cycle_t *cycle, ngx_msec_t timer,
-    ngx_uint_t flags);
+static ngx_int_t ngx_poll_add_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags);
+static ngx_int_t ngx_poll_del_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags);
+static ngx_int_t ngx_poll_process_events(ngx_cycle_t *cycle, ngx_msec_t timer, ngx_uint_t flags);
 static char *ngx_poll_init_conf(ngx_cycle_t *cycle, void *conf);
 
 
@@ -77,8 +74,7 @@ ngx_poll_init(ngx_cycle_t *cycle, ngx_msec_t timer)
         || cycle->old_cycle == NULL
         || cycle->old_cycle->connection_n < cycle->connection_n)
     {
-        list = ngx_alloc(sizeof(struct pollfd) * cycle->connection_n,
-                         cycle->log);
+        list = ngx_alloc(sizeof(struct pollfd) * cycle->connection_n, cycle->log);
         if (list == NULL) {
             return NGX_ERROR;
         }
@@ -139,8 +135,7 @@ ngx_poll_add_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
 #endif
     }
 
-    ngx_log_debug2(NGX_LOG_DEBUG_EVENT, ev->log, 0,
-                   "poll add event: fd:%d ev:%i", c->fd, event);
+    ngx_log_debug2(NGX_LOG_DEBUG_EVENT, ev->log, 0, "poll add event: fd:%d ev:%i", c->fd, event);
 
     if (e == NULL || e->index == NGX_INVALID_INDEX) {
         event_list[nevents].fd = c->fd;
@@ -151,8 +146,7 @@ ngx_poll_add_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
         nevents++;
 
     } else {
-        ngx_log_debug1(NGX_LOG_DEBUG_EVENT, ev->log, 0,
-                       "poll add index: %i", e->index);
+        ngx_log_debug1(NGX_LOG_DEBUG_EVENT, ev->log, 0, "poll add index: %i", e->index);
 
         event_list[e->index].events |= (short) event;
         ev->index = e->index;
@@ -173,9 +167,7 @@ ngx_poll_del_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
     ev->active = 0;
 
     if (ev->index == NGX_INVALID_INDEX) {
-        ngx_log_error(NGX_LOG_ALERT, ev->log, 0,
-                      "poll event fd:%d ev:%i is already deleted",
-                      c->fd, event);
+        ngx_log_error(NGX_LOG_ALERT, ev->log, 0, "poll event fd:%d ev:%i is already deleted", c->fd, event);
         return NGX_OK;
     }
 
@@ -192,24 +184,21 @@ ngx_poll_del_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
 #endif
     }
 
-    ngx_log_debug2(NGX_LOG_DEBUG_EVENT, ev->log, 0,
-                   "poll del event: fd:%d ev:%i", c->fd, event);
+    ngx_log_debug2(NGX_LOG_DEBUG_EVENT, ev->log, 0, "poll del event: fd:%d ev:%i", c->fd, event);
 
     if (e == NULL || e->index == NGX_INVALID_INDEX) {
         nevents--;
 
         if (ev->index < nevents) {
 
-            ngx_log_debug2(NGX_LOG_DEBUG_EVENT, ev->log, 0,
-                           "index: copy event %ui to %i", nevents, ev->index);
+            ngx_log_debug2(NGX_LOG_DEBUG_EVENT, ev->log, 0, "index: copy event %ui to %i", nevents, ev->index);
 
             event_list[ev->index] = event_list[nevents];
 
             c = ngx_cycle->files[event_list[nevents].fd];
 
             if (c->fd == -1) {
-                ngx_log_error(NGX_LOG_ALERT, ev->log, 0,
-                              "unexpected last event");
+                ngx_log_error(NGX_LOG_ALERT, ev->log, 0, "unexpected last event");
 
             } else {
                 if (c->read->index == nevents) {
@@ -223,8 +212,7 @@ ngx_poll_del_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
         }
 
     } else {
-        ngx_log_debug1(NGX_LOG_DEBUG_EVENT, ev->log, 0,
-                       "poll del index: %i", e->index);
+        ngx_log_debug1(NGX_LOG_DEBUG_EVENT, ev->log, 0, "poll del index: %i", e->index);
 
         event_list[e->index].events &= (short) ~event;
     }
@@ -250,9 +238,7 @@ ngx_poll_process_events(ngx_cycle_t *cycle, ngx_msec_t timer, ngx_uint_t flags)
 #if (NGX_DEBUG0)
     if (cycle->log->log_level & NGX_LOG_DEBUG_ALL) {
         for (i = 0; i < nevents; i++) {
-            ngx_log_debug3(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
-                           "poll: %ui: fd:%d ev:%04Xd",
-                           i, event_list[i].fd, event_list[i].events);
+            ngx_log_debug3(NGX_LOG_DEBUG_EVENT, cycle->log, 0, "poll: %ui: fd:%d ev:%04Xd", i, event_list[i].fd, event_list[i].events);
         }
     }
 #endif

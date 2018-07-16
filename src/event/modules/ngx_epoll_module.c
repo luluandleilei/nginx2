@@ -110,18 +110,14 @@ static void ngx_epoll_notify_handler(ngx_event_t *ev);
 static void ngx_epoll_test_rdhup(ngx_cycle_t *cycle);
 #endif
 static void ngx_epoll_done(ngx_cycle_t *cycle);
-static ngx_int_t ngx_epoll_add_event(ngx_event_t *ev, ngx_int_t event,
-    ngx_uint_t flags);
-static ngx_int_t ngx_epoll_del_event(ngx_event_t *ev, ngx_int_t event,
-    ngx_uint_t flags);
+static ngx_int_t ngx_epoll_add_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags);
+static ngx_int_t ngx_epoll_del_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags);
 static ngx_int_t ngx_epoll_add_connection(ngx_connection_t *c);
-static ngx_int_t ngx_epoll_del_connection(ngx_connection_t *c,
-    ngx_uint_t flags);
+static ngx_int_t ngx_epoll_del_connection(ngx_connection_t *c, ngx_uint_t flags);
 #if (NGX_HAVE_EVENTFD)
 static ngx_int_t ngx_epoll_notify(ngx_event_handler_pt handler);
 #endif
-static ngx_int_t ngx_epoll_process_events(ngx_cycle_t *cycle, ngx_msec_t timer,
-    ngx_uint_t flags);
+static ngx_int_t ngx_epoll_process_events(ngx_cycle_t *cycle, ngx_msec_t timer, ngx_uint_t flags);
 
 #if (NGX_HAVE_FILE_AIO)
 static void ngx_epoll_eventfd_handler(ngx_event_t *ev);
@@ -260,26 +256,22 @@ ngx_epoll_aio_init(ngx_cycle_t *cycle, ngx_epoll_conf_t *epcf)
 #endif
 
     if (ngx_eventfd == -1) {
-        ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno,
-                      "eventfd() failed");
+        ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno, "eventfd() failed");
         ngx_file_aio = 0;
         return;
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
-                   "eventfd: %d", ngx_eventfd);
+    ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0, "eventfd: %d", ngx_eventfd);
 
     n = 1;
 
     if (ioctl(ngx_eventfd, FIONBIO, &n) == -1) {
-        ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno,
-                      "ioctl(eventfd, FIONBIO) failed");
+        ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno, "ioctl(eventfd, FIONBIO) failed");
         goto failed;
     }
 
     if (io_setup(epcf->aio_requests, &ngx_aio_ctx) == -1) {
-        ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno,
-                      "io_setup() failed");
+        ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno, "io_setup() failed");
         goto failed;
     }
 
@@ -298,19 +290,16 @@ ngx_epoll_aio_init(ngx_cycle_t *cycle, ngx_epoll_conf_t *epcf)
         return;
     }
 
-    ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno,
-                  "epoll_ctl(EPOLL_CTL_ADD, eventfd) failed");
+    ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno, "epoll_ctl(EPOLL_CTL_ADD, eventfd) failed");
 
     if (io_destroy(ngx_aio_ctx) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                      "io_destroy() failed");
+        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "io_destroy() failed");
     }
 
 failed:
 
     if (close(ngx_eventfd) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                      "eventfd close() failed");
+        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "eventfd close() failed");
     }
 
     ngx_eventfd = -1;
@@ -467,22 +456,19 @@ ngx_epoll_test_rdhup(ngx_cycle_t *cycle)
     struct epoll_event  ee;
 
     if (socketpair(AF_UNIX, SOCK_STREAM, 0, s) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                      "socketpair() failed");
+        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "socketpair() failed");
         return;
     }
 
     ee.events = EPOLLET|EPOLLIN|EPOLLRDHUP;
 
     if (epoll_ctl(ep, EPOLL_CTL_ADD, s[0], &ee) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                      "epoll_ctl() failed");
+        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "epoll_ctl() failed");
         goto failed;
     }
 
     if (close(s[1]) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                      "close() failed");
+        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "close() failed");
         s[1] = -1;
         goto failed;
     }
@@ -492,8 +478,7 @@ ngx_epoll_test_rdhup(ngx_cycle_t *cycle)
     events = epoll_wait(ep, &ee, 1, 5000);
 
     if (events == -1) {
-        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                      "epoll_wait() failed");
+        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "epoll_wait() failed");
         goto failed;
     }
 
@@ -501,24 +486,19 @@ ngx_epoll_test_rdhup(ngx_cycle_t *cycle)
         ngx_use_epoll_rdhup = ee.events & EPOLLRDHUP;
 
     } else {
-        ngx_log_error(NGX_LOG_ALERT, cycle->log, NGX_ETIMEDOUT,
-                      "epoll_wait() timed out");
+        ngx_log_error(NGX_LOG_ALERT, cycle->log, NGX_ETIMEDOUT, "epoll_wait() timed out");
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
-                   "testing the EPOLLRDHUP flag: %s",
-                   ngx_use_epoll_rdhup ? "success" : "fail");
+    ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0, "testing the EPOLLRDHUP flag: %s", ngx_use_epoll_rdhup ? "success" : "fail");
 
 failed:
 
     if (s[1] != -1 && close(s[1]) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                      "close() failed");
+        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "close() failed");
     }
 
     if (close(s[0]) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                      "close() failed");
+        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "close() failed");
     }
 }
 
@@ -529,8 +509,7 @@ static void
 ngx_epoll_done(ngx_cycle_t *cycle)
 {
     if (close(ep) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                      "epoll close() failed");
+        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "epoll close() failed");
     }
 
     ep = -1;
@@ -538,8 +517,7 @@ ngx_epoll_done(ngx_cycle_t *cycle)
 #if (NGX_HAVE_EVENTFD)
 
     if (close(notify_fd) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                      "eventfd close() failed");
+        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "eventfd close() failed");
     }
 
     notify_fd = -1;
@@ -551,13 +529,11 @@ ngx_epoll_done(ngx_cycle_t *cycle)
     if (ngx_eventfd != -1) {
 
         if (io_destroy(ngx_aio_ctx) == -1) {
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                          "io_destroy() failed");
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "io_destroy() failed");
         }
 
         if (close(ngx_eventfd) == -1) {
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                          "eventfd close() failed");
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "eventfd close() failed");
         }
 
         ngx_eventfd = -1;
@@ -621,9 +597,7 @@ ngx_epoll_add_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
     ee.events = events | (uint32_t) flags;
     ee.data.ptr = (void *) ((uintptr_t) c | ev->instance);
 
-    ngx_log_debug3(NGX_LOG_DEBUG_EVENT, ev->log, 0,
-                   "epoll add event: fd:%d op:%d ev:%08XD",
-                   c->fd, op, ee.events);
+    ngx_log_debug3(NGX_LOG_DEBUG_EVENT, ev->log, 0, "epoll add event: fd:%d op:%d ev:%08XD", c->fd, op, ee.events);
 
     if (epoll_ctl(ep, op, c->fd, &ee) == -1) {
         ngx_log_error(NGX_LOG_ALERT, ev->log, ngx_errno,

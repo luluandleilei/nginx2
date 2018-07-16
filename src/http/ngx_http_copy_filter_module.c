@@ -25,8 +25,7 @@ static void ngx_http_copy_aio_sendfile_event_handler(ngx_event_t *ev);
 #endif
 #endif
 #if (NGX_THREADS)
-static ngx_int_t ngx_http_copy_thread_handler(ngx_thread_task_t *task,
-    ngx_file_t *file);
+static ngx_int_t ngx_http_copy_thread_handler(ngx_thread_task_t *task, ngx_file_t *file);
 static void ngx_http_copy_thread_event_handler(ngx_event_t *ev);
 #endif
 
@@ -274,21 +273,19 @@ ngx_http_copy_thread_handler(ngx_thread_task_t *task, ngx_file_t *file)
     tp = clcf->thread_pool;
 
     if (tp == NULL) {
-        if (ngx_http_complex_value(r, clcf->thread_pool_value, &name)
-            != NGX_OK)
-        {
+        if (ngx_http_complex_value(r, clcf->thread_pool_value, &name) != NGX_OK) {
             return NGX_ERROR;
         }
 
         tp = ngx_thread_pool_get((ngx_cycle_t *) ngx_cycle, &name);
 
         if (tp == NULL) {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                          "thread pool \"%V\" not found", &name);
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "thread pool \"%V\" not found", &name);
             return NGX_ERROR;
         }
     }
 
+	//设置task完成时在epoll线程中的回调函数(epoll线程会从全局task完成队列取出该task执行这个回调函数)
     task->event.data = r;
     task->event.handler = ngx_http_copy_thread_event_handler;
 

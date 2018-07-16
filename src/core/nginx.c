@@ -462,8 +462,7 @@ main(int argc, char *const *argv)
     cycle = ngx_init_cycle(&init_cycle);
     if (cycle == NULL) {
         if (ngx_test_config) {
-            ngx_log_stderr(0, "configuration file %s test failed",
-                           init_cycle.conf_file.data);
+            ngx_log_stderr(0, "configuration file %s test failed", init_cycle.conf_file.data);
         }
 
         return 1;
@@ -471,8 +470,7 @@ main(int argc, char *const *argv)
 
     if (ngx_test_config) {
         if (!ngx_quiet_mode) {
-            ngx_log_stderr(0, "configuration file %s test is successful",
-                           cycle->conf_file.data);
+            ngx_log_stderr(0, "configuration file %s test is successful", cycle->conf_file.data);
         }
 
         if (ngx_dump_config) {
@@ -1728,8 +1726,7 @@ ngx_load_module(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             return NGX_CONF_ERROR;
         }
 
-        ngx_log_debug2(NGX_LOG_DEBUG_CORE, cf->log, 0, "module: %s i:%ui",
-                       module->name, module->index);
+        ngx_log_debug2(NGX_LOG_DEBUG_CORE, cf->log, 0, "module: %s i:%ui", module->name, module->index);
     }
 
     return NGX_CONF_OK;

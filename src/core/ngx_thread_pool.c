@@ -29,17 +29,17 @@ typedef struct {
 struct ngx_thread_pool_s {
     ngx_thread_mutex_t        mtx;
     ngx_thread_pool_queue_t   queue;	//thread_pool待执行的任务的队列
-    ngx_int_t                 waiting;	//当前
+    ngx_int_t                 waiting;	//当前等待执行队列上的任务数
     ngx_thread_cond_t         cond;
 
     ngx_log_t                *log;
 
-    ngx_str_t                 name;			//the name of the thread_pool
+    ngx_str_t                 name;			//the name of the thread_pool，用于唯一标识该线程池
     ngx_uint_t                threads;		//the number of threads in the pool
     ngx_int_t                 max_queue;	//the max number of tasks allowed to be waiting in the queue
 
-    u_char                   *file;	//添加该thread_pool的命令所在的文件名
-    ngx_uint_t                line;	//添加该thread_pool的命令所在的文件的行号
+    u_char                   *file;	//添加该thread_pool的命令所在的文件名, 用于出错时报告
+    ngx_uint_t                line;	//添加该thread_pool的命令所在的文件的行号, 用于出错时报告
 };
 
 
@@ -238,8 +238,7 @@ ngx_int_t
 ngx_thread_task_post(ngx_thread_pool_t *tp, ngx_thread_task_t *task)
 {
     if (task->event.active) {
-        ngx_log_error(NGX_LOG_ALERT, tp->log, 0,
-                      "task #%ui already active", task->id);
+        ngx_log_error(NGX_LOG_ALERT, tp->log, 0, "task #%ui already active", task->id);
         return NGX_ERROR;
     }
 
@@ -250,13 +249,11 @@ ngx_thread_task_post(ngx_thread_pool_t *tp, ngx_thread_task_t *task)
     if (tp->waiting >= tp->max_queue) {
         (void) ngx_thread_mutex_unlock(&tp->mtx, tp->log);
 
-        ngx_log_error(NGX_LOG_ERR, tp->log, 0,
-                      "thread pool \"%V\" queue overflow: %i tasks waiting",
-                      &tp->name, tp->waiting);
+        ngx_log_error(NGX_LOG_ERR, tp->log, 0, "thread pool \"%V\" queue overflow: %i tasks waiting", &tp->name, tp->waiting);
         return NGX_ERROR;
     }
 
-    task->event.active = 1;
+    task->event.active = 1;		//XXX:标明该任务已经被提交到线程池等待执行
 
     task->id = ngx_thread_pool_task_id++;
     task->next = NULL;
@@ -273,9 +270,7 @@ ngx_thread_task_post(ngx_thread_pool_t *tp, ngx_thread_task_t *task)
 
     (void) ngx_thread_mutex_unlock(&tp->mtx, tp->log);
 
-    ngx_log_debug2(NGX_LOG_DEBUG_CORE, tp->log, 0,
-                   "task #%ui added to thread pool \"%V\"",
-                   task->id, &tp->name);
+    ngx_log_debug2(NGX_LOG_DEBUG_CORE, tp->log, 0, "task #%ui added to thread pool \"%V\"", task->id, &tp->name);
 
     return NGX_OK;
 }
@@ -361,6 +356,8 @@ ngx_thread_pool_cycle(void *data)
 }
 
 
+//此函数是task完成的通用回调函数，内部会调用每个特定task完成时的回调函数
+//此函数在epoll线程上执行
 static void
 ngx_thread_pool_handler(ngx_event_t *ev)
 {
@@ -428,8 +425,7 @@ ngx_thread_pool_init_conf(ngx_cycle_t *cycle, void *conf)
         }
 
         if (tpp[i]->name.len == ngx_thread_pool_default.len
-            && ngx_strncmp(tpp[i]->name.data, ngx_thread_pool_default.data,
-                           ngx_thread_pool_default.len)
+            && ngx_strncmp(tpp[i]->name.data, ngx_thread_pool_default.data, ngx_thread_pool_default.len)
                == 0)
         {
             tpp[i]->threads = 32;
@@ -437,9 +433,7 @@ ngx_thread_pool_init_conf(ngx_cycle_t *cycle, void *conf)
             continue;
         }
 
-        ngx_log_error(NGX_LOG_EMERG, cycle->log, 0,
-                      "unknown thread pool \"%V\" in %s:%ui",
-                      &tpp[i]->name, tpp[i]->file, tpp[i]->line);
+        ngx_log_error(NGX_LOG_EMERG, cycle->log, 0, "unknown thread pool \"%V\" in %s:%ui", &tpp[i]->name, tpp[i]->file, tpp[i]->line);
 
         return NGX_CONF_ERROR;
     }

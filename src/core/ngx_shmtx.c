@@ -31,8 +31,7 @@ ngx_shmtx_create(ngx_shmtx_t *mtx, ngx_shmtx_sh_t *addr, u_char *name)
     mtx->wait = &addr->wait;
 
     if (sem_init(&mtx->sem, 1, 0) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, ngx_errno,
-                      "sem_init() failed");
+        ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, ngx_errno, "sem_init() failed");
     } else {
         mtx->semaphore = 1;
     }
@@ -87,9 +86,7 @@ ngx_shmtx_lock(ngx_shmtx_t *mtx)
                     ngx_cpu_pause();
                 }
 
-                if (*mtx->lock == 0
-                    && ngx_atomic_cmp_set(mtx->lock, 0, ngx_pid))
-                {
+                if (*mtx->lock == 0 && ngx_atomic_cmp_set(mtx->lock, 0, ngx_pid)) {
                     return;
                 }
             }
@@ -212,18 +209,15 @@ ngx_shmtx_create(ngx_shmtx_t *mtx, ngx_shmtx_sh_t *addr, u_char *name)
         ngx_shmtx_destroy(mtx);
     }
 
-    mtx->fd = ngx_open_file(name, NGX_FILE_RDWR, NGX_FILE_CREATE_OR_OPEN,
-                            NGX_FILE_DEFAULT_ACCESS);
+    mtx->fd = ngx_open_file(name, NGX_FILE_RDWR, NGX_FILE_CREATE_OR_OPEN, NGX_FILE_DEFAULT_ACCESS);
 
     if (mtx->fd == NGX_INVALID_FILE) {
-        ngx_log_error(NGX_LOG_EMERG, ngx_cycle->log, ngx_errno,
-                      ngx_open_file_n " \"%s\" failed", name);
+        ngx_log_error(NGX_LOG_EMERG, ngx_cycle->log, ngx_errno, ngx_open_file_n " \"%s\" failed", name);
         return NGX_ERROR;
     }
 
     if (ngx_delete_file(name) == NGX_FILE_ERROR) {
-        ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, ngx_errno,
-                      ngx_delete_file_n " \"%s\" failed", name);
+        ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, ngx_errno, ngx_delete_file_n " \"%s\" failed", name);
     }
 
     mtx->name = name;
@@ -236,8 +230,7 @@ void
 ngx_shmtx_destroy(ngx_shmtx_t *mtx)
 {
     if (ngx_close_file(mtx->fd) == NGX_FILE_ERROR) {
-        ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, ngx_errno,
-                      ngx_close_file_n " \"%s\" failed", mtx->name);
+        ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, ngx_errno, ngx_close_file_n " \"%s\" failed", mtx->name);
     }
 }
 
