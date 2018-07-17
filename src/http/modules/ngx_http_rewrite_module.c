@@ -193,8 +193,7 @@ ngx_http_rewrite_handler(ngx_http_request_t *r)
 
 
 static ngx_int_t
-ngx_http_rewrite_var(ngx_http_request_t *r, ngx_http_variable_value_t *v,
-    uintptr_t data)
+ngx_http_rewrite_var(ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_http_variable_t          *var;
     ngx_http_core_main_conf_t    *cmcf;
@@ -217,8 +216,7 @@ ngx_http_rewrite_var(ngx_http_request_t *r, ngx_http_variable_value_t *v,
      * so the handler is called only if the variable is not initialized
      */
 
-    ngx_log_error(NGX_LOG_WARN, r->connection->log, 0,
-                  "using uninitialized \"%V\" variable", &var[data].name);
+    ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "using uninitialized \"%V\" variable", &var[data].name);
 
     *v = ngx_http_variable_null_value;
 
@@ -909,16 +907,14 @@ ngx_http_rewrite_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     value = cf->args->elts;
 
     if (value[1].data[0] != '$') {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid variable name \"%V\"", &value[1]);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid variable name \"%V\"", &value[1]);
         return NGX_CONF_ERROR;
     }
 
     value[1].len--;
     value[1].data++;
 
-    v = ngx_http_add_variable(cf, &value[1],
-                              NGX_HTTP_VAR_CHANGEABLE|NGX_HTTP_VAR_WEAK);
+    v = ngx_http_add_variable(cf, &value[1], NGX_HTTP_VAR_CHANGEABLE|NGX_HTTP_VAR_WEAK);
     if (v == NULL) {
         return NGX_CONF_ERROR;
     }

@@ -24,21 +24,21 @@ typedef void (*ngx_http_set_variable_pt) (ngx_http_request_t *r, ngx_http_variab
 typedef ngx_int_t (*ngx_http_get_variable_pt) (ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
 
 
-#define NGX_HTTP_VAR_CHANGEABLE   1
-#define NGX_HTTP_VAR_NOCACHEABLE  2
-#define NGX_HTTP_VAR_INDEXED      4
-#define NGX_HTTP_VAR_NOHASH       8
+#define NGX_HTTP_VAR_CHANGEABLE   1		//表示这个变量是可变的.
+#define NGX_HTTP_VAR_NOCACHEABLE  2		//表示这个变量每次都要去取值，而不是直接返回上次cache的值(配合对应的接口)
+#define NGX_HTTP_VAR_INDEXED      4		//表示这个变量是用索引读取的. //表示这个变量可以用索引进行读取
+#define NGX_HTTP_VAR_NOHASH       8		//表示这个变量不需要被hash.
 #define NGX_HTTP_VAR_WEAK         16
 #define NGX_HTTP_VAR_PREFIX       32
 
 
 struct ngx_http_variable_s {
-    ngx_str_t                     name;   /* must be first to build the hash */
-    ngx_http_set_variable_pt      set_handler;
-    ngx_http_get_variable_pt      get_handler;
-    uintptr_t                     data;		//set_handler和get_handler的参数
-    ngx_uint_t                    flags;
-    ngx_uint_t                    index;	//XXX：该变量在 ngx_http_core_main_conf_t.variables 数组中的索引
+    ngx_str_t                     name;   /* must be first to build the hash */	//对应的变量名字
+    ngx_http_set_variable_pt      set_handler;	//设置变量值的函数
+    ngx_http_get_variable_pt      get_handler;	//读取变量值的函数
+    uintptr_t                     data;			//传递给set_handler和get_handler的参数
+    ngx_uint_t                    flags;		//变量的属性NGX_HTTP_VAR_*
+    ngx_uint_t                    index;		//XXX：该变量在 ngx_http_core_main_conf_t.variables 数组中的索引，从而可以迅速定位到对应的变量。
 };
 
 #define ngx_http_null_variable  { ngx_null_string, NULL, NULL, 0, 0, 0 }

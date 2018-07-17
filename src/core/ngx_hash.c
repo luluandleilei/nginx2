@@ -288,20 +288,13 @@ ngx_hash_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names, ngx_uint_t nelts)
 	/*参数合法性检查*/
 
     if (hinit->max_size == 0) {
-        ngx_log_error(NGX_LOG_EMERG, hinit->pool->log, 0,
-                      "could not build %s, you should "
-                      "increase %s_max_size: %i",
-                      hinit->name, hinit->name, hinit->max_size);
+        ngx_log_error(NGX_LOG_EMERG, hinit->pool->log, 0, "could not build %s, you should " "increase %s_max_size: %i", hinit->name, hinit->name, hinit->max_size);
         return NGX_ERROR;
     }
 
     for (n = 0; n < nelts; n++) {
-        if (hinit->bucket_size < NGX_HASH_ELT_SIZE(&names[n]) + sizeof(void *)) //NGX_HASH_ELT_SIZE(&names[n]) + sizeof(void *)为桶中仅仅存储一个元素所需要的空间
-        {
-            ngx_log_error(NGX_LOG_EMERG, hinit->pool->log, 0,
-                          "could not build %s, you should "
-                          "increase %s_bucket_size: %i",
-                          hinit->name, hinit->name, hinit->bucket_size);
+        if (hinit->bucket_size < NGX_HASH_ELT_SIZE(&names[n]) + sizeof(void *)) { //NGX_HASH_ELT_SIZE(&names[n]) + sizeof(void *)为桶中仅仅存储一个元素所需要的空间
+            ngx_log_error(NGX_LOG_EMERG, hinit->pool->log, 0, "could not build %s, you should " "increase %s_bucket_size: %i", hinit->name, hinit->name, hinit->bucket_size);
             return NGX_ERROR;
         }
     }

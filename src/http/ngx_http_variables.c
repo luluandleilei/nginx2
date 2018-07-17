@@ -172,208 +172,138 @@ static ngx_http_variable_t  ngx_http_core_variables[] = {
 #endif
 
 #if (NGX_HTTP_X_FORWARDED_FOR)
-    { ngx_string("http_x_forwarded_for"), NULL, ngx_http_variable_headers,
-      offsetof(ngx_http_request_t, headers_in.x_forwarded_for), 0, 0 },
+    { ngx_string("http_x_forwarded_for"), NULL, ngx_http_variable_headers, offsetof(ngx_http_request_t, headers_in.x_forwarded_for), 0, 0 },
 #endif
 
-    { ngx_string("http_cookie"), NULL, ngx_http_variable_cookies,
-      offsetof(ngx_http_request_t, headers_in.cookies), 0, 0 },
+    { ngx_string("http_cookie"), NULL, ngx_http_variable_cookies, offsetof(ngx_http_request_t, headers_in.cookies), 0, 0 },
 
-    { ngx_string("content_length"), NULL, ngx_http_variable_content_length,
-      0, 0, 0 },
+    { ngx_string("content_length"), NULL, ngx_http_variable_content_length, 0, 0, 0 },
 
-    { ngx_string("content_type"), NULL, ngx_http_variable_header,
-      offsetof(ngx_http_request_t, headers_in.content_type), 0, 0 },
+    { ngx_string("content_type"), NULL, ngx_http_variable_header, offsetof(ngx_http_request_t, headers_in.content_type), 0, 0 },
 
     { ngx_string("host"), NULL, ngx_http_variable_host, 0, 0, 0 },
 
-    { ngx_string("binary_remote_addr"), NULL,
-      ngx_http_variable_binary_remote_addr, 0, 0, 0 },
+    { ngx_string("binary_remote_addr"), NULL, ngx_http_variable_binary_remote_addr, 0, 0, 0 },
 
     { ngx_string("remote_addr"), NULL, ngx_http_variable_remote_addr, 0, 0, 0 },
 
     { ngx_string("remote_port"), NULL, ngx_http_variable_remote_port, 0, 0, 0 },
 
-    { ngx_string("proxy_protocol_addr"), NULL,
-      ngx_http_variable_proxy_protocol_addr, 0, 0, 0 },
+    { ngx_string("proxy_protocol_addr"), NULL, ngx_http_variable_proxy_protocol_addr, 0, 0, 0 },
 
-    { ngx_string("proxy_protocol_port"), NULL,
-      ngx_http_variable_proxy_protocol_port, 0, 0, 0 },
+    { ngx_string("proxy_protocol_port"), NULL, ngx_http_variable_proxy_protocol_port, 0, 0, 0 },
 
     { ngx_string("server_addr"), NULL, ngx_http_variable_server_addr, 0, 0, 0 },
 
     { ngx_string("server_port"), NULL, ngx_http_variable_server_port, 0, 0, 0 },
 
-    { ngx_string("server_protocol"), NULL, ngx_http_variable_request,
-      offsetof(ngx_http_request_t, http_protocol), 0, 0 },
+    { ngx_string("server_protocol"), NULL, ngx_http_variable_request, offsetof(ngx_http_request_t, http_protocol), 0, 0 },
 
     { ngx_string("scheme"), NULL, ngx_http_variable_scheme, 0, 0, 0 },
 
     { ngx_string("https"), NULL, ngx_http_variable_https, 0, 0, 0 },
 
-    { ngx_string("request_uri"), NULL, ngx_http_variable_request,
-      offsetof(ngx_http_request_t, unparsed_uri), 0, 0 },
+    { ngx_string("request_uri"), NULL, ngx_http_variable_request, offsetof(ngx_http_request_t, unparsed_uri), 0, 0 },
 
-    { ngx_string("uri"), NULL, ngx_http_variable_request,
-      offsetof(ngx_http_request_t, uri),
-      NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("uri"), NULL, ngx_http_variable_request, offsetof(ngx_http_request_t, uri), NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("document_uri"), NULL, ngx_http_variable_request,
-      offsetof(ngx_http_request_t, uri),
-      NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("document_uri"), NULL, ngx_http_variable_request, offsetof(ngx_http_request_t, uri), NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
     { ngx_string("request"), NULL, ngx_http_variable_request_line, 0, 0, 0 },
 
-    { ngx_string("document_root"), NULL,
-      ngx_http_variable_document_root, 0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("document_root"), NULL, ngx_http_variable_document_root, 0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("realpath_root"), NULL,
-      ngx_http_variable_realpath_root, 0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("realpath_root"), NULL, ngx_http_variable_realpath_root, 0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("query_string"), NULL, ngx_http_variable_request,
-      offsetof(ngx_http_request_t, args),
-      NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("query_string"), NULL, ngx_http_variable_request, offsetof(ngx_http_request_t, args), NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("args"),
-      ngx_http_variable_set_args,
-      ngx_http_variable_request,
-      offsetof(ngx_http_request_t, args),
-      NGX_HTTP_VAR_CHANGEABLE|NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("args"), ngx_http_variable_set_args, ngx_http_variable_request, offsetof(ngx_http_request_t, args), NGX_HTTP_VAR_CHANGEABLE|NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("is_args"), NULL, ngx_http_variable_is_args,
-      0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("is_args"), NULL, ngx_http_variable_is_args, 0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("request_filename"), NULL,
-      ngx_http_variable_request_filename, 0,
-      NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("request_filename"), NULL, ngx_http_variable_request_filename, 0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
     { ngx_string("server_name"), NULL, ngx_http_variable_server_name, 0, 0, 0 },
 
-    { ngx_string("request_method"), NULL,
-      ngx_http_variable_request_method, 0,
-      NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("request_method"), NULL, ngx_http_variable_request_method, 0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
     { ngx_string("remote_user"), NULL, ngx_http_variable_remote_user, 0, 0, 0 },
 
-    { ngx_string("bytes_sent"), NULL, ngx_http_variable_bytes_sent,
-      0, 0, 0 },
+    { ngx_string("bytes_sent"), NULL, ngx_http_variable_bytes_sent, 0, 0, 0 },
 
-    { ngx_string("body_bytes_sent"), NULL, ngx_http_variable_body_bytes_sent,
-      0, 0, 0 },
+    { ngx_string("body_bytes_sent"), NULL, ngx_http_variable_body_bytes_sent, 0, 0, 0 },
 
-    { ngx_string("pipe"), NULL, ngx_http_variable_pipe,
-      0, 0, 0 },
+    { ngx_string("pipe"), NULL, ngx_http_variable_pipe, 0, 0, 0 },
 
-    { ngx_string("request_completion"), NULL,
-      ngx_http_variable_request_completion,
-      0, 0, 0 },
+    { ngx_string("request_completion"), NULL, ngx_http_variable_request_completion, 0, 0, 0 },
 
-    { ngx_string("request_body"), NULL,
-      ngx_http_variable_request_body,
-      0, 0, 0 },
+    { ngx_string("request_body"), NULL, ngx_http_variable_request_body, 0, 0, 0 },
 
-    { ngx_string("request_body_file"), NULL,
-      ngx_http_variable_request_body_file,
-      0, 0, 0 },
+    { ngx_string("request_body_file"), NULL, ngx_http_variable_request_body_file, 0, 0, 0 },
 
-    { ngx_string("request_length"), NULL, ngx_http_variable_request_length,
-      0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("request_length"), NULL, ngx_http_variable_request_length, 0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("request_time"), NULL, ngx_http_variable_request_time,
-      0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("request_time"), NULL, ngx_http_variable_request_time, 0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("request_id"), NULL,
-      ngx_http_variable_request_id,
-      0, 0, 0 },
+    { ngx_string("request_id"), NULL, ngx_http_variable_request_id, 0, 0, 0 },
 
-    { ngx_string("status"), NULL,
-      ngx_http_variable_status, 0,
-      NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("status"), NULL, ngx_http_variable_status, 0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("sent_http_content_type"), NULL,
-      ngx_http_variable_sent_content_type, 0, 0, 0 },
+    { ngx_string("sent_http_content_type"), NULL, ngx_http_variable_sent_content_type, 0, 0, 0 },
 
-    { ngx_string("sent_http_content_length"), NULL,
-      ngx_http_variable_sent_content_length, 0, 0, 0 },
+    { ngx_string("sent_http_content_length"), NULL, ngx_http_variable_sent_content_length, 0, 0, 0 },
 
-    { ngx_string("sent_http_location"), NULL,
-      ngx_http_variable_sent_location, 0, 0, 0 },
+    { ngx_string("sent_http_location"), NULL, ngx_http_variable_sent_location, 0, 0, 0 },
 
-    { ngx_string("sent_http_last_modified"), NULL,
-      ngx_http_variable_sent_last_modified, 0, 0, 0 },
+    { ngx_string("sent_http_last_modified"), NULL, ngx_http_variable_sent_last_modified, 0, 0, 0 },
 
-    { ngx_string("sent_http_connection"), NULL,
-      ngx_http_variable_sent_connection, 0, 0, 0 },
+    { ngx_string("sent_http_connection"), NULL, ngx_http_variable_sent_connection, 0, 0, 0 },
 
-    { ngx_string("sent_http_keep_alive"), NULL,
-      ngx_http_variable_sent_keep_alive, 0, 0, 0 },
+    { ngx_string("sent_http_keep_alive"), NULL, ngx_http_variable_sent_keep_alive, 0, 0, 0 },
 
-    { ngx_string("sent_http_transfer_encoding"), NULL,
-      ngx_http_variable_sent_transfer_encoding, 0, 0, 0 },
+    { ngx_string("sent_http_transfer_encoding"), NULL, ngx_http_variable_sent_transfer_encoding, 0, 0, 0 },
 
-    { ngx_string("sent_http_cache_control"), NULL, ngx_http_variable_headers,
-      offsetof(ngx_http_request_t, headers_out.cache_control), 0, 0 },
+    { ngx_string("sent_http_cache_control"), NULL, ngx_http_variable_headers, offsetof(ngx_http_request_t, headers_out.cache_control), 0, 0 },
 
-    { ngx_string("sent_http_link"), NULL, ngx_http_variable_headers,
-      offsetof(ngx_http_request_t, headers_out.link), 0, 0 },
+    { ngx_string("sent_http_link"), NULL, ngx_http_variable_headers, offsetof(ngx_http_request_t, headers_out.link), 0, 0 },
 
-    { ngx_string("limit_rate"), ngx_http_variable_request_set_size,
-      ngx_http_variable_request_get_size,
-      offsetof(ngx_http_request_t, limit_rate),
-      NGX_HTTP_VAR_CHANGEABLE|NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("limit_rate"), ngx_http_variable_request_set_size, ngx_http_variable_request_get_size, offsetof(ngx_http_request_t, limit_rate), NGX_HTTP_VAR_CHANGEABLE|NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("connection"), NULL,
-      ngx_http_variable_connection, 0, 0, 0 },
+    { ngx_string("connection"), NULL, ngx_http_variable_connection, 0, 0, 0 },
 
-    { ngx_string("connection_requests"), NULL,
-      ngx_http_variable_connection_requests, 0, 0, 0 },
+    { ngx_string("connection_requests"), NULL, ngx_http_variable_connection_requests, 0, 0, 0 },
 
-    { ngx_string("nginx_version"), NULL, ngx_http_variable_nginx_version,
-      0, 0, 0 },
+    { ngx_string("nginx_version"), NULL, ngx_http_variable_nginx_version, 0, 0, 0 },
 
-    { ngx_string("hostname"), NULL, ngx_http_variable_hostname,
-      0, 0, 0 },
+    { ngx_string("hostname"), NULL, ngx_http_variable_hostname, 0, 0, 0 },
 
-    { ngx_string("pid"), NULL, ngx_http_variable_pid,
-      0, 0, 0 },
+    { ngx_string("pid"), NULL, ngx_http_variable_pid, 0, 0, 0 },
 
-    { ngx_string("msec"), NULL, ngx_http_variable_msec,
-      0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("msec"), NULL, ngx_http_variable_msec, 0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("time_iso8601"), NULL, ngx_http_variable_time_iso8601,
-      0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("time_iso8601"), NULL, ngx_http_variable_time_iso8601, 0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("time_local"), NULL, ngx_http_variable_time_local,
-      0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("time_local"), NULL, ngx_http_variable_time_local, 0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
 #if (NGX_HAVE_TCP_INFO)
-    { ngx_string("tcpinfo_rtt"), NULL, ngx_http_variable_tcpinfo,
-      0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("tcpinfo_rtt"), NULL, ngx_http_variable_tcpinfo, 0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("tcpinfo_rttvar"), NULL, ngx_http_variable_tcpinfo,
-      1, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("tcpinfo_rttvar"), NULL, ngx_http_variable_tcpinfo, 1, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("tcpinfo_snd_cwnd"), NULL, ngx_http_variable_tcpinfo,
-      2, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("tcpinfo_snd_cwnd"), NULL, ngx_http_variable_tcpinfo, 2, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("tcpinfo_rcv_space"), NULL, ngx_http_variable_tcpinfo,
-      3, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("tcpinfo_rcv_space"), NULL, ngx_http_variable_tcpinfo, 3, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 #endif
 
-    { ngx_string("http_"), NULL, ngx_http_variable_unknown_header_in,
-      0, NGX_HTTP_VAR_PREFIX, 0 },
+    { ngx_string("http_"), NULL, ngx_http_variable_unknown_header_in, 0, NGX_HTTP_VAR_PREFIX, 0 },
 
-    { ngx_string("sent_http_"), NULL, ngx_http_variable_unknown_header_out,
-      0, NGX_HTTP_VAR_PREFIX, 0 },
+    { ngx_string("sent_http_"), NULL, ngx_http_variable_unknown_header_out, 0, NGX_HTTP_VAR_PREFIX, 0 },
 
-    { ngx_string("sent_trailer_"), NULL, ngx_http_variable_unknown_trailer_out,
-      0, NGX_HTTP_VAR_PREFIX, 0 },
+    { ngx_string("sent_trailer_"), NULL, ngx_http_variable_unknown_trailer_out, 0, NGX_HTTP_VAR_PREFIX, 0 },
 
-    { ngx_string("cookie_"), NULL, ngx_http_variable_cookie,
-      0, NGX_HTTP_VAR_PREFIX, 0 },
+    { ngx_string("cookie_"), NULL, ngx_http_variable_cookie, 0, NGX_HTTP_VAR_PREFIX, 0 },
 
-    { ngx_string("arg_"), NULL, ngx_http_variable_argument,
-      0, NGX_HTTP_VAR_NOCACHEABLE|NGX_HTTP_VAR_PREFIX, 0 },
+    { ngx_string("arg_"), NULL, ngx_http_variable_argument, 0, NGX_HTTP_VAR_NOCACHEABLE|NGX_HTTP_VAR_PREFIX, 0 },
 
       ngx_http_null_variable
 };
@@ -579,25 +509,28 @@ ngx_http_get_indexed_variable(ngx_http_request_t *r, ngx_uint_t index)
 
     cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
 
+	//index合法性检查
     if (cmcf->variables.nelts <= index) {
         ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0, "unknown variable index: %ui", index);
         return NULL;
     }
 
+	//对应索引的变量值存在，直接返回
     if (r->variables[index].not_found || r->variables[index].valid) {
         return &r->variables[index];
     }
 
+	//调用变量的get_handler函数递归查找对应的变量值
     v = cmcf->variables.elts;
-
-    if (ngx_http_variable_depth == 0) {
+	
+    if (ngx_http_variable_depth == 0) {	//变量循环引用(递归深度太深)，返回NULL
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "cycle while evaluating variable \"%V\"", &v[index].name);
         return NULL;
     }
 
     ngx_http_variable_depth--;
 
-    if (v[index].get_handler(r, &r->variables[index], v[index].data) == NGX_OK) {
+    if (v[index].get_handler(r, &r->variables[index], v[index].data) == NGX_OK) {	//找到了变量值，返回之
         ngx_http_variable_depth++;
 
         if (v[index].flags & NGX_HTTP_VAR_NOCACHEABLE) {
@@ -606,7 +539,7 @@ ngx_http_get_indexed_variable(ngx_http_request_t *r, ngx_uint_t index)
 
         return &r->variables[index];
     }
-
+	/*未找到变量值，设置对应变量值状态为not_found，返回NULL*/
     ngx_http_variable_depth++;
 
     r->variables[index].valid = 0;
@@ -2627,11 +2560,8 @@ ngx_http_variables_init_vars(ngx_conf_t *cf)
         len = 0;
         av = NULL;
 
-        for (n = 0; n < cmcf->prefix_variables.nelts; n++) {
-            if (v[i].name.len >= pv[n].name.len && v[i].name.len > len
-                && ngx_strncmp(v[i].name.data, pv[n].name.data, pv[n].name.len)
-                   == 0)
-            {
+        for (n = 0; n < cmcf->prefix_variables.nelts; n++) {	//查找与变量名最长前缀匹配的变量对象
+            if (v[i].name.len >= pv[n].name.len && v[i].name.len > len && ngx_strncmp(v[i].name.data, pv[n].name.data, pv[n].name.len) == 0) {
                 av = &pv[n];
                 len = pv[n].name.len;
             }

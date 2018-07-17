@@ -243,8 +243,7 @@ ngx_http_memcached_create_request(ngx_http_request_t *r)
     vv = ngx_http_get_indexed_variable(r, mlcf->index);
 
     if (vv == NULL || vv->not_found || vv->len == 0) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                      "the \"$memcached_key\" variable is not set");
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "the \"$memcached_key\" variable is not set");
         return NGX_ERROR;
     }
 

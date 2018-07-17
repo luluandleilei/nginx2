@@ -16,11 +16,9 @@
 
 typedef struct ngx_http_log_op_s  ngx_http_log_op_t;
 
-typedef u_char *(*ngx_http_log_op_run_pt) (ngx_http_request_t *r, u_char *buf,
-    ngx_http_log_op_t *op);
+typedef u_char *(*ngx_http_log_op_run_pt) (ngx_http_request_t *r, u_char *buf, ngx_http_log_op_t *op);
 
-typedef size_t (*ngx_http_log_op_getlen_pt) (ngx_http_request_t *r,
-    uintptr_t data);
+typedef size_t (*ngx_http_log_op_getlen_pt) (ngx_http_request_t *r, uintptr_t data);
 
 
 struct ngx_http_log_op_s {
@@ -95,14 +93,11 @@ typedef struct {
 #define NGX_HTTP_LOG_ESCAPE_NONE     2
 
 
-static void ngx_http_log_write(ngx_http_request_t *r, ngx_http_log_t *log,
-    u_char *buf, size_t len);
-static ssize_t ngx_http_log_script_write(ngx_http_request_t *r,
-    ngx_http_log_script_t *script, u_char **name, u_char *buf, size_t len);
+static void ngx_http_log_write(ngx_http_request_t *r, ngx_http_log_t *log, u_char *buf, size_t len);
+static ssize_t ngx_http_log_script_write(ngx_http_request_t *r, ngx_http_log_script_t *script, u_char **name, u_char *buf, size_t len);
 
 #if (NGX_ZLIB)
-static ssize_t ngx_http_log_gzip(ngx_fd_t fd, u_char *buf, size_t len,
-    ngx_int_t level, ngx_log_t *log);
+static ssize_t ngx_http_log_gzip(ngx_fd_t fd, u_char *buf, size_t len, ngx_int_t level, ngx_log_t *log);
 
 static void *ngx_http_log_gzip_alloc(void *opaque, u_int items, u_int size);
 static void ngx_http_log_gzip_free(void *opaque, void *address);
@@ -172,8 +167,7 @@ static ngx_command_t  ngx_http_log_commands[] = {
       NULL },
 
     { ngx_string("access_log"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF
-                        |NGX_HTTP_LMT_CONF|NGX_CONF_1MORE,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF|NGX_HTTP_LMT_CONF|NGX_CONF_1MORE,
       ngx_http_log_set_log,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
@@ -232,19 +226,14 @@ static ngx_str_t  ngx_http_combined_fmt =
 
 static ngx_http_log_var_t  ngx_http_log_vars[] = {
     { ngx_string("pipe"), 1, ngx_http_log_pipe },
-    { ngx_string("time_local"), sizeof("28/Sep/1970:12:00:00 +0600") - 1,
-                          ngx_http_log_time },
-    { ngx_string("time_iso8601"), sizeof("1970-09-28T12:00:00+06:00") - 1,
-                          ngx_http_log_iso8601 },
+    { ngx_string("time_local"), sizeof("28/Sep/1970:12:00:00 +0600") - 1, ngx_http_log_time },
+    { ngx_string("time_iso8601"), sizeof("1970-09-28T12:00:00+06:00") - 1, ngx_http_log_iso8601 },
     { ngx_string("msec"), NGX_TIME_T_LEN + 4, ngx_http_log_msec },
-    { ngx_string("request_time"), NGX_TIME_T_LEN + 4,
-                          ngx_http_log_request_time },
+    { ngx_string("request_time"), NGX_TIME_T_LEN + 4, ngx_http_log_request_time },
     { ngx_string("status"), NGX_INT_T_LEN, ngx_http_log_status },
     { ngx_string("bytes_sent"), NGX_OFF_T_LEN, ngx_http_log_bytes_sent },
-    { ngx_string("body_bytes_sent"), NGX_OFF_T_LEN,
-                          ngx_http_log_body_bytes_sent },
-    { ngx_string("request_length"), NGX_SIZE_T_LEN,
-                          ngx_http_log_request_length },
+    { ngx_string("body_bytes_sent"), NGX_OFF_T_LEN, ngx_http_log_body_bytes_sent },
+    { ngx_string("request_length"), NGX_SIZE_T_LEN, ngx_http_log_request_length },
 
     { ngx_null_string, 0, NULL }
 };
@@ -263,8 +252,7 @@ ngx_http_log_handler(ngx_http_request_t *r)
     ngx_http_log_buf_t       *buffer;
     ngx_http_log_loc_conf_t  *lcf;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http log handler");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http log handler");
 
     lcf = ngx_http_get_module_loc_conf(r, ngx_http_log_module);
 
@@ -381,13 +369,10 @@ ngx_http_log_handler(ngx_http_request_t *r)
             n = ngx_syslog_send(log[l].syslog_peer, line, size);
 
             if (n < 0) {
-                ngx_log_error(NGX_LOG_WARN, r->connection->log, 0,
-                              "send() to syslog failed");
+                ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "send() to syslog failed");
 
             } else if ((size_t) n != size) {
-                ngx_log_error(NGX_LOG_WARN, r->connection->log, 0,
-                              "send() to syslog has written only %z of %uz",
-                              n, size);
+                ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "send() to syslog has written only %z of %uz", n, size);
             }
 
             continue;
@@ -403,8 +388,7 @@ ngx_http_log_handler(ngx_http_request_t *r)
 
 
 static void
-ngx_http_log_write(ngx_http_request_t *r, ngx_http_log_t *log, u_char *buf,
-    size_t len)
+ngx_http_log_write(ngx_http_request_t *r, ngx_http_log_t *log, u_char *buf, size_t len)
 {
     u_char              *name;
     time_t               now;
@@ -421,8 +405,7 @@ ngx_http_log_write(ngx_http_request_t *r, ngx_http_log_t *log, u_char *buf,
         buffer = log->file->data;
 
         if (buffer && buffer->gzip) {
-            n = ngx_http_log_gzip(log->file->fd, buf, len, buffer->gzip,
-                                  r->connection->log);
+            n = ngx_http_log_gzip(log->file->fd, buf, len, buffer->gzip, r->connection->log);
         } else {
             n = ngx_write_fd(log->file->fd, buf, len);
         }
@@ -449,8 +432,7 @@ ngx_http_log_write(ngx_http_request_t *r, ngx_http_log_t *log, u_char *buf,
         }
 
         if (now - log->error_log_time > 59) {
-            ngx_log_error(NGX_LOG_ALERT, r->connection->log, err,
-                          ngx_write_fd_n " to \"%s\" failed", name);
+            ngx_log_error(NGX_LOG_ALERT, r->connection->log, err, ngx_write_fd_n " to \"%s\" failed", name);
 
             log->error_log_time = now;
         }
@@ -459,9 +441,7 @@ ngx_http_log_write(ngx_http_request_t *r, ngx_http_log_t *log, u_char *buf,
     }
 
     if (now - log->error_log_time > 59) {
-        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
-                      ngx_write_fd_n " to \"%s\" was incomplete: %z of %uz",
-                      name, n, len);
+        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0, ngx_write_fd_n " to \"%s\" was incomplete: %z of %uz", name, n, len);
 
         log->error_log_time = now;
     }
@@ -770,8 +750,7 @@ ngx_http_log_flush_handler(ngx_event_t *ev)
 
 
 static u_char *
-ngx_http_log_copy_short(ngx_http_request_t *r, u_char *buf,
-    ngx_http_log_op_t *op)
+ngx_http_log_copy_short(ngx_http_request_t *r, u_char *buf, ngx_http_log_op_t *op)
 {
     size_t     len;
     uintptr_t  data;
@@ -789,8 +768,7 @@ ngx_http_log_copy_short(ngx_http_request_t *r, u_char *buf,
 
 
 static u_char *
-ngx_http_log_copy_long(ngx_http_request_t *r, u_char *buf,
-    ngx_http_log_op_t *op)
+ngx_http_log_copy_long(ngx_http_request_t *r, u_char *buf, ngx_http_log_op_t *op)
 {
     return ngx_cpymem(buf, (u_char *) op->data, op->len);
 }
@@ -905,16 +883,14 @@ ngx_http_log_body_bytes_sent(ngx_http_request_t *r, u_char *buf,
 
 
 static u_char *
-ngx_http_log_request_length(ngx_http_request_t *r, u_char *buf,
-    ngx_http_log_op_t *op)
+ngx_http_log_request_length(ngx_http_request_t *r, u_char *buf, ngx_http_log_op_t *op)
 {
     return ngx_sprintf(buf, "%O", r->request_length);
 }
 
 
 static ngx_int_t
-ngx_http_log_variable_compile(ngx_conf_t *cf, ngx_http_log_op_t *op,
-    ngx_str_t *value, ngx_uint_t escape)
+ngx_http_log_variable_compile(ngx_conf_t *cf, ngx_http_log_op_t *op, ngx_str_t *value, ngx_uint_t escape)
 {
     ngx_int_t  index;
 
@@ -1347,17 +1323,14 @@ process_formats:
 
     fmt = lmcf->formats.elts;
     for (i = 0; i < lmcf->formats.nelts; i++) {
-        if (fmt[i].name.len == name.len
-            && ngx_strcasecmp(fmt[i].name.data, name.data) == 0)
-        {
+        if (fmt[i].name.len == name.len && ngx_strcasecmp(fmt[i].name.data, name.data) == 0) {
             log->format = &fmt[i];
             break;
         }
     }
 
     if (log->format == NULL) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "unknown log format \"%V\"", &name);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unknown log format \"%V\"", &name);
         return NGX_CONF_ERROR;
     }
 
@@ -1546,12 +1519,8 @@ ngx_http_log_set_format(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     fmt = lmcf->formats.elts;
     for (i = 0; i < lmcf->formats.nelts; i++) {
-        if (fmt[i].name.len == value[1].len
-            && ngx_strcmp(fmt[i].name.data, value[1].data) == 0)
-        {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "duplicate \"log_format\" name \"%V\"",
-                               &value[1]);
+        if (fmt[i].name.len == value[1].len && ngx_strcmp(fmt[i].name.data, value[1].data) == 0) {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "duplicate \"log_format\" name \"%V\"", &value[1]);
             return NGX_CONF_ERROR;
         }
     }
@@ -1578,8 +1547,7 @@ ngx_http_log_set_format(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
 
 static char *
-ngx_http_log_compile_format(ngx_conf_t *cf, ngx_array_t *flushes,
-    ngx_array_t *ops, ngx_array_t *args, ngx_uint_t s)
+ngx_http_log_compile_format(ngx_conf_t *cf, ngx_array_t *flushes, ngx_array_t *ops, ngx_array_t *args, ngx_uint_t s)
 {
     u_char              *data, *p, ch;
     size_t               i, len;
@@ -1602,8 +1570,7 @@ ngx_http_log_compile_format(ngx_conf_t *cf, ngx_array_t *flushes,
             escape = NGX_HTTP_LOG_ESCAPE_NONE;
 
         } else if (ngx_strcmp(data, "default") != 0) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "unknown log format escaping \"%s\"", data);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unknown log format escaping \"%s\"", data);
             return NGX_CONF_ERROR;
         }
 
@@ -1664,9 +1631,7 @@ ngx_http_log_compile_format(ngx_conf_t *cf, ngx_array_t *flushes,
                 }
 
                 if (bracket) {
-                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                       "the closing bracket in \"%V\" "
-                                       "variable is missing", &var);
+                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "the closing bracket in \"%V\" " "variable is missing", &var);
                     return NGX_CONF_ERROR;
                 }
 
@@ -1676,9 +1641,7 @@ ngx_http_log_compile_format(ngx_conf_t *cf, ngx_array_t *flushes,
 
                 for (v = ngx_http_log_vars; v->name.len; v++) {
 
-                    if (v->name.len == var.len
-                        && ngx_strncmp(v->name.data, var.data, var.len) == 0)
-                    {
+                    if (v->name.len == var.len && ngx_strncmp(v->name.data, var.data, var.len) == 0) {
                         op->len = v->len;
                         op->getlen = NULL;
                         op->run = v->run;
@@ -1688,9 +1651,7 @@ ngx_http_log_compile_format(ngx_conf_t *cf, ngx_array_t *flushes,
                     }
                 }
 
-                if (ngx_http_log_variable_compile(cf, op, &var, escape)
-                    != NGX_OK)
-                {
+                if (ngx_http_log_variable_compile(cf, op, &var, escape) != NGX_OK) {
                     return NGX_CONF_ERROR;
                 }
 

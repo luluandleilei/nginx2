@@ -112,8 +112,7 @@ static ngx_str_t  ngx_http_invalid_referer_name = ngx_string("invalid_referer");
 
 
 static ngx_int_t
-ngx_http_referer_variable(ngx_http_request_t *r, ngx_http_variable_value_t *v,
-    uintptr_t data)
+ngx_http_referer_variable(ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data)
 {
     u_char                    *p, *ref, *last;
     size_t                     len;
@@ -272,8 +271,7 @@ ngx_http_referer_add_variables(ngx_conf_t *cf)
 {
     ngx_http_variable_t  *var;
 
-    var = ngx_http_add_variable(cf, &ngx_http_invalid_referer_name,
-                                NGX_HTTP_VAR_CHANGEABLE);
+    var = ngx_http_add_variable(cf, &ngx_http_invalid_referer_name, NGX_HTTP_VAR_CHANGEABLE);
     if (var == NULL) {
         return NGX_ERROR;
     }
