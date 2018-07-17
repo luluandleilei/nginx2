@@ -25,8 +25,8 @@
  */
 
 
-static ngx_str_t  *ngx_sys_errlist;	//errno及其对应字符串描述的数组
-static ngx_str_t   ngx_unknown_error = ngx_string("Unknown error");
+static ngx_str_t  *ngx_sys_errlist;	//errno及其对应描述的字符串的数组，用于异步信号安全的访问errno对应的描述字符串
+static ngx_str_t   ngx_unknown_error = ngx_string("Unknown error");	//用于表示不在ngx_sys_errlist中的errno的对应的描述字符串
 
 
 /*根据err数字获取对应的字符串描述写入到errstr指定的空间中*/
@@ -35,8 +35,7 @@ ngx_strerror(ngx_err_t err, u_char *errstr, size_t size)
 {
     ngx_str_t  *msg;
 
-    msg = ((ngx_uint_t) err < NGX_SYS_NERR) ? &ngx_sys_errlist[err]:
-                                              &ngx_unknown_error;
+    msg = ((ngx_uint_t) err < NGX_SYS_NERR) ? &ngx_sys_errlist[err]: &ngx_unknown_error;
     size = ngx_min(size, msg->len);
 
     return ngx_cpymem(errstr, msg->data, size);
@@ -57,7 +56,7 @@ ngx_strerror_init(void)
      * malloc() is used and possible errors are logged using strerror().
      */
 
-    len = NGX_SYS_NERR * sizeof(ngx_str_t);
+    len = NGX_SYS_NERR * sizeof(ngx_str_t);		//NGX_SYS_NERR 是一个宏，在编译时根据不同的操作系统定义为不同的值(ngx_auto_config.h)
 
     ngx_sys_errlist = malloc(len);
     if (ngx_sys_errlist == NULL) {

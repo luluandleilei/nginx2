@@ -425,7 +425,7 @@ struct ngx_http_request_s {
     ngx_http_handler_pt               content_handler;
     ngx_uint_t                        access_code;
 
-    ngx_http_variable_value_t        *variables;
+    ngx_http_variable_value_t        *variables;	//XXX:缓存所有被索引的变量的值
 
 #if (NGX_PCRE)
     ngx_uint_t                        ncaptures;

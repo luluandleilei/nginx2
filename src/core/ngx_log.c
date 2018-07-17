@@ -114,8 +114,7 @@ ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
 
     last = errstr + NGX_MAX_ERROR_STR;
 
-    p = ngx_cpymem(errstr, ngx_cached_err_log_time.data,
-                   ngx_cached_err_log_time.len);
+    p = ngx_cpymem(errstr, ngx_cached_err_log_time.data, ngx_cached_err_log_time.len);
 
     p = ngx_slprintf(p, last, " [%V] ", &err_levels[level]);
 

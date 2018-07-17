@@ -1429,6 +1429,14 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_loc_conf_t, chunked_transfer_encoding),
       NULL },
 
+	/*
+	 Syntax:	etag on | off;
+	 Default: 	etag on;
+	 Context:	http, server, location
+	 This directive appeared in version 1.3.3.
+
+	 Enables or disables automatic generation of the “ETag” response header field for static resources.  //XXX:??
+	*/
     { ngx_string("etag"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
       ngx_conf_set_flag_slot,
@@ -1436,9 +1444,45 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_loc_conf_t, etag),
       NULL },
 
+	/*//XXX:??
+	 Syntax:	error_page code ... [=[response]] uri;
+	 Default:	—
+	 Context:	http, server, location, if in location
+	 Defines the URI that will be shown for the specified errors. A uri value can contain variables.
+
+	 Example:
+		error_page 404             /404.html;
+		error_page 500 502 503 504 /50x.html;
+		
+	 This causes an internal redirect to the specified uri with the client request method changed to “GET” (for all methods other than “GET” and “HEAD”).
+
+	 Furthermore, it is possible to change the response code to another using the “=response” syntax, for example:
+		error_page 404 =200 /empty.gif;
+		
+	 If an error response is processed by a proxied server or a FastCGI/uwsgi/SCGI/gRPC server, and the server may return different response codes (e.g., 200, 302, 401 or 404), it is possible to respond with the code it returns:
+		error_page 404 = /404.php;
+		
+	 If there is no need to change URI and method during internal redirection it is possible to pass error processing into a named location:
+		location / {
+		    error_page 404 = @fallback;
+		}
+
+		location @fallback {
+		    proxy_pass http://backend;
+		}
+	If uri processing leads to an error, the status code of the last occurred error is returned to the client.
+
+	It is also possible to use URL redirects for error processing:
+		error_page 403      http://example.com/forbidden.html;
+		error_page 404 =301 http://example.com/notfound.html;
+	In this case, by default, the response code 302 is returned to the client. It can only be changed to one of the redirect status codes (301, 302, 303, 307, and 308).
+	The code 307 was not treated as a redirect until versions 1.1.16 and 1.0.13.
+	The code 308 was not treated as a redirect until version 1.13.0.
+	
+	These directives are inherited from the previous level if and only if there are no error_page directives defined on the current level.
+	*/
     { ngx_string("error_page"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF
-                        |NGX_CONF_2MORE,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF |NGX_CONF_2MORE,
       ngx_http_core_error_page,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
@@ -1458,7 +1502,33 @@ static ngx_command_t  ngx_http_core_commands[] = {
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
       NULL },
+      
+	/*
+	 Syntax:	open_file_cache off;
+	 			open_file_cache max=N [inactive=time];
+	 Default: 	open_file_cache off;
+	 Context:	http, server, location
 
+	 Configures a cache that can store:
+		open file descriptors, their sizes and modification times;
+		information on existence of directories;
+		file lookup errors, such as “file not found”, “no read permission”, and so on.
+			Caching of errors should be enabled separately by the open_file_cache_errors directive.
+
+	 The directive has the following parameters:
+		max
+			sets the maximum number of elements in the cache; on cache overflow the least recently used (LRU) elements are removed;
+		inactive
+			defines a time after which an element is removed from the cache if it has not been accessed during this time; by default, it is 60 seconds;
+		off
+			disables the cache.
+
+	Example:
+		open_file_cache          max=1000 inactive=20s;
+		open_file_cache_valid    30s;
+		open_file_cache_min_uses 2;
+		open_file_cache_errors   on;
+	*/
     { ngx_string("open_file_cache"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE12,
       ngx_http_core_open_file_cache,
@@ -1466,6 +1536,13 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_loc_conf_t, open_file_cache),
       NULL },
 
+	/*
+	 Syntax:	open_file_cache_valid time;
+	 Default: 	open_file_cache_valid 60s;
+	 Context:	http, server, location
+	 
+	 Sets a time after which open_file_cache elements should be validated.
+	*/
     { ngx_string("open_file_cache_valid"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_sec_slot,
@@ -5322,8 +5399,7 @@ ngx_http_core_error_page(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_http_compile_complex_value_t   ccv;
 
     if (clcf->error_pages == NULL) {
-        clcf->error_pages = ngx_array_create(cf->pool, 4,
-                                             sizeof(ngx_http_err_page_t));
+        clcf->error_pages = ngx_array_create(cf->pool, 4, sizeof(ngx_http_err_page_t));
         if (clcf->error_pages == NULL) {
             return NGX_CONF_ERROR;
         }
@@ -5335,8 +5411,7 @@ ngx_http_core_error_page(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     if (value[i].data[0] == '=') {
         if (i == 1) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "invalid value \"%V\"", &value[i]);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid value \"%V\"", &value[i]);
             return NGX_CONF_ERROR;
         }
 
@@ -5344,8 +5419,7 @@ ngx_http_core_error_page(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             overwrite = ngx_atoi(&value[i].data[1], value[i].len - 1);
 
             if (overwrite == NGX_ERROR) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "invalid value \"%V\"", &value[i]);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid value \"%V\"", &value[i]);
                 return NGX_CONF_ERROR;
             }
 
@@ -5395,15 +5469,12 @@ ngx_http_core_error_page(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         err->status = ngx_atoi(value[i].data, value[i].len);
 
         if (err->status == NGX_ERROR || err->status == 499) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "invalid value \"%V\"", &value[i]);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid value \"%V\"", &value[i]);
             return NGX_CONF_ERROR;
         }
 
         if (err->status < 300 || err->status > 599) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "value \"%V\" must be between 300 and 599",
-                               &value[i]);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "value \"%V\" must be between 300 and 599", &value[i]);
             return NGX_CONF_ERROR;
         }
 

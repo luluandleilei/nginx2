@@ -424,8 +424,7 @@ ngx_http_set_expires(ngx_http_request_t *r, ngx_http_headers_conf_t *conf)
     }
 
     if (expires_time == 0 && expires != NGX_HTTP_EXPIRES_DAILY) {
-        ngx_memcpy(e->value.data, ngx_cached_http_time.data,
-                   ngx_cached_http_time.len + 1);
+        ngx_memcpy(e->value.data, ngx_cached_http_time.data, ngx_cached_http_time.len + 1);
         ngx_str_set(&cc->value, "max-age=0");
         return NGX_OK;
     }

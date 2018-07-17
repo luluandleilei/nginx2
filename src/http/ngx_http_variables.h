@@ -24,7 +24,7 @@ typedef void (*ngx_http_set_variable_pt) (ngx_http_request_t *r, ngx_http_variab
 typedef ngx_int_t (*ngx_http_get_variable_pt) (ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
 
 
-#define NGX_HTTP_VAR_CHANGEABLE   1		//表示这个变量是可变的.
+#define NGX_HTTP_VAR_CHANGEABLE   1		//表示这个变量是可变的. //XXX: ???
 #define NGX_HTTP_VAR_NOCACHEABLE  2		//表示这个变量每次都要去取值，而不是直接返回上次cache的值(配合对应的接口)
 #define NGX_HTTP_VAR_INDEXED      4		//表示这个变量是用索引读取的. //表示这个变量可以用索引进行读取
 #define NGX_HTTP_VAR_NOHASH       8		//表示这个变量不需要被hash.

@@ -563,31 +563,22 @@ ngx_show_version_info(void)
 
     if (ngx_show_help) {
         ngx_write_stderr(
-            "Usage: nginx [-?hvVtTq] [-s signal] [-c filename] "
-                         "[-p prefix] [-g directives]" NGX_LINEFEED
-                         NGX_LINEFEED
+            "Usage: nginx [-?hvVtTq] [-s signal] [-c filename] " "[-p prefix] [-g directives]" NGX_LINEFEED NGX_LINEFEED
             "Options:" NGX_LINEFEED
             "  -?,-h         : this help" NGX_LINEFEED
             "  -v            : show version and exit" NGX_LINEFEED
-            "  -V            : show version and configure options then exit"
-                               NGX_LINEFEED
+            "  -V            : show version and configure options then exit" NGX_LINEFEED
             "  -t            : test configuration and exit" NGX_LINEFEED
-            "  -T            : test configuration, dump it and exit"
-                               NGX_LINEFEED
-            "  -q            : suppress non-error messages "
-                               "during configuration testing" NGX_LINEFEED
-            "  -s signal     : send signal to a master process: "
-                               "stop, quit, reopen, reload" NGX_LINEFEED
+            "  -T            : test configuration, dump it and exit" NGX_LINEFEED
+            "  -q            : suppress non-error messages " "during configuration testing" NGX_LINEFEED
+            "  -s signal     : send signal to a master process: " "stop, quit, reopen, reload" NGX_LINEFEED
 #ifdef NGX_PREFIX
-            "  -p prefix     : set prefix path (default: " NGX_PREFIX ")"
-                               NGX_LINEFEED
+            "  -p prefix     : set prefix path (default: " NGX_PREFIX ")" NGX_LINEFEED
 #else
             "  -p prefix     : set prefix path (default: NONE)" NGX_LINEFEED
 #endif
-            "  -c filename   : set configuration file (default: " NGX_CONF_PATH
-                               ")" NGX_LINEFEED
-            "  -g directives : set global directives out of configuration "
-                               "file" NGX_LINEFEED NGX_LINEFEED
+            "  -c filename   : set configuration file (default: " NGX_CONF_PATH ")" NGX_LINEFEED
+            "  -g directives : set global directives out of configuration " "file" NGX_LINEFEED NGX_LINEFEED
         );
     }
 
@@ -601,8 +592,7 @@ ngx_show_version_info(void)
         if (ngx_strcmp(ngx_ssl_version(), OPENSSL_VERSION_TEXT) == 0) {
             ngx_write_stderr("built with " OPENSSL_VERSION_TEXT NGX_LINEFEED);
         } else {
-            ngx_write_stderr("built with " OPENSSL_VERSION_TEXT
-                             " (running with ");
+            ngx_write_stderr("built with " OPENSSL_VERSION_TEXT " (running with ");
             ngx_write_stderr((char *) (uintptr_t) ngx_ssl_version());
             ngx_write_stderr(")" NGX_LINEFEED);
         }

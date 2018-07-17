@@ -114,8 +114,8 @@ ngx_http_compile_complex_value(ngx_http_compile_complex_value_t *ccv)
 
     v = ccv->value;
 
-    nv = 0;
-    nc = 0;
+    nv = 0;	//引用变量的个数
+    nc = 0;	//引用正则的个数
 
     for (i = 0; i < v->len; i++) {
         if (v->data[i] == '$') {
@@ -128,9 +128,7 @@ ngx_http_compile_complex_value(ngx_http_compile_complex_value_t *ccv)
         }
     }
 
-    if ((v->len == 0 || v->data[0] != '$')
-        && (ccv->conf_prefix || ccv->root_prefix))
-    {
+    if ((v->len == 0 || v->data[0] != '$') && (ccv->conf_prefix || ccv->root_prefix)) {
         if (ngx_conf_full_name(ccv->cf->cycle, v, ccv->conf_prefix) != NGX_OK) {
             return NGX_ERROR;
         }
@@ -150,15 +148,11 @@ ngx_http_compile_complex_value(ngx_http_compile_complex_value_t *ccv)
 
     n = nv + 1;
 
-    if (ngx_array_init(&flushes, ccv->cf->pool, n, sizeof(ngx_uint_t))
-        != NGX_OK)
-    {
+    if (ngx_array_init(&flushes, ccv->cf->pool, n, sizeof(ngx_uint_t)) != NGX_OK) {
         return NGX_ERROR;
     }
 
-    n = nv * (2 * sizeof(ngx_http_script_copy_code_t)
-                  + sizeof(ngx_http_script_var_code_t))
-        + sizeof(uintptr_t);
+    n = nv * (2 * sizeof(ngx_http_script_copy_code_t) + sizeof(ngx_http_script_var_code_t)) + sizeof(uintptr_t);
 
     if (ngx_array_init(&lengths, ccv->cf->pool, n, 1) != NGX_OK) {
         return NGX_ERROR;
@@ -1394,8 +1388,7 @@ ngx_http_script_if_code(ngx_http_script_engine_t *e)
 
     code = (ngx_http_script_if_code_t *) e->ip;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0,
-                   "http script if");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0, "http script if");
 
     e->sp--;
 
@@ -1409,8 +1402,7 @@ ngx_http_script_if_code(ngx_http_script_engine_t *e)
         return;
     }
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0,
-                   "http script if: false");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0, "http script if: false");
 
     e->ip += code->next;
 }
@@ -1449,8 +1441,7 @@ ngx_http_script_not_equal_code(ngx_http_script_engine_t *e)
 {
     ngx_http_variable_value_t  *val, *res;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0,
-                   "http script not equal");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0, "http script not equal");
 
     e->sp--;
     val = e->sp;
@@ -1458,11 +1449,8 @@ ngx_http_script_not_equal_code(ngx_http_script_engine_t *e)
 
     e->ip += sizeof(uintptr_t);
 
-    if (val->len == res->len
-        && ngx_strncmp(val->data, res->data, res->len) == 0)
-    {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0,
-                       "http script not equal: no");
+    if (val->len == res->len && ngx_strncmp(val->data, res->data, res->len) == 0) {
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0, "http script not equal: no");
 
         *res = ngx_http_variable_null_value;
         return;
@@ -1625,8 +1613,7 @@ ngx_http_script_complex_value_code(ngx_http_script_engine_t *e)
 
     e->ip += sizeof(ngx_http_script_complex_value_code_t);
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0,
-                   "http script complex value");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0, "http script complex value");
 
     ngx_memzero(&le, sizeof(ngx_http_script_engine_t));
 
@@ -1667,8 +1654,7 @@ ngx_http_script_value_code(ngx_http_script_engine_t *e)
     e->sp->len = code->text_len;
     e->sp->data = (u_char *) code->text_data;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0,
-                   "http script value: \"%v\"", e->sp);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0, "http script value: \"%v\"", e->sp);
 
     e->sp++;
 }
@@ -1734,8 +1720,7 @@ ngx_http_script_var_code(ngx_http_script_engine_t *e)
     ngx_http_variable_value_t   *value;
     ngx_http_script_var_code_t  *code;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0,
-                   "http script var");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0, "http script var");
 
     code = (ngx_http_script_var_code_t *) e->ip;
 
@@ -1744,8 +1729,7 @@ ngx_http_script_var_code(ngx_http_script_engine_t *e)
     value = ngx_http_get_flushed_variable(e->request, code->index);
 
     if (value && !value->not_found) {
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0,
-                       "http script var: \"%v\"", value);
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0, "http script var: \"%v\"", value);
 
         *e->sp = *value;
         e->sp++;

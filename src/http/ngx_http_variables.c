@@ -20,12 +20,9 @@ static ngx_int_t ngx_http_variable_request(ngx_http_request_t *r,
 static void ngx_http_variable_request_set(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 #endif
-static ngx_int_t ngx_http_variable_request_get_size(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data);
-static void ngx_http_variable_request_set_size(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_http_variable_header(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_variable_request_get_size(ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
+static void ngx_http_variable_request_set_size(ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_variable_header(ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
 
 static ngx_int_t ngx_http_variable_cookies(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
@@ -295,15 +292,15 @@ static ngx_http_variable_t  ngx_http_core_variables[] = {
     { ngx_string("tcpinfo_rcv_space"), NULL, ngx_http_variable_tcpinfo, 3, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 #endif
 
-    { ngx_string("http_"), NULL, ngx_http_variable_unknown_header_in, 0, NGX_HTTP_VAR_PREFIX, 0 },
+    { ngx_string("http_"), NULL, ngx_http_variable_unknown_header_in, 0, NGX_HTTP_VAR_PREFIX, 0 },	//请求中的HTTP头部
 
-    { ngx_string("sent_http_"), NULL, ngx_http_variable_unknown_header_out, 0, NGX_HTTP_VAR_PREFIX, 0 },
+    { ngx_string("sent_http_"), NULL, ngx_http_variable_unknown_header_out, 0, NGX_HTTP_VAR_PREFIX, 0 },	//发送响应中的HTTP头部
 
     { ngx_string("sent_trailer_"), NULL, ngx_http_variable_unknown_trailer_out, 0, NGX_HTTP_VAR_PREFIX, 0 },
 
-    { ngx_string("cookie_"), NULL, ngx_http_variable_cookie, 0, NGX_HTTP_VAR_PREFIX, 0 },
+    { ngx_string("cookie_"), NULL, ngx_http_variable_cookie, 0, NGX_HTTP_VAR_PREFIX, 0 },	//Cookie头部中的某个项
 
-    { ngx_string("arg_"), NULL, ngx_http_variable_argument, 0, NGX_HTTP_VAR_NOCACHEABLE|NGX_HTTP_VAR_PREFIX, 0 },
+    { ngx_string("arg_"), NULL, ngx_http_variable_argument, 0, NGX_HTTP_VAR_NOCACHEABLE|NGX_HTTP_VAR_PREFIX, 0 },	//请求的URL参数
 
       ngx_http_null_variable
 };
@@ -447,6 +444,12 @@ ngx_http_add_prefix_variable(ngx_conf_t *cf, ngx_str_t *name, ngx_uint_t flags)
 
 //在 ngx_http_core_main_conf_t.variables 中查找某个变量名对应的变量对象的索引
 //若找不到，则新建一个，返回该新建变量对象的索引
+
+//设置变量被索引，并获得索引号，它是使用ngx_http_get_indexed_variable、ngx_http_get_flushed_variable方法的前置方法。
+//调用它意味着这个变量会被频繁地使用，希望Nginx处理这个变量时效率更高，体现在：
+//	变量值可以被缓存，重复读取时不用每次解析
+//	定义变量的解析方法时，可以通过索引直接找到该方法进行解析，而不是通过操作散列表
+// 	Nginx初始化HTTP请求时，就需要为这个变量预分配ngx_http_variable_value变量值结构体
 ngx_int_t
 ngx_http_get_variable_index(ngx_conf_t *cf, ngx_str_t *name)
 {
@@ -589,7 +592,7 @@ ngx_http_get_variable(ngx_http_request_t *r, ngx_str_t *name, ngx_uint_t key)
     v = ngx_hash_find(&cmcf->variables_hash, key, name->data, name->len);
 
     if (v) {
-        if (v->flags & NGX_HTTP_VAR_INDEXED) {
+        if (v->flags & NGX_HTTP_VAR_INDEXED) {	//XXX:如果flags成员指明变量是被索引的，那么会根据index成员直接向请求的variables 数组里获得预分配的ngx_http_variable_value_t结构体，
             return ngx_http_get_flushed_variable(r, v->index);
         }
 
@@ -684,8 +687,7 @@ ngx_http_variable_request_set(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_http_variable_request_get_size(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
+ngx_http_variable_request_get_size(ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data)
 {
     size_t  *sp;
 
@@ -843,12 +845,9 @@ ngx_http_variable_headers_internal(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_http_variable_unknown_header_in(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
+ngx_http_variable_unknown_header_in(ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data)
 {
-    return ngx_http_variable_unknown_header(v, (ngx_str_t *) data,
-                                            &r->headers_in.headers.part,
-                                            sizeof("http_") - 1);
+    return ngx_http_variable_unknown_header(v, (ngx_str_t *) data, &r->headers_in.headers.part, sizeof("http_") - 1);
 }
 
 
@@ -995,8 +994,7 @@ ngx_http_variable_cookie(ngx_http_request_t *r, ngx_http_variable_value_t *v,
 
 
 static ngx_int_t
-ngx_http_variable_argument(ngx_http_request_t *r, ngx_http_variable_value_t *v,
-    uintptr_t data)
+ngx_http_variable_argument(ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_str_t *name = (ngx_str_t *) data;
 
@@ -2534,6 +2532,7 @@ ngx_http_variables_init_vars(ngx_conf_t *cf)
     pv = cmcf->prefix_variables.elts;
     key = cmcf->variables_keys->keys.elts;
 
+	/*将需要索引的变量构造成数组*/
     for (i = 0; i < cmcf->variables.nelts; i++) {
 
         for (n = 0; n < cmcf->variables_keys->keys.nelts; n++) {
@@ -2560,7 +2559,7 @@ ngx_http_variables_init_vars(ngx_conf_t *cf)
         len = 0;
         av = NULL;
 
-        for (n = 0; n < cmcf->prefix_variables.nelts; n++) {	//查找与变量名最长前缀匹配的变量对象
+        for (n = 0; n < cmcf->prefix_variables.nelts; n++) {	//查找与变量名最长前缀匹配的变量对象 //XXX: v[i].name.len > len
             if (v[i].name.len >= pv[n].name.len && v[i].name.len > len && ngx_strncmp(v[i].name.data, pv[n].name.data, pv[n].name.len) == 0) {
                 av = &pv[n];
                 len = pv[n].name.len;
@@ -2586,6 +2585,7 @@ ngx_http_variables_init_vars(ngx_conf_t *cf)
     }
 
 
+	/*将需要散列的变量构造出静态散列表*/
     for (n = 0; n < cmcf->variables_keys->keys.nelts; n++) {
         av = key[n].value;
 

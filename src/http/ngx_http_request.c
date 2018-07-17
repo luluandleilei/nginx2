@@ -547,18 +547,12 @@ ngx_http_create_request(ngx_connection_t *c)
 
     r->header_in = hc->busy ? hc->busy->buf : c->buffer;
 
-    if (ngx_list_init(&r->headers_out.headers, r->pool, 20,
-                      sizeof(ngx_table_elt_t))
-        != NGX_OK)
-    {
+    if (ngx_list_init(&r->headers_out.headers, r->pool, 20, sizeof(ngx_table_elt_t)) != NGX_OK) {
         ngx_destroy_pool(r->pool);
         return NULL;
     }
 
-    if (ngx_list_init(&r->headers_out.trailers, r->pool, 4,
-                      sizeof(ngx_table_elt_t))
-        != NGX_OK)
-    {
+    if (ngx_list_init(&r->headers_out.trailers, r->pool, 4, sizeof(ngx_table_elt_t)) != NGX_OK) {
         ngx_destroy_pool(r->pool);
         return NULL;
     }
@@ -569,6 +563,7 @@ ngx_http_create_request(ngx_connection_t *c)
         return NULL;
     }
 
+	/*创建被索引的变量对应的变量值的缓存*/
     cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
 
     r->variables = ngx_pcalloc(r->pool, cmcf->variables.nelts * sizeof(ngx_http_variable_value_t));

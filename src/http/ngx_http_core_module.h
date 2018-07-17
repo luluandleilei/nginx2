@@ -157,10 +157,10 @@ typedef struct {
 
     ngx_hash_t                 headers_in_hash;
 
-    ngx_hash_t                 variables_hash;	//所有HTTP模块支持的变量构成hash表
+    ngx_hash_t                 variables_hash;	//存储被散列的变量的散列表
 
-    ngx_array_t                variables;         /* ngx_http_variable_t */		//XXX:记录实际被引用的变量
-    ngx_array_t                prefix_variables;  /* ngx_http_variable_t */		//
+    ngx_array_t                variables;         /* ngx_http_variable_t */		//XXX:记录实际被引用的变量 //存储索引过的变量的数组
+    ngx_array_t                prefix_variables;  /* ngx_http_variable_t */		//存储前缀匹配的变量的数组
     ngx_uint_t                 ncaptures;
 
     ngx_uint_t                 server_names_hash_max_size;		//the maximum size of the server names hash tables

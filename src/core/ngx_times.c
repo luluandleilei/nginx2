@@ -26,7 +26,7 @@ static ngx_msec_t ngx_monotonic_time(time_t sec, ngx_uint_t msec);
 static ngx_uint_t        slot;
 static ngx_atomic_t      ngx_time_lock;
 
-volatile ngx_msec_t      ngx_current_msec;
+volatile ngx_msec_t      ngx_current_msec;	//从过去某个未指定的点开始经过的毫秒，并截断为ngx_msec_t，用于事件计时器
 volatile ngx_time_t     *ngx_cached_time;
 volatile ngx_str_t       ngx_cached_err_log_time;
 volatile ngx_str_t       ngx_cached_http_time;
@@ -46,21 +46,15 @@ static ngx_int_t         cached_gmtoff;
 #endif
 
 static ngx_time_t        cached_time[NGX_TIME_SLOTS];
-static u_char            cached_err_log_time[NGX_TIME_SLOTS]
-                                    [sizeof("1970/09/28 12:00:00")];
-static u_char            cached_http_time[NGX_TIME_SLOTS]
-                                    [sizeof("Mon, 28 Sep 1970 06:00:00 GMT")];
-static u_char            cached_http_log_time[NGX_TIME_SLOTS]
-                                    [sizeof("28/Sep/1970:12:00:00 +0600")];
-static u_char            cached_http_log_iso8601[NGX_TIME_SLOTS]
-                                    [sizeof("1970-09-28T12:00:00+06:00")];
-static u_char            cached_syslog_time[NGX_TIME_SLOTS]
-                                    [sizeof("Sep 28 12:00:00")];
+static u_char            cached_err_log_time[NGX_TIME_SLOTS] [sizeof("1970/09/28 12:00:00")];
+static u_char            cached_http_time[NGX_TIME_SLOTS] [sizeof("Mon, 28 Sep 1970 06:00:00 GMT")];
+static u_char            cached_http_log_time[NGX_TIME_SLOTS] [sizeof("28/Sep/1970:12:00:00 +0600")];
+static u_char            cached_http_log_iso8601[NGX_TIME_SLOTS] [sizeof("1970-09-28T12:00:00+06:00")];
+static u_char            cached_syslog_time[NGX_TIME_SLOTS] [sizeof("Sep 28 12:00:00")];
 
 
 static char  *week[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
-static char  *months[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+static char  *months[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
 void
 ngx_time_init(void)
@@ -122,10 +116,7 @@ ngx_time_update(void)
 
     p0 = &cached_http_time[slot][0];
 
-    (void) ngx_sprintf(p0, "%s, %02d %s %4d %02d:%02d:%02d GMT",
-                       week[gmt.ngx_tm_wday], gmt.ngx_tm_mday,
-                       months[gmt.ngx_tm_mon - 1], gmt.ngx_tm_year,
-                       gmt.ngx_tm_hour, gmt.ngx_tm_min, gmt.ngx_tm_sec);
+    (void) ngx_sprintf(p0, "%s, %02d %s %4d %02d:%02d:%02d GMT", week[gmt.ngx_tm_wday], gmt.ngx_tm_mday, months[gmt.ngx_tm_mon - 1], gmt.ngx_tm_year, gmt.ngx_tm_hour, gmt.ngx_tm_min, gmt.ngx_tm_sec);
 
 #if (NGX_HAVE_GETTIMEZONE)
 
@@ -148,36 +139,17 @@ ngx_time_update(void)
 
 
     p1 = &cached_err_log_time[slot][0];
-
-    (void) ngx_sprintf(p1, "%4d/%02d/%02d %02d:%02d:%02d",
-                       tm.ngx_tm_year, tm.ngx_tm_mon,
-                       tm.ngx_tm_mday, tm.ngx_tm_hour,
-                       tm.ngx_tm_min, tm.ngx_tm_sec);
+    (void) ngx_sprintf(p1, "%4d/%02d/%02d %02d:%02d:%02d", tm.ngx_tm_year, tm.ngx_tm_mon, tm.ngx_tm_mday, tm.ngx_tm_hour, tm.ngx_tm_min, tm.ngx_tm_sec);
 
 
     p2 = &cached_http_log_time[slot][0];
-
-    (void) ngx_sprintf(p2, "%02d/%s/%d:%02d:%02d:%02d %c%02i%02i",
-                       tm.ngx_tm_mday, months[tm.ngx_tm_mon - 1],
-                       tm.ngx_tm_year, tm.ngx_tm_hour,
-                       tm.ngx_tm_min, tm.ngx_tm_sec,
-                       tp->gmtoff < 0 ? '-' : '+',
-                       ngx_abs(tp->gmtoff / 60), ngx_abs(tp->gmtoff % 60));
+    (void) ngx_sprintf(p2, "%02d/%s/%d:%02d:%02d:%02d %c%02i%02i", tm.ngx_tm_mday, months[tm.ngx_tm_mon - 1], tm.ngx_tm_year, tm.ngx_tm_hour, tm.ngx_tm_min, tm.ngx_tm_sec, tp->gmtoff < 0 ? '-' : '+', ngx_abs(tp->gmtoff / 60), ngx_abs(tp->gmtoff % 60));
 
     p3 = &cached_http_log_iso8601[slot][0];
-
-    (void) ngx_sprintf(p3, "%4d-%02d-%02dT%02d:%02d:%02d%c%02i:%02i",
-                       tm.ngx_tm_year, tm.ngx_tm_mon,
-                       tm.ngx_tm_mday, tm.ngx_tm_hour,
-                       tm.ngx_tm_min, tm.ngx_tm_sec,
-                       tp->gmtoff < 0 ? '-' : '+',
-                       ngx_abs(tp->gmtoff / 60), ngx_abs(tp->gmtoff % 60));
+    (void) ngx_sprintf(p3, "%4d-%02d-%02dT%02d:%02d:%02d%c%02i:%02i", tm.ngx_tm_year, tm.ngx_tm_mon, tm.ngx_tm_mday, tm.ngx_tm_hour, tm.ngx_tm_min, tm.ngx_tm_sec, tp->gmtoff < 0 ? '-' : '+', ngx_abs(tp->gmtoff / 60), ngx_abs(tp->gmtoff % 60));
 
     p4 = &cached_syslog_time[slot][0];
-
-    (void) ngx_sprintf(p4, "%s %2d %02d:%02d:%02d",
-                       months[tm.ngx_tm_mon - 1], tm.ngx_tm_mday,
-                       tm.ngx_tm_hour, tm.ngx_tm_min, tm.ngx_tm_sec);
+    (void) ngx_sprintf(p4, "%s %2d %02d:%02d:%02d", months[tm.ngx_tm_mon - 1], tm.ngx_tm_mday, tm.ngx_tm_hour, tm.ngx_tm_min, tm.ngx_tm_sec);
 
     ngx_memory_barrier();
 
@@ -192,6 +164,7 @@ ngx_time_update(void)
 }
 
 
+//CLOCK_MONOTONIC：用的是相对时间，它的时间是通过jiffies值来计算的。该时钟不受系统时钟源的影响，只受jiffies值的影响。
 static ngx_msec_t
 ngx_monotonic_time(time_t sec, ngx_uint_t msec)
 {
@@ -257,16 +230,11 @@ ngx_time_sigsafe_update(void)
 
     p = &cached_err_log_time[slot][0];
 
-    (void) ngx_sprintf(p, "%4d/%02d/%02d %02d:%02d:%02d",
-                       tm.ngx_tm_year, tm.ngx_tm_mon,
-                       tm.ngx_tm_mday, tm.ngx_tm_hour,
-                       tm.ngx_tm_min, tm.ngx_tm_sec);
+    (void) ngx_sprintf(p, "%4d/%02d/%02d %02d:%02d:%02d", tm.ngx_tm_year, tm.ngx_tm_mon, tm.ngx_tm_mday, tm.ngx_tm_hour, tm.ngx_tm_min, tm.ngx_tm_sec);
 
     p2 = &cached_syslog_time[slot][0];
 
-    (void) ngx_sprintf(p2, "%s %2d %02d:%02d:%02d",
-                       months[tm.ngx_tm_mon - 1], tm.ngx_tm_mday,
-                       tm.ngx_tm_hour, tm.ngx_tm_min, tm.ngx_tm_sec);
+    (void) ngx_sprintf(p2, "%s %2d %02d:%02d:%02d", months[tm.ngx_tm_mon - 1], tm.ngx_tm_mday, tm.ngx_tm_hour, tm.ngx_tm_min, tm.ngx_tm_sec);
 
     ngx_memory_barrier();
 
@@ -286,14 +254,7 @@ ngx_http_time(u_char *buf, time_t t)
 
     ngx_gmtime(t, &tm);
 
-    return ngx_sprintf(buf, "%s, %02d %s %4d %02d:%02d:%02d GMT",
-                       week[tm.ngx_tm_wday],
-                       tm.ngx_tm_mday,
-                       months[tm.ngx_tm_mon - 1],
-                       tm.ngx_tm_year,
-                       tm.ngx_tm_hour,
-                       tm.ngx_tm_min,
-                       tm.ngx_tm_sec);
+    return ngx_sprintf(buf, "%s, %02d %s %4d %02d:%02d:%02d GMT", week[tm.ngx_tm_wday], tm.ngx_tm_mday, months[tm.ngx_tm_mon - 1], tm.ngx_tm_year, tm.ngx_tm_hour, tm.ngx_tm_min, tm.ngx_tm_sec);
 }
 
 
@@ -309,18 +270,9 @@ ngx_http_cookie_time(u_char *buf, time_t t)
      * 2-digit years more than "37"
      */
 
-    return ngx_sprintf(buf,
-                       (tm.ngx_tm_year > 2037) ?
-                                         "%s, %02d-%s-%d %02d:%02d:%02d GMT":
-                                         "%s, %02d-%s-%02d %02d:%02d:%02d GMT",
-                       week[tm.ngx_tm_wday],
-                       tm.ngx_tm_mday,
-                       months[tm.ngx_tm_mon - 1],
-                       (tm.ngx_tm_year > 2037) ? tm.ngx_tm_year:
-                                                 tm.ngx_tm_year % 100,
-                       tm.ngx_tm_hour,
-                       tm.ngx_tm_min,
-                       tm.ngx_tm_sec);
+    return ngx_sprintf(buf, (tm.ngx_tm_year > 2037) ? "%s, %02d-%s-%d %02d:%02d:%02d GMT": "%s, %02d-%s-%02d %02d:%02d:%02d GMT",
+                       week[tm.ngx_tm_wday], tm.ngx_tm_mday, months[tm.ngx_tm_mon - 1], (tm.ngx_tm_year > 2037) ? tm.ngx_tm_year: tm.ngx_tm_year % 100,
+                       tm.ngx_tm_hour, tm.ngx_tm_min, tm.ngx_tm_sec);
 }
 
 
