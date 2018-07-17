@@ -2551,9 +2551,7 @@ ngx_ssl_new_session(ngx_ssl_conn_t *ssl_conn, ngx_ssl_session_t *sess)
 
     hash = ngx_crc32_short(session_id, session_id_length);
 
-    ngx_log_debug3(NGX_LOG_DEBUG_EVENT, c->log, 0,
-                   "ssl new session: %08XD:%ud:%d",
-                   hash, session_id_length, len);
+    ngx_log_debug3(NGX_LOG_DEBUG_EVENT, c->log, 0, "ssl new session: %08XD:%ud:%d", hash, session_id_length, len);
 
     sess_id->node.key = hash;
     sess_id->node.data = (u_char) session_id_length;
@@ -2788,8 +2786,7 @@ done:
 
 
 static void
-ngx_ssl_expire_sessions(ngx_ssl_session_cache_t *cache,
-    ngx_slab_pool_t *shpool, ngx_uint_t n)
+ngx_ssl_expire_sessions(ngx_ssl_session_cache_t *cache, ngx_slab_pool_t *shpool, ngx_uint_t n)
 {
     time_t              now;
     ngx_queue_t        *q;
@@ -2813,8 +2810,7 @@ ngx_ssl_expire_sessions(ngx_ssl_session_cache_t *cache,
 
         ngx_queue_remove(q);
 
-        ngx_log_debug1(NGX_LOG_DEBUG_EVENT, ngx_cycle->log, 0,
-                       "expire session: %08Xi", sess_id->node.key);
+        ngx_log_debug1(NGX_LOG_DEBUG_EVENT, ngx_cycle->log, 0, "expire session: %08Xi", sess_id->node.key);
 
         ngx_rbtree_delete(&cache->session_rbtree, &sess_id->node);
 

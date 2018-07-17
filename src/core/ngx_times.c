@@ -27,11 +27,11 @@ static ngx_uint_t        slot;
 static ngx_atomic_t      ngx_time_lock;
 
 volatile ngx_msec_t      ngx_current_msec;	//从过去某个未指定的点开始经过的毫秒，并截断为ngx_msec_t，用于事件计时器
-volatile ngx_time_t     *ngx_cached_time;
-volatile ngx_str_t       ngx_cached_err_log_time;
-volatile ngx_str_t       ngx_cached_http_time;
-volatile ngx_str_t       ngx_cached_http_log_time;
-volatile ngx_str_t       ngx_cached_http_log_iso8601;
+volatile ngx_time_t     *ngx_cached_time;				//ngx_time_t结构体形式的当前时间，本质上是环形缓冲cached_time的当前读指针
+volatile ngx_str_t       ngx_cached_err_log_time;		//用于记录error_log的当前时间字符串，本质上是环形缓冲cached_err_log_time的当前读指针
+volatile ngx_str_t       ngx_cached_http_time;			//用于HTTP相关的当前时间字符串，本质上是环形缓冲cached_http_time的当前读指针
+volatile ngx_str_t       ngx_cached_http_log_time;		//用于记录HTTP日志的当前时间字符串，本质上是环形缓冲cached_http_log_time的当前读指针
+volatile ngx_str_t       ngx_cached_http_log_iso8601;	//以IS0 8601标准格式记录下的当前时间的字符串，本质上是环形缓冲cached_http_log_iso8601的当前读指针
 volatile ngx_str_t       ngx_cached_syslog_time;
 
 #if !(NGX_WIN32)
@@ -56,6 +56,7 @@ static u_char            cached_syslog_time[NGX_TIME_SLOTS] [sizeof("Sep 28 12:0
 static char  *week[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 static char  *months[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
+//XXX:初始化当前进程中缓存的时间变量，同时会第一个根据gettimeofday调用刷新缓存时间
 void
 ngx_time_init(void)
 {
@@ -65,12 +66,13 @@ ngx_time_init(void)
     ngx_cached_http_log_iso8601.len = sizeof("1970-09-28T12:00:00+06:00") - 1;
     ngx_cached_syslog_time.len = sizeof("Sep 28 12:00:00") - 1;
 
-    ngx_cached_time = &cached_time[0];
+    ngx_cached_time = &cached_time[0];	//XXX：无意义的操作？
 
     ngx_time_update();
 }
 
 
+//更新缓存时间
 void
 ngx_time_update(void)
 {
@@ -151,7 +153,9 @@ ngx_time_update(void)
     p4 = &cached_syslog_time[slot][0];
     (void) ngx_sprintf(p4, "%s %2d %02d:%02d:%02d", months[tm.ngx_tm_mon - 1], tm.ngx_tm_mday, tm.ngx_tm_hour, tm.ngx_tm_min, tm.ngx_tm_sec);
 
-    ngx_memory_barrier();
+	//禁止编译器对后面的语句优化，如果没有这个限制，编译器可能将前后两部分代码合并，可能导致这6个时间更新出现间隔，不一致性时长增大了，期间若被读取会出现时间不一致的情况
+	//而采用ngx_memory_barrier()后，时间缓存更新到一致的 状态只需要几个时钟周期，显然在这么短的时间内发生读时间缓存的概率会小的多了
+    ngx_memory_barrier();	 
 
     ngx_cached_time = tp;
     ngx_cached_http_time.data = p0;
@@ -222,18 +226,16 @@ ngx_time_sigsafe_update(void)
         slot++;
     }
 
+	/*强制当调用ngx_update_time时更新所有时间*/
     tp = &cached_time[slot];
-
     tp->sec = 0;
 
     ngx_gmtime(sec + cached_gmtoff * 60, &tm);
 
     p = &cached_err_log_time[slot][0];
-
     (void) ngx_sprintf(p, "%4d/%02d/%02d %02d:%02d:%02d", tm.ngx_tm_year, tm.ngx_tm_mon, tm.ngx_tm_mday, tm.ngx_tm_hour, tm.ngx_tm_min, tm.ngx_tm_sec);
 
     p2 = &cached_syslog_time[slot][0];
-
     (void) ngx_sprintf(p2, "%s %2d %02d:%02d:%02d", months[tm.ngx_tm_mon - 1], tm.ngx_tm_mday, tm.ngx_tm_hour, tm.ngx_tm_min, tm.ngx_tm_sec);
 
     ngx_memory_barrier();
@@ -247,6 +249,10 @@ ngx_time_sigsafe_update(void)
 #endif
 
 
+//将时间t转换成“Mon, 28 Sep 1970 06:00:00 GMT”形式的时间
+//t是需要转换的时间，它是格林威治时间1970年1月1日凌晨点0分0秒到某一时间的秒数
+//buf是t时间转换成字符串形式的HTTP时间后用来存放字符串的内存
+//返回值与buf是相同，都是指向存放时间的字符串          
 u_char *
 ngx_http_time(u_char *buf, time_t t)
 {
@@ -258,6 +264,10 @@ ngx_http_time(u_char *buf, time_t t)
 }
 
 
+//将时间t转换成“Mon. 28-Sep-70 06:00:00 GMT”形式的时间
+//t是需要转换的时间，它是格林威治时间1970年1月1日凌晨点0分0秒到某一时间的秒数
+//buf是t时间转换成字符串形式适用于cookie的时间后用来存放字符串的内存
+//返回值与buf是相同，都是指向存放时间的字符串 
 u_char *
 ngx_http_cookie_time(u_char *buf, time_t t)
 {
@@ -276,6 +286,9 @@ ngx_http_cookie_time(u_char *buf, time_t t)
 }
 
 
+//将时间t转换成ngx_tm_t类型的时间
+//t是需要转换的时间，它是格林威治时间1970年1月1日凌晨点0分0秒到某一时间的秒数
+//tp是ngx_tm_t类型的时间，实际上就是标准的tm类型时间 
 void
 ngx_gmtime(time_t t, ngx_tm_t *tp)
 {
@@ -381,6 +394,10 @@ ngx_gmtime(time_t t, ngx_tm_t *tp)
 }
 
 
+//when表不期待过期的时间，它仅表示一天内的秒数
+//返回一1表示失败，否则会返回：
+//①如果when表示当天时间秒数，当它合并到实际时间后，已经超过当前时间，那么就返回when合并到实际时间后的秒数（相对于格林威治时间1970年1月1日凌晨0点0分0秒到某一时间的耖数）              
+//②反之，如果合并后的时间早于当前时间，则返回下一天的同一时刻（当天时刻）的时间。它目前仅具有与expires配置         项相关的缓存过期功能                  
 time_t
 ngx_next_time(time_t when)
 {

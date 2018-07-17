@@ -651,9 +651,7 @@ ngx_http_file_cache_read(ngx_http_request_t *r, ngx_http_cache_t *c)
 
         ngx_shmtx_unlock(&cache->shpool->mutex);
 
-        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "http file cache expired: %i %T %T",
-                       rc, c->valid_sec, now);
+        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http file cache expired: %i %T %T", rc, c->valid_sec, now);
 
         return rc;
     }

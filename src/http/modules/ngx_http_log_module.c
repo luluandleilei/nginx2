@@ -790,8 +790,7 @@ ngx_http_log_pipe(ngx_http_request_t *r, u_char *buf, ngx_http_log_op_t *op)
 static u_char *
 ngx_http_log_time(ngx_http_request_t *r, u_char *buf, ngx_http_log_op_t *op)
 {
-    return ngx_cpymem(buf, ngx_cached_http_log_time.data,
-                      ngx_cached_http_log_time.len);
+    return ngx_cpymem(buf, ngx_cached_http_log_time.data, ngx_cached_http_log_time.len);
 }
 
 static u_char *
