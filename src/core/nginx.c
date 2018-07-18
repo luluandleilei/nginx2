@@ -392,7 +392,7 @@ main(int argc, char *const *argv)
 
     /* TODO */ ngx_max_sockets = -1;
 
-    ngx_time_init();
+    ngx_time_init();	
 
 #if (NGX_PCRE)
     ngx_regex_init();
@@ -401,6 +401,12 @@ main(int argc, char *const *argv)
     ngx_pid = ngx_getpid();
     ngx_parent = ngx_getppid();
 
+	/*
+	主进程启动的时候，此时还没有读取配置文件，即没有指定日志打印在哪里。
+	nginx这时候虽然可以将一些出错内容或者结果输到标准输出，但是如果要记录一些系统初始化情况，socket监听状况，还是需要写到日志文件中去的。
+	在nginx的main函数中，首先会调用ngx_log_init 函数，默认日志文件为：安装路径/logs/error.log，如果这个文件没有权限访问的话，会直接报错退出（//XXX:使用标准错误？）。
+	在mian函数结尾处，在ngx_master_process_cycle函数调用之前，会close掉这个日志文件。
+	*/
     log = ngx_log_init(ngx_prefix);
     if (log == NULL) {
         return 1;
@@ -479,8 +485,7 @@ main(int argc, char *const *argv)
             for (i = 0; i < cycle->config_dump.nelts; i++) {
 
                 ngx_write_stdout("# configuration file ");
-                (void) ngx_write_fd(ngx_stdout, cd[i].name.data,
-                                    cd[i].name.len);
+                (void) ngx_write_fd(ngx_stdout, cd[i].name.data, cd[i].name.len);
                 ngx_write_stdout(":" NGX_LINEFEED);
 
                 b = cd[i].buffer;
@@ -608,7 +613,20 @@ ngx_show_version_info(void)
 }
 
 
-//参看nginx替换二进制文件
+//参看nginx替换二进制文件操作
+/*
+在执行不重启服务升级Nginx的操作时，老的Nginx进程会通过环境变量“NGINX”来传递需要打开的监听端口，
+新的Nginx进程会通过ngx_add_inherited_sockets方法来使用已经打开的TCP监听端口,不采用这种方式的话会报错，说该端口已经bind   
+
+ngx_add_inherited_sockets 函数通过环境变量NGINX完成socket的继承，继承来的socket将会放到init_cycle的listening数组中。在NGINX环
+境变量中，每个socket中间用冒号或分号隔开。完成继承同时设置全局变量ngx_inherited为1
+*/
+/*  
+Nginx在不重启服务升级时，也就是我们说过的平滑升级时，它会不重启master进程而启动新版本的Nginx程序。这样，旧版本的
+master进程会通过execve系统调用来启动新版本的master进程（先fork出子进程再调用exec来运行新程序），这时旧版本的master
+进程必须要通过一种方式告诉新版本的master进程这是在平滑升级，并且传递一些必要的信息。Nginx是通过环境变量来传递这些
+信息的，新版本的master进程通过ngx_add_inherited_sockets方法由环境变量里读取平滑升级信息，并对旧版本Nginx服务监听的句柄做继承处理。
+*/
 static ngx_int_t
 ngx_add_inherited_sockets(ngx_cycle_t *cycle)
 {
@@ -622,13 +640,9 @@ ngx_add_inherited_sockets(ngx_cycle_t *cycle)
         return NGX_OK;
     }
 
-    ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0,
-                  "using inherited sockets from \"%s\"", inherited);
+    ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0, "using inherited sockets from \"%s\"", inherited);
 
-    if (ngx_array_init(&cycle->listening, cycle->pool, 10,
-                       sizeof(ngx_listening_t))
-        != NGX_OK)
-    {
+    if (ngx_array_init(&cycle->listening, cycle->pool, 10, sizeof(ngx_listening_t)) != NGX_OK) {
         return NGX_ERROR;
     }
 
@@ -636,10 +650,7 @@ ngx_add_inherited_sockets(ngx_cycle_t *cycle)
         if (*p == ':' || *p == ';') {
             s = ngx_atoi(v, p - v);
             if (s == NGX_ERROR) {
-                ngx_log_error(NGX_LOG_EMERG, cycle->log, 0,
-                              "invalid socket number \"%s\" in " NGINX_VAR
-                              " environment variable, ignoring the rest"
-                              " of the variable", v);
+                ngx_log_error(NGX_LOG_EMERG, cycle->log, 0, "invalid socket number \"%s\" in " NGINX_VAR " environment variable, ignoring the rest" " of the variable", v);
                 break;
             }
 
@@ -657,9 +668,7 @@ ngx_add_inherited_sockets(ngx_cycle_t *cycle)
     }
 
     if (v != p) {
-        ngx_log_error(NGX_LOG_EMERG, cycle->log, 0,
-                      "invalid socket number \"%s\" in " NGINX_VAR
-                      " environment variable, ignoring", v);
+        ngx_log_error(NGX_LOG_EMERG, cycle->log, 0, "invalid socket number \"%s\" in " NGINX_VAR " environment variable, ignoring", v);
     }
 
     ngx_inherited = 1;
@@ -1032,8 +1041,9 @@ ngx_get_options(int argc, char *const *argv)
 }
 
 
-//备份master进程的命令行参数到ngx_os_environ
+//备份master进程的命令行参数到ngx_os_argv
 //备份master进程的环境变量到ngx_os_environ
+//用于reload nginx二进制文件？
 static ngx_int_t
 ngx_save_argv(ngx_cycle_t *cycle, int argc, char *const *argv)
 {
@@ -1076,12 +1086,14 @@ ngx_save_argv(ngx_cycle_t *cycle, int argc, char *const *argv)
 }
 
 
+//初始化ngx_cycle的prefix, conf_prefix, conf_file, conf_param等字段；
 static ngx_int_t
 ngx_process_options(ngx_cycle_t *cycle)
 {
     u_char  *p;
     size_t   len;
 
+	//XXX:cycle->prefix: -p > NGX_PREFIX > cwd
 	//XXX:cycle->conf_prefix: -p > NGX_CONF_PREFIX > NGX_PREFIX > cwd
     if (ngx_prefix) {
         len = ngx_strlen(ngx_prefix);
@@ -1149,10 +1161,7 @@ ngx_process_options(ngx_cycle_t *cycle)
         return NGX_ERROR;
     }
 
-    for (p = cycle->conf_file.data + cycle->conf_file.len - 1;
-         p > cycle->conf_file.data;
-         p--)
-    {
+    for (p = cycle->conf_file.data + cycle->conf_file.len - 1; p > cycle->conf_file.data; p--) {
         if (ngx_path_separator(*p)) {
             cycle->conf_prefix.len = p - cycle->conf_file.data + 1;
             cycle->conf_prefix.data = cycle->conf_file.data;

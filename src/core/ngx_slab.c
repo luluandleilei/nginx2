@@ -147,8 +147,7 @@ ngx_slab_init(ngx_slab_pool_t *pool)
     page->next = &pool->free;
     page->prev = (uintptr_t) &pool->free;
 
-    pool->start = ngx_align_ptr(p + pages * sizeof(ngx_slab_page_t),
-                                ngx_pagesize);
+    pool->start = ngx_align_ptr(p + pages * sizeof(ngx_slab_page_t), ngx_pagesize);
 
     m = pages - (pool->end - pool->start) / ngx_pagesize;
     if (m > 0) {

@@ -115,7 +115,7 @@ typedef char *(*ngx_conf_handler_pt)(ngx_conf_t *cf,
 
 struct ngx_conf_s {
     char                 *name;
-    ngx_array_t          *args;			//ngx_str_t类型的数组， 表示一条command
+    ngx_array_t          *args;			//ngx_str_t类型的数组，存储当前从配置文件中解析出来的一条配置项
 
     ngx_cycle_t          *cycle;
     ngx_pool_t           *pool;
@@ -123,11 +123,11 @@ struct ngx_conf_s {
     ngx_conf_file_t      *conf_file;
     ngx_log_t            *log;
 
-    void                 *ctx;          //当前被解析的命令的上下文(context)--对应模块类型的配置对象列表
-    ngx_uint_t            module_type;  //当前被解析命令所属的模块类型(module type) -- 模块类型下可以有多种cmd_type 
-    ngx_uint_t            cmd_type;     //当前被解析的命令的作用域(区域)类型(eg: NGX_HTTP_MAIN_CONF, NGX_HTTP_SRV_CONF)
+    void                 *ctx;          //当前被解析的配置项的上下文(context)--对应模块类型的配置对象列表
+    ngx_uint_t            module_type;  //当前被解析配置项所属的模块类型(module type) -- 模块类型下可以有多种cmd_type 
+    ngx_uint_t            cmd_type;     //当前被解析的配置项的作用域(区域)类型(eg: NGX_HTTP_MAIN_CONF, NGX_HTTP_SRV_CONF)
 
-    ngx_conf_handler_pt   handler;      //当设置时用该特定handler处理cmd
+    ngx_conf_handler_pt   handler;      //当设置时用该特定handler处理当前解析出来的配置项
     void                 *handler_conf;
 };
 

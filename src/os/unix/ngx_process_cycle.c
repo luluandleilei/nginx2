@@ -45,7 +45,7 @@ sig_atomic_t  ngx_reopen;
 
 sig_atomic_t  ngx_change_binary;
 ngx_pid_t     ngx_new_binary;
-ngx_uint_t    ngx_inherited;	//表示从环境变量中获取了继承的监听套接字到init_cycle中
+ngx_uint_t    ngx_inherited;	//表示从环境变量中获取了继承的监听套接字到init_cycle中 //表示从先前的master进程继承了监听套接字(通过环境变量)
 ngx_uint_t    ngx_daemonized;
 
 sig_atomic_t  ngx_noaccept;
@@ -167,8 +167,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
 
         ngx_time_update();
 
-        ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
-                       "wake up, sigio %i", sigio);
+        ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0, "wake up, sigio %i", sigio);
 
         if (ngx_reap) {
             ngx_reap = 0;

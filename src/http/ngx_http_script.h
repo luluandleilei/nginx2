@@ -16,11 +16,11 @@
 
 typedef struct {
     u_char                     *ip;		//指向待执行的脚本命令
-    u_char                     *pos;
+    u_char                     *pos;	//pos之前的数据就是解析成功的，后面的数据将追加到pos后面
     ngx_http_variable_value_t  *sp;		//变量值构成的栈， 默认大小为10个变量值
 
-    ngx_str_t                   buf;
-    ngx_str_t                   line;
+    ngx_str_t                   buf; 	//存放结果，也就是buffer，pos指向其中。
+    ngx_str_t                   line;	//记录请求行URI  e->line = r->uri;
 
     /* the start of the rewritten arguments */
     u_char                     *args;
@@ -40,8 +40,8 @@ typedef struct {
     ngx_conf_t                 *cf;
     ngx_str_t                  *source;
 
-    ngx_array_t               **flushes;
-    ngx_array_t               **lengths;
+    ngx_array_t               **flushes;	//记录需要nocache的变量
+    ngx_array_t               **lengths;	//记录执行对应指令后结果长度会改变多少
     ngx_array_t               **values;
 
     ngx_uint_t                  variables;
@@ -54,7 +54,7 @@ typedef struct {
     unsigned                    compile_args:1;
     unsigned                    complete_lengths:1;
     unsigned                    complete_values:1;
-    unsigned                    zero:1;
+    unsigned                    zero:1;				//末尾添加'\0'
     unsigned                    conf_prefix:1;
     unsigned                    root_prefix:1;
 
@@ -72,9 +72,9 @@ typedef struct {
 
 
 typedef struct {
-    ngx_conf_t                 *cf;
-    ngx_str_t                  *value;
-    ngx_http_complex_value_t   *complex_value;
+    ngx_conf_t                 *cf;				//入参
+    ngx_str_t                  *value;			//入参
+    ngx_http_complex_value_t   *complex_value;	//出参
 
     unsigned                    zero:1;
     unsigned                    conf_prefix:1;

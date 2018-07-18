@@ -34,7 +34,7 @@ time_t ngx_next_time(time_t when);
 extern volatile ngx_time_t  *ngx_cached_time;
 
 #define ngx_time()           ngx_cached_time->sec			//获取从格林威治时间1970年1月1日凌晨0点0分0秒到当前时间的秒数           
-#define ngx_timeofday()      (ngx_time_t *) ngx_cached_time	//获取缓存的当前的ngx_time_t类型时间
+#define ngx_timeofday()      (ngx_time_t *) ngx_cached_time	//获取缓存的当前的ngx_time_t类型时间的引用
 
 extern volatile ngx_str_t    ngx_cached_err_log_time;
 extern volatile ngx_str_t    ngx_cached_http_time;

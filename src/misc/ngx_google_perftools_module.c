@@ -89,8 +89,7 @@ ngx_google_perftools_worker(ngx_cycle_t *cycle)
     u_char                       *profile;
     ngx_google_perftools_conf_t  *gptcf;
 
-    gptcf = (ngx_google_perftools_conf_t *)
-                ngx_get_conf(cycle->conf_ctx, ngx_google_perftools_module);
+    gptcf = (ngx_google_perftools_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_google_perftools_module);
 
     if (gptcf->profiles.len == 0) {
         return NGX_OK;
@@ -113,8 +112,7 @@ ngx_google_perftools_worker(ngx_cycle_t *cycle)
         ProfilerRegisterThread();
 
     } else {
-        ngx_log_error(NGX_LOG_CRIT, cycle->log, ngx_errno,
-                      "ProfilerStart(%s) failed", profile);
+        ngx_log_error(NGX_LOG_CRIT, cycle->log, ngx_errno, "ProfilerStart(%s) failed", profile);
     }
 
     ngx_free(profile);

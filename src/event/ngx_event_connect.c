@@ -187,8 +187,7 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
         }
     }
 
-    ngx_log_debug3(NGX_LOG_DEBUG_EVENT, pc->log, 0,
-                   "connect to %V, fd:%d #%uA", pc->name, s, c->number);
+    ngx_log_debug3(NGX_LOG_DEBUG_EVENT, pc->log, 0, "connect to %V, fd:%d #%uA", pc->name, s, c->number);
 
     rc = connect(s, pc->sockaddr, pc->socklen);
 
@@ -223,8 +222,7 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
                 level = NGX_LOG_CRIT;
             }
 
-            ngx_log_error(level, c->log, err, "connect() to %V failed",
-                          pc->name);
+            ngx_log_error(level, c->log, err, "connect() to %V failed", pc->name);
 
             ngx_close_connection(c);
             pc->connection = NULL;

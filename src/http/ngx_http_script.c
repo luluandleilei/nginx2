@@ -12,8 +12,7 @@
 
 static ngx_int_t ngx_http_script_init_arrays(ngx_http_script_compile_t *sc);
 static ngx_int_t ngx_http_script_done(ngx_http_script_compile_t *sc);
-static ngx_int_t ngx_http_script_add_copy_code(ngx_http_script_compile_t *sc,
-    ngx_str_t *value, ngx_uint_t last);
+static ngx_int_t ngx_http_script_add_copy_code(ngx_http_script_compile_t *sc, ngx_str_t *value, ngx_uint_t last);
 static ngx_int_t ngx_http_script_add_var_code(ngx_http_script_compile_t *sc,
     ngx_str_t *name);
 static ngx_int_t ngx_http_script_add_args_code(ngx_http_script_compile_t *sc);
@@ -21,8 +20,7 @@ static ngx_int_t ngx_http_script_add_args_code(ngx_http_script_compile_t *sc);
 static ngx_int_t ngx_http_script_add_capture_code(ngx_http_script_compile_t *sc,
     ngx_uint_t n);
 #endif
-static ngx_int_t
-    ngx_http_script_add_full_name_code(ngx_http_script_compile_t *sc);
+static ngx_int_t ngx_http_script_add_full_name_code(ngx_http_script_compile_t *sc);
 static size_t ngx_http_script_full_name_len_code(ngx_http_script_engine_t *e);
 static void ngx_http_script_full_name_code(ngx_http_script_engine_t *e);
 
@@ -33,8 +31,7 @@ static uintptr_t ngx_http_script_exit_code = (uintptr_t) NULL;
 
 
 void
-ngx_http_script_flush_complex_value(ngx_http_request_t *r,
-    ngx_http_complex_value_t *val)
+ngx_http_script_flush_complex_value(ngx_http_request_t *r, ngx_http_complex_value_t *val)
 {
     ngx_uint_t *index;
 
@@ -54,6 +51,9 @@ ngx_http_script_flush_complex_value(ngx_http_request_t *r,
 }
 
 
+//将带变量的配置项求值，常在运行阶段调用
+//r,val为入参，val通过ngx_http_compile_complex_value()获得
+//value为出参，即求值后的具体值
 ngx_int_t
 ngx_http_complex_value(ngx_http_request_t *r, ngx_http_complex_value_t *val,
     ngx_str_t *value)
@@ -104,6 +104,9 @@ ngx_http_complex_value(ngx_http_request_t *r, ngx_http_complex_value_t *val,
 }
 
 
+//编译解析带变量的配置，常在配置阶段调用
+//ccv->cf和cc->value（带变量配置的字符串）为入参
+//ccv->complex_value 为出参，常保存在xxx_conf_t中。
 ngx_int_t
 ngx_http_compile_complex_value(ngx_http_compile_complex_value_t *ccv)
 {
@@ -115,7 +118,7 @@ ngx_http_compile_complex_value(ngx_http_compile_complex_value_t *ccv)
     v = ccv->value;
 
     nv = 0;	//引用变量的个数
-    nc = 0;	//引用正则的个数
+    nc = 0;	//引用正则子模式的个数
 
     for (i = 0; i < v->len; i++) {
         if (v->data[i] == '$') {
@@ -330,7 +333,7 @@ ngx_http_script_compile(ngx_http_script_compile_t *sc)
     ngx_str_t    name;
     ngx_uint_t   i, bracket;
 
-    if (ngx_http_script_init_arrays(sc) != NGX_OK) {
+    if (ngx_http_script_init_arrays(sc) != NGX_OK) {	//根据variables变量数目，创建lengths，values等数组
         return NGX_ERROR;
     }
 
@@ -364,9 +367,7 @@ ngx_http_script_compile(ngx_http_script_compile_t *sc)
 
                 continue;
 #else
-                ngx_conf_log_error(NGX_LOG_EMERG, sc->cf, 0,
-                                   "using variable \"$%c\" requires "
-                                   "PCRE library", sc->source->data[i]);
+                ngx_conf_log_error(NGX_LOG_EMERG, sc->cf, 0, "using variable \"$%c\" requires " "PCRE library", sc->source->data[i]);
                 return NGX_ERROR;
 #endif
             }
@@ -406,9 +407,7 @@ ngx_http_script_compile(ngx_http_script_compile_t *sc)
             }
 
             if (bracket) {
-                ngx_conf_log_error(NGX_LOG_EMERG, sc->cf, 0,
-                                   "the closing bracket in \"%V\" "
-                                   "variable is missing", &name);
+                ngx_conf_log_error(NGX_LOG_EMERG, sc->cf, 0, "the closing bracket in \"%V\" " "variable is missing", &name);
                 return NGX_ERROR;
             }
 
@@ -461,9 +460,7 @@ ngx_http_script_compile(ngx_http_script_compile_t *sc)
 
         sc->size += name.len;
 
-        if (ngx_http_script_add_copy_code(sc, &name, (i == sc->source->len))
-            != NGX_OK)
-        {
+        if (ngx_http_script_add_copy_code(sc, &name, (i == sc->source->len)) != NGX_OK) {
             return NGX_ERROR;
         }
     }
@@ -559,10 +556,7 @@ ngx_http_script_init_arrays(ngx_http_script_compile_t *sc)
     }
 
     if (*sc->lengths == NULL) {
-        n = sc->variables * (2 * sizeof(ngx_http_script_copy_code_t)
-                             + sizeof(ngx_http_script_var_code_t))
-            + sizeof(uintptr_t);
-
+        n = sc->variables * (2 * sizeof(ngx_http_script_copy_code_t) + sizeof(ngx_http_script_var_code_t)) + sizeof(uintptr_t);
         *sc->lengths = ngx_array_create(sc->cf->pool, n, 1);
         if (*sc->lengths == NULL) {
             return NGX_ERROR;
@@ -621,8 +615,7 @@ ngx_http_script_done(ngx_http_script_compile_t *sc)
     }
 
     if (sc->complete_values) {
-        code = ngx_http_script_add_code(*sc->values, sizeof(uintptr_t),
-                                        &sc->main);
+        code = ngx_http_script_add_code(*sc->values, sizeof(uintptr_t), &sc->main);
         if (code == NULL) {
             return NGX_ERROR;
         }
@@ -662,7 +655,7 @@ ngx_http_script_add_code(ngx_array_t *codes, size_t size, void *code)
     }
 
     if (code) {
-        if (elts != codes->elts) {
+        if (elts != codes->elts) {	//指令数组(codes)进行了扩容
             p = code;
             *p += (u_char *) codes->elts - elts;
         }
@@ -672,9 +665,9 @@ ngx_http_script_add_code(ngx_array_t *codes, size_t size, void *code)
 }
 
 
+//last -- 标志位，表示是否添加最后的'\0' 
 static ngx_int_t
-ngx_http_script_add_copy_code(ngx_http_script_compile_t *sc, ngx_str_t *value,
-    ngx_uint_t last)
+ngx_http_script_add_copy_code(ngx_http_script_compile_t *sc, ngx_str_t *value, ngx_uint_t last)
 {
     u_char                       *p;
     size_t                        size, len, zero;
@@ -683,18 +676,15 @@ ngx_http_script_add_copy_code(ngx_http_script_compile_t *sc, ngx_str_t *value,
     zero = (sc->zero && last);
     len = value->len + zero;
 
-    code = ngx_http_script_add_code(*sc->lengths,
-                                    sizeof(ngx_http_script_copy_code_t), NULL);
+    code = ngx_http_script_add_code(*sc->lengths, sizeof(ngx_http_script_copy_code_t), NULL);
     if (code == NULL) {
         return NGX_ERROR;
     }
 
-    code->code = (ngx_http_script_code_pt) (void *)
-                                                 ngx_http_script_copy_len_code;
+    code->code = (ngx_http_script_code_pt) (void *) ngx_http_script_copy_len_code;
     code->len = len;
 
-    size = (sizeof(ngx_http_script_copy_code_t) + len + sizeof(uintptr_t) - 1)
-            & ~(sizeof(uintptr_t) - 1);
+    size = (sizeof(ngx_http_script_copy_code_t) + len + sizeof(uintptr_t) - 1) & ~(sizeof(uintptr_t) - 1);	//按sizeof(uintptr_t)字节内存对齐
 
     code = ngx_http_script_add_code(*sc->values, size, &sc->main);
     if (code == NULL) {
@@ -704,8 +694,7 @@ ngx_http_script_add_copy_code(ngx_http_script_compile_t *sc, ngx_str_t *value,
     code->code = ngx_http_script_copy_code;
     code->len = len;
 
-    p = ngx_cpymem((u_char *) code + sizeof(ngx_http_script_copy_code_t),
-                   value->data, value->len);
+    p = ngx_cpymem((u_char *) code + sizeof(ngx_http_script_copy_code_t), value->data, value->len);
 
     if (zero) {
         *p = '\0';
@@ -740,15 +729,12 @@ ngx_http_script_copy_code(ngx_http_script_engine_t *e)
     p = e->pos;
 
     if (!e->skip) {
-        e->pos = ngx_copy(p, e->ip + sizeof(ngx_http_script_copy_code_t),
-                          code->len);
+        e->pos = ngx_copy(p, e->ip + sizeof(ngx_http_script_copy_code_t), code->len);
     }
 
-    e->ip += sizeof(ngx_http_script_copy_code_t)
-          + ((code->len + sizeof(uintptr_t) - 1) & ~(sizeof(uintptr_t) - 1));
+    e->ip += sizeof(ngx_http_script_copy_code_t) + ((code->len + sizeof(uintptr_t) - 1) & ~(sizeof(uintptr_t) - 1));
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0,
-                   "http script copy: \"%*s\"", e->pos - p, p);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0, "http script copy: \"%*s\"", e->pos - p, p);
 }
 
 
@@ -1282,20 +1268,15 @@ ngx_http_script_add_full_name_code(ngx_http_script_compile_t *sc)
 {
     ngx_http_script_full_name_code_t  *code;
 
-    code = ngx_http_script_add_code(*sc->lengths,
-                                    sizeof(ngx_http_script_full_name_code_t),
-                                    NULL);
+    code = ngx_http_script_add_code(*sc->lengths, sizeof(ngx_http_script_full_name_code_t), NULL);
     if (code == NULL) {
         return NGX_ERROR;
     }
 
-    code->code = (ngx_http_script_code_pt) (void *)
-                                            ngx_http_script_full_name_len_code;
+    code->code = (ngx_http_script_code_pt) (void *) ngx_http_script_full_name_len_code;
     code->conf_prefix = sc->conf_prefix;
 
-    code = ngx_http_script_add_code(*sc->values,
-                                    sizeof(ngx_http_script_full_name_code_t),
-                                    &sc->main);
+    code = ngx_http_script_add_code(*sc->values, sizeof(ngx_http_script_full_name_code_t), &sc->main);
     if (code == NULL) {
         return NGX_ERROR;
     }
@@ -1316,8 +1297,7 @@ ngx_http_script_full_name_len_code(ngx_http_script_engine_t *e)
 
     e->ip += sizeof(ngx_http_script_full_name_code_t);
 
-    return code->conf_prefix ? ngx_cycle->conf_prefix.len:
-                               ngx_cycle->prefix.len;
+    return code->conf_prefix ? ngx_cycle->conf_prefix.len: ngx_cycle->prefix.len;
 }
 
 
@@ -1333,8 +1313,7 @@ ngx_http_script_full_name_code(ngx_http_script_engine_t *e)
     value.data = e->buf.data;
     value.len = e->pos - e->buf.data;
 
-    prefix = code->conf_prefix ? (ngx_str_t *) &ngx_cycle->conf_prefix:
-                                 (ngx_str_t *) &ngx_cycle->prefix;
+    prefix = code->conf_prefix ? (ngx_str_t *) &ngx_cycle->conf_prefix: (ngx_str_t *) &ngx_cycle->prefix;
 
     if (ngx_get_full_name(e->request->pool, prefix, &value) != NGX_OK) {
         e->ip = ngx_http_script_exit;
@@ -1344,8 +1323,7 @@ ngx_http_script_full_name_code(ngx_http_script_engine_t *e)
 
     e->buf = value;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0,
-                   "http script fullname: \"%V\"", &value);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0, "http script fullname: \"%V\"", &value);
 
     e->ip += sizeof(ngx_http_script_full_name_code_t);
 }

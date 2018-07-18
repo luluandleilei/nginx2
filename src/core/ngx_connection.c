@@ -162,9 +162,7 @@ ngx_set_inherited_sockets(ngx_cycle_t *cycle)
 
         ls[i].socklen = sizeof(ngx_sockaddr_t);
         if (getsockname(ls[i].fd, ls[i].sockaddr, &ls[i].socklen) == -1) {
-            ngx_log_error(NGX_LOG_CRIT, cycle->log, ngx_socket_errno,
-                          "getsockname() of the inherited "
-                          "socket #%d failed", ls[i].fd);
+            ngx_log_error(NGX_LOG_CRIT, cycle->log, ngx_socket_errno, "getsockname() of the inherited " "socket #%d failed", ls[i].fd);
             ls[i].ignore = 1;
             continue;
         }
@@ -195,62 +193,47 @@ ngx_set_inherited_sockets(ngx_cycle_t *cycle)
             break;
 
         default:
-            ngx_log_error(NGX_LOG_CRIT, cycle->log, ngx_socket_errno,
-                          "the inherited socket #%d has "
-                          "an unsupported protocol family", ls[i].fd);
+            ngx_log_error(NGX_LOG_CRIT, cycle->log, ngx_socket_errno, "the inherited socket #%d has " "an unsupported protocol family", ls[i].fd);
             ls[i].ignore = 1;
             continue;
         }
 
+		/*获取本地绑定的地址的字符串表示*/
         ls[i].addr_text.data = ngx_pnalloc(cycle->pool, len);
         if (ls[i].addr_text.data == NULL) {
             return NGX_ERROR;
         }
 
-        len = ngx_sock_ntop(ls[i].sockaddr, ls[i].socklen,
-                            ls[i].addr_text.data, len, 1);
+        len = ngx_sock_ntop(ls[i].sockaddr, ls[i].socklen, ls[i].addr_text.data, len, 1);
         if (len == 0) {
             return NGX_ERROR;
         }
 
         ls[i].addr_text.len = len;
 
+		/*设置监听套接字默认backlog*/
         ls[i].backlog = NGX_LISTEN_BACKLOG;
 
+		/*获取套接字类型*/
         olen = sizeof(int);
-
-        if (getsockopt(ls[i].fd, SOL_SOCKET, SO_TYPE, (void *) &ls[i].type,
-                       &olen)
-            == -1)
-        {
-            ngx_log_error(NGX_LOG_CRIT, cycle->log, ngx_socket_errno,
-                          "getsockopt(SO_TYPE) %V failed", &ls[i].addr_text);
+        if (getsockopt(ls[i].fd, SOL_SOCKET, SO_TYPE, (void *) &ls[i].type, &olen) == -1) {
+            ngx_log_error(NGX_LOG_CRIT, cycle->log, ngx_socket_errno, "getsockopt(SO_TYPE) %V failed", &ls[i].addr_text);
             ls[i].ignore = 1;
             continue;
         }
 
+		/*获取rcvbuf*/
         olen = sizeof(int);
-
-        if (getsockopt(ls[i].fd, SOL_SOCKET, SO_RCVBUF, (void *) &ls[i].rcvbuf,
-                       &olen)
-            == -1)
-        {
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_socket_errno,
-                          "getsockopt(SO_RCVBUF) %V failed, ignored",
-                          &ls[i].addr_text);
+        if (getsockopt(ls[i].fd, SOL_SOCKET, SO_RCVBUF, (void *) &ls[i].rcvbuf, &olen) == -1) {
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_socket_errno, "getsockopt(SO_RCVBUF) %V failed, ignored", &ls[i].addr_text);
 
             ls[i].rcvbuf = -1;
         }
 
+		/*获取sndbuf*/
         olen = sizeof(int);
-
-        if (getsockopt(ls[i].fd, SOL_SOCKET, SO_SNDBUF, (void *) &ls[i].sndbuf,
-                       &olen)
-            == -1)
-        {
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_socket_errno,
-                          "getsockopt(SO_SNDBUF) %V failed, ignored",
-                          &ls[i].addr_text);
+        if (getsockopt(ls[i].fd, SOL_SOCKET, SO_SNDBUF, (void *) &ls[i].sndbuf, &olen) == -1) {
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_socket_errno, "getsockopt(SO_SNDBUF) %V failed, ignored", &ls[i].addr_text);
 
             ls[i].sndbuf = -1;
         }
@@ -283,13 +266,8 @@ ngx_set_inherited_sockets(ngx_cycle_t *cycle)
 
 #ifdef SO_REUSEPORT_LB
 
-        if (getsockopt(ls[i].fd, SOL_SOCKET, SO_REUSEPORT_LB,
-                       (void *) &reuseport, &olen)
-            == -1)
-        {
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_socket_errno,
-                          "getsockopt(SO_REUSEPORT_LB) %V failed, ignored",
-                          &ls[i].addr_text);
+        if (getsockopt(ls[i].fd, SOL_SOCKET, SO_REUSEPORT_LB, (void *) &reuseport, &olen) == -1) {
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_socket_errno, "getsockopt(SO_REUSEPORT_LB) %V failed, ignored", &ls[i].addr_text);
 
         } else {
             ls[i].reuseport = reuseport ? 1 : 0;
@@ -297,13 +275,8 @@ ngx_set_inherited_sockets(ngx_cycle_t *cycle)
 
 #else
 
-        if (getsockopt(ls[i].fd, SOL_SOCKET, SO_REUSEPORT,
-                       (void *) &reuseport, &olen)
-            == -1)
-        {
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_socket_errno,
-                          "getsockopt(SO_REUSEPORT) %V failed, ignored",
-                          &ls[i].addr_text);
+        if (getsockopt(ls[i].fd, SOL_SOCKET, SO_REUSEPORT, (void *) &reuseport, &olen) == -1) {
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_socket_errno, "getsockopt(SO_REUSEPORT) %V failed, ignored", &ls[i].addr_text);
 
         } else {
             ls[i].reuseport = reuseport ? 1 : 0;
@@ -320,18 +293,11 @@ ngx_set_inherited_sockets(ngx_cycle_t *cycle)
 
         olen = sizeof(int);
 
-        if (getsockopt(ls[i].fd, IPPROTO_TCP, TCP_FASTOPEN,
-                       (void *) &ls[i].fastopen, &olen)
-            == -1)
-        {
+        if (getsockopt(ls[i].fd, IPPROTO_TCP, TCP_FASTOPEN, (void *) &ls[i].fastopen, &olen) == -1) {
             err = ngx_socket_errno;
 
-            if (err != NGX_EOPNOTSUPP && err != NGX_ENOPROTOOPT
-                && err != NGX_EINVAL)
-            {
-                ngx_log_error(NGX_LOG_NOTICE, cycle->log, err,
-                              "getsockopt(TCP_FASTOPEN) %V failed, ignored",
-                              &ls[i].addr_text);
+            if (err != NGX_EOPNOTSUPP && err != NGX_ENOPROTOOPT && err != NGX_EINVAL) {
+                ngx_log_error(NGX_LOG_NOTICE, cycle->log, err, "getsockopt(TCP_FASTOPEN) %V failed, ignored", &ls[i].addr_text);
             }
 
             ls[i].fastopen = -1;

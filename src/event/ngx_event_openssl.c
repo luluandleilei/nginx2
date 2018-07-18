@@ -2403,8 +2403,7 @@ ngx_ssl_session_cache_init(ngx_shm_zone_t *shm_zone, void *data)
     shpool->data = cache;
     shm_zone->data = cache;
 
-    ngx_rbtree_init(&cache->session_rbtree, &cache->sentinel,
-                    ngx_ssl_session_rbtree_insert_value);
+    ngx_rbtree_init(&cache->session_rbtree, &cache->sentinel, ngx_ssl_session_rbtree_insert_value);
 
     ngx_queue_init(&cache->expire_queue);
 
@@ -2415,8 +2414,7 @@ ngx_ssl_session_cache_init(ngx_shm_zone_t *shm_zone, void *data)
         return NGX_ERROR;
     }
 
-    ngx_sprintf(shpool->log_ctx, " in SSL session shared cache \"%V\"%Z",
-                &shm_zone->shm.name);
+    ngx_sprintf(shpool->log_ctx, " in SSL session shared cache \"%V\"%Z", &shm_zone->shm.name);
 
     shpool->log_nomem = 0;
 
