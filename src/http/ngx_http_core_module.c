@@ -841,6 +841,7 @@ static ngx_command_t  ngx_http_core_commands[] = {
 	 Syntax:	client_body_temp_path path [level1 [level2 [level3]]];
 	 Default:  	client_body_temp_path client_body_temp;
 	 Context:	http, server, location
+	 
 	 Defines a directory for storing temporary files holding client request bodies. 
 	 Up to three-level subdirectory hierarchy can be used under the specified directory. 
 	 For example, in the following configuration
@@ -2024,8 +2025,7 @@ ngx_http_core_post_access_phase(ngx_http_request_t *r,
 
 
 ngx_int_t
-ngx_http_core_content_phase(ngx_http_request_t *r,
-    ngx_http_phase_handler_t *ph)
+ngx_http_core_content_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
 {
     size_t     root;
     ngx_int_t  rc;
@@ -2037,8 +2037,7 @@ ngx_http_core_content_phase(ngx_http_request_t *r,
         return NGX_OK;
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "content phase: %ui", r->phase_handler);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "content phase: %ui", r->phase_handler);
 
     rc = ph->handler(r);
 
@@ -4495,33 +4494,24 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
         conf->resolver = prev->resolver;
     }
 
-    if (ngx_conf_merge_path_value(cf, &conf->client_body_temp_path,
-                              prev->client_body_temp_path,
-                              &ngx_http_client_temp_path)
-        != NGX_OK)
-    {
+    if (ngx_conf_merge_path_value(cf, &conf->client_body_temp_path, 
+			prev->client_body_temp_path, &ngx_http_client_temp_path) != NGX_OK) {
         return NGX_CONF_ERROR;
     }
 
-    ngx_conf_merge_value(conf->reset_timedout_connection,
-                              prev->reset_timedout_connection, 0);
-    ngx_conf_merge_value(conf->absolute_redirect,
-                              prev->absolute_redirect, 1);
-    ngx_conf_merge_value(conf->server_name_in_redirect,
-                              prev->server_name_in_redirect, 0);
+    ngx_conf_merge_value(conf->reset_timedout_connection, prev->reset_timedout_connection, 0);
+    ngx_conf_merge_value(conf->absolute_redirect, prev->absolute_redirect, 1);
+    ngx_conf_merge_value(conf->server_name_in_redirect, prev->server_name_in_redirect, 0);
     ngx_conf_merge_value(conf->port_in_redirect, prev->port_in_redirect, 1);
     ngx_conf_merge_value(conf->msie_padding, prev->msie_padding, 1);
     ngx_conf_merge_value(conf->msie_refresh, prev->msie_refresh, 0);
     ngx_conf_merge_value(conf->log_not_found, prev->log_not_found, 1);
     ngx_conf_merge_value(conf->log_subrequest, prev->log_subrequest, 0);
-    ngx_conf_merge_value(conf->recursive_error_pages,
-                              prev->recursive_error_pages, 0);
-    ngx_conf_merge_value(conf->chunked_transfer_encoding,
-                              prev->chunked_transfer_encoding, 1);
+    ngx_conf_merge_value(conf->recursive_error_pages, prev->recursive_error_pages, 0);
+    ngx_conf_merge_value(conf->chunked_transfer_encoding, prev->chunked_transfer_encoding, 1);
     ngx_conf_merge_value(conf->etag, prev->etag, 1);
 
-    ngx_conf_merge_uint_value(conf->server_tokens, prev->server_tokens,
-                              NGX_HTTP_SERVER_TOKENS_ON);
+    ngx_conf_merge_uint_value(conf->server_tokens, prev->server_tokens, NGX_HTTP_SERVER_TOKENS_ON);
 
     ngx_conf_merge_ptr_value(conf->open_file_cache,
                               prev->open_file_cache, NULL);

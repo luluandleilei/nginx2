@@ -533,7 +533,7 @@ main(int argc, char *const *argv)
 
 #endif
 
-    if (ngx_create_pidfile(&ccf->pid, cycle->log) != NGX_OK) {
+    if (ngx_create_pidfile(&ccf->pid, cycle->log) != NGX_OK) {	//在ngx_init_cycle里面不是创建了pid文件怎么又创建一次
         return 1;
     }
 
@@ -543,8 +543,7 @@ main(int argc, char *const *argv)
 
     if (log->file->fd != ngx_stderr) {
         if (ngx_close_file(log->file->fd) == NGX_FILE_ERROR) {
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                          ngx_close_file_n " built-in log failed");
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, ngx_close_file_n " built-in log failed");
         }
     }
 
@@ -832,9 +831,7 @@ ngx_exec_new_binary(ngx_cycle_t *cycle, char *const *argv)
         return NGX_INVALID_PID;
     }
 
-    var = ngx_alloc(sizeof(NGINX_VAR)
-                    + cycle->listening.nelts * (NGX_INT32_LEN + 1) + 2,
-                    cycle->log);
+    var = ngx_alloc(sizeof(NGINX_VAR) + cycle->listening.nelts * (NGX_INT32_LEN + 1) + 2, cycle->log);
     if (var == NULL) {
         ngx_free(env);
         return NGX_INVALID_PID;
@@ -881,10 +878,8 @@ ngx_exec_new_binary(ngx_cycle_t *cycle, char *const *argv)
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
 
     if (ngx_rename_file(ccf->pid.data, ccf->oldpid.data) == NGX_FILE_ERROR) {
-        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                      ngx_rename_file_n " %s to %s failed "
-                      "before executing new binary process \"%s\"",
-                      ccf->pid.data, ccf->oldpid.data, argv[0]);
+        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, ngx_rename_file_n " %s to %s failed " 
+			"before executing new binary process \"%s\"", ccf->pid.data, ccf->oldpid.data, argv[0]);
 
         ngx_free(env);
         ngx_free(var);
@@ -895,13 +890,9 @@ ngx_exec_new_binary(ngx_cycle_t *cycle, char *const *argv)
     pid = ngx_execute(cycle, &ctx);
 
     if (pid == NGX_INVALID_PID) {
-        if (ngx_rename_file(ccf->oldpid.data, ccf->pid.data)
-            == NGX_FILE_ERROR)
-        {
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                          ngx_rename_file_n " %s back to %s failed after "
-                          "an attempt to execute new binary process \"%s\"",
-                          ccf->oldpid.data, ccf->pid.data, argv[0]);
+        if (ngx_rename_file(ccf->oldpid.data, ccf->pid.data) == NGX_FILE_ERROR) {
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, ngx_rename_file_n " %s back to %s failed after " 
+				"an attempt to execute new binary process \"%s\"", ccf->oldpid.data, ccf->pid.data, argv[0]);
         }
     }
 

@@ -1364,8 +1364,7 @@ ngx_http_file_cache_update(ngx_http_request_t *r, ngx_temp_file_t *tf)
         return;
     }
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http file cache update");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http file cache update");
 
     cache = c->file_cache;
 
@@ -1375,9 +1374,8 @@ ngx_http_file_cache_update(ngx_http_request_t *r, ngx_temp_file_t *tf)
     uniq = 0;
     fs_size = 0;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http file cache rename: \"%s\" to \"%s\"",
-                   tf->file.name.data, c->file.name.data);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+		"http file cache rename: \"%s\" to \"%s\"", tf->file.name.data, c->file.name.data);
 
     ext.access = NGX_FILE_OWNER_ACCESS;
     ext.path_access = NGX_FILE_OWNER_ACCESS;
@@ -1391,8 +1389,7 @@ ngx_http_file_cache_update(ngx_http_request_t *r, ngx_temp_file_t *tf)
     if (rc == NGX_OK) {
 
         if (ngx_fd_info(tf->file.fd, &fi) == NGX_FILE_ERROR) {
-            ngx_log_error(NGX_LOG_CRIT, r->connection->log, ngx_errno,
-                          ngx_fd_info_n " \"%s\" failed", tf->file.name.data);
+            ngx_log_error(NGX_LOG_CRIT, r->connection->log, ngx_errno, ngx_fd_info_n " \"%s\" failed", tf->file.name.data);
 
             rc = NGX_ERROR;
 
@@ -2387,8 +2384,7 @@ ngx_http_file_cache_set_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
         invalid_levels:
 
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "invalid \"levels\" \"%V\"", &value[i]);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid \"levels\" \"%V\"", &value[i]);
             return NGX_CONF_ERROR;
         }
 
@@ -2401,10 +2397,7 @@ ngx_http_file_cache_set_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
                 use_temp_path = 0;
 
             } else {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "invalid use_temp_path value \"%V\", "
-                                   "it must be \"on\" or \"off\"",
-                                   &value[i]);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid use_temp_path value \"%V\", " "it must be \"on\" or \"off\"", &value[i]);
                 return NGX_CONF_ERROR;
             }
 
@@ -2431,8 +2424,7 @@ ngx_http_file_cache_set_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
                 }
             }
 
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "invalid keys zone size \"%V\"", &value[i]);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid keys zone size \"%V\"", &value[i]);
             return NGX_CONF_ERROR;
         }
 
@@ -2443,8 +2435,7 @@ ngx_http_file_cache_set_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
             inactive = ngx_parse_time(&s, 1);
             if (inactive == (time_t) NGX_ERROR) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "invalid inactive value \"%V\"", &value[i]);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid inactive value \"%V\"", &value[i]);
                 return NGX_CONF_ERROR;
             }
 
@@ -2458,8 +2449,7 @@ ngx_http_file_cache_set_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
             max_size = ngx_parse_offset(&s);
             if (max_size < 0) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "invalid max_size value \"%V\"", &value[i]);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid max_size value \"%V\"", &value[i]);
                 return NGX_CONF_ERROR;
             }
 
@@ -2470,8 +2460,7 @@ ngx_http_file_cache_set_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
             loader_files = ngx_atoi(value[i].data + 13, value[i].len - 13);
             if (loader_files == NGX_ERROR) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid loader_files value \"%V\"", &value[i]);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid loader_files value \"%V\"", &value[i]);
                 return NGX_CONF_ERROR;
             }
 
@@ -2485,8 +2474,7 @@ ngx_http_file_cache_set_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
             loader_sleep = ngx_parse_time(&s, 0);
             if (loader_sleep == (ngx_msec_t) NGX_ERROR) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid loader_sleep value \"%V\"", &value[i]);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid loader_sleep value \"%V\"", &value[i]);
                 return NGX_CONF_ERROR;
             }
 
@@ -2500,8 +2488,7 @@ ngx_http_file_cache_set_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
             loader_threshold = ngx_parse_time(&s, 0);
             if (loader_threshold == (ngx_msec_t) NGX_ERROR) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid loader_threshold value \"%V\"", &value[i]);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid loader_threshold value \"%V\"", &value[i]);
                 return NGX_CONF_ERROR;
             }
 
@@ -2512,8 +2499,7 @@ ngx_http_file_cache_set_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
             manager_files = ngx_atoi(value[i].data + 14, value[i].len - 14);
             if (manager_files == NGX_ERROR) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid manager_files value \"%V\"", &value[i]);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid manager_files value \"%V\"", &value[i]);
                 return NGX_CONF_ERROR;
             }
 
@@ -2527,8 +2513,7 @@ ngx_http_file_cache_set_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
             manager_sleep = ngx_parse_time(&s, 0);
             if (manager_sleep == (ngx_msec_t) NGX_ERROR) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid manager_sleep value \"%V\"", &value[i]);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid manager_sleep value \"%V\"", &value[i]);
                 return NGX_CONF_ERROR;
             }
 
@@ -2542,23 +2527,19 @@ ngx_http_file_cache_set_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
             manager_threshold = ngx_parse_time(&s, 0);
             if (manager_threshold == (ngx_msec_t) NGX_ERROR) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid manager_threshold value \"%V\"", &value[i]);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid manager_threshold value \"%V\"", &value[i]);
                 return NGX_CONF_ERROR;
             }
 
             continue;
         }
 
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid parameter \"%V\"", &value[i]);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid parameter \"%V\"", &value[i]);
         return NGX_CONF_ERROR;
     }
 
     if (name.len == 0 || size == 0) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "\"%V\" must have \"keys_zone\" parameter",
-                           &cmd->name);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"%V\" must have \"keys_zone\" parameter", &cmd->name);
         return NGX_CONF_ERROR;
     }
 
@@ -2584,8 +2565,7 @@ ngx_http_file_cache_set_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     if (cache->shm_zone->data) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "duplicate zone \"%V\"", &name);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "duplicate zone \"%V\"", &name);
         return NGX_CONF_ERROR;
     }
 

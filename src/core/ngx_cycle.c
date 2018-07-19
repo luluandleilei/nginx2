@@ -11,8 +11,7 @@
 
 
 static void ngx_destroy_cycle_pools(ngx_conf_t *conf);
-static ngx_int_t ngx_init_zone_pool(ngx_cycle_t *cycle,
-    ngx_shm_zone_t *shm_zone);
+static ngx_int_t ngx_init_zone_pool(ngx_cycle_t *cycle, ngx_shm_zone_t *shm_zone);
 static ngx_int_t ngx_test_lockfile(u_char *file, ngx_log_t *log);
 static void ngx_clean_old_cycles(ngx_event_t *ev);
 static void ngx_shutdown_timer_handler(ngx_event_t *ev);
@@ -91,7 +90,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     cycle->log = log;
     cycle->old_cycle = old_cycle;
 
-	//dumplicate conf_prefix	
+	/*copy conf_prefix to new cycle*/	
     cycle->conf_prefix.len = old_cycle->conf_prefix.len;
     cycle->conf_prefix.data = ngx_pstrdup(pool, &old_cycle->conf_prefix);
     if (cycle->conf_prefix.data == NULL) {
@@ -99,7 +98,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
         return NULL;
     }
 
-	//dumplicate cycle->prefix
+	/*copy prefix to new cycle*/
     cycle->prefix.len = old_cycle->prefix.len;
     cycle->prefix.data = ngx_pstrdup(pool, &old_cycle->prefix);
     if (cycle->prefix.data == NULL) {
@@ -315,7 +314,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
 
     if (ngx_test_config) {
 
-        if (ngx_create_pidfile(&ccf->pid, log) != NGX_OK) {
+        if (ngx_create_pidfile(&ccf->pid, log) != NGX_OK) {		//检查是否有权限创建pid文件
             goto failed;
         }
 
@@ -326,11 +325,8 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
          * because we need to write the demonized process pid
          */
 
-        old_ccf = (ngx_core_conf_t *) ngx_get_conf(old_cycle->conf_ctx,
-                                                   ngx_core_module);
-        if (ccf->pid.len != old_ccf->pid.len
-            || ngx_strcmp(ccf->pid.data, old_ccf->pid.data) != 0)
-        {
+        old_ccf = (ngx_core_conf_t *) ngx_get_conf(old_cycle->conf_ctx, ngx_core_module);
+        if (ccf->pid.len != old_ccf->pid.len || ngx_strcmp(ccf->pid.data, old_ccf->pid.data) != 0) {	//reload配置后指定了新的pid文件
             /* new pid file name */
 
             if (ngx_create_pidfile(&ccf->pid, log) != NGX_OK) {
@@ -342,7 +338,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     }
 
 
-    if (ngx_test_lockfile(cycle->lock_file.data, log) != NGX_OK) {
+    if (ngx_test_lockfile(cycle->lock_file.data, log) != NGX_OK) {	//检查是否有权限创建lockfile文件
         goto failed;
     }
 
@@ -376,27 +372,18 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
             continue;
         }
 
-        file[i].fd = ngx_open_file(file[i].name.data,
-                                   NGX_FILE_APPEND,
-                                   NGX_FILE_CREATE_OR_OPEN,
-                                   NGX_FILE_DEFAULT_ACCESS);
+        file[i].fd = ngx_open_file(file[i].name.data, NGX_FILE_APPEND, NGX_FILE_CREATE_OR_OPEN, NGX_FILE_DEFAULT_ACCESS);
 
-        ngx_log_debug3(NGX_LOG_DEBUG_CORE, log, 0,
-                       "log: %p %d \"%s\"",
-                       &file[i], file[i].fd, file[i].name.data);
+        ngx_log_debug3(NGX_LOG_DEBUG_CORE, log, 0, "log: %p %d \"%s\"", &file[i], file[i].fd, file[i].name.data);
 
         if (file[i].fd == NGX_INVALID_FILE) {
-            ngx_log_error(NGX_LOG_EMERG, log, ngx_errno,
-                          ngx_open_file_n " \"%s\" failed",
-                          file[i].name.data);
+            ngx_log_error(NGX_LOG_EMERG, log, ngx_errno, ngx_open_file_n " \"%s\" failed", file[i].name.data);
             goto failed;
         }
 
 #if !(NGX_WIN32)
-        if (fcntl(file[i].fd, F_SETFD, FD_CLOEXEC) == -1) {
-            ngx_log_error(NGX_LOG_EMERG, log, ngx_errno,
-                          "fcntl(FD_CLOEXEC) \"%s\" failed",
-                          file[i].name.data);
+        if (fcntl(file[i].fd, F_SETFD, FD_CLOEXEC) == -1) {	//XXX:为什么要设置FD_CLOEXEC标志？？
+            ngx_log_error(NGX_LOG_EMERG, log, ngx_errno, "fcntl(FD_CLOEXEC) \"%s\" failed", file[i].name.data);
             goto failed;
         }
 #endif
@@ -858,9 +845,10 @@ ngx_init_zone_pool(ngx_cycle_t *cycle, ngx_shm_zone_t *zn)
     u_char           *file;
     ngx_slab_pool_t  *sp;
 
+	//共享内存的起始地址开始的sizeof(ngx_slab_pool_t)字节是用来存储管理共享内存的slab poll的
     sp = (ngx_slab_pool_t *) zn->shm.addr;
 
-    if (zn->shm.exists) {
+    if (zn->shm.exists) {	//XXX:什么时候zn->shm.exists会被置为1？
 
         if (sp == sp->addr) {
             return NGX_OK;
@@ -905,6 +893,7 @@ ngx_init_zone_pool(ngx_cycle_t *cycle, ngx_shm_zone_t *zn)
 
 #endif
 
+	//创建共享内存锁
     if (ngx_shmtx_create(&sp->mutex, &sp->lock, file) != NGX_OK) {
         return NGX_ERROR;
     }
@@ -934,13 +923,11 @@ ngx_create_pidfile(ngx_str_t *name, ngx_log_t *log)
 
     create = ngx_test_config ? NGX_FILE_CREATE_OR_OPEN : NGX_FILE_TRUNCATE;
 
-    file.fd = ngx_open_file(file.name.data, NGX_FILE_RDWR,
-                            create, NGX_FILE_DEFAULT_ACCESS);
+    file.fd = ngx_open_file(file.name.data, NGX_FILE_RDWR, create, NGX_FILE_DEFAULT_ACCESS);
 
     if (file.fd == NGX_INVALID_FILE) {
-        ngx_log_error(NGX_LOG_EMERG, log, ngx_errno,
-                      ngx_open_file_n " \"%s\" failed", file.name.data);
-        return NGX_ERROR;
+        ngx_log_error(NGX_LOG_EMERG, log, ngx_errno, ngx_open_file_n " \"%s\" failed", file.name.data);
+		return NGX_ERROR;
     }
 
     if (!ngx_test_config) {
@@ -952,8 +939,7 @@ ngx_create_pidfile(ngx_str_t *name, ngx_log_t *log)
     }
 
     if (ngx_close_file(file.fd) == NGX_FILE_ERROR) {
-        ngx_log_error(NGX_LOG_ALERT, log, ngx_errno,
-                      ngx_close_file_n " \"%s\" failed", file.name.data);
+        ngx_log_error(NGX_LOG_ALERT, log, ngx_errno, ngx_close_file_n " \"%s\" failed", file.name.data);
     }
 
     return NGX_OK;
@@ -971,8 +957,7 @@ ngx_delete_pidfile(ngx_cycle_t *cycle)
     name = ngx_new_binary ? ccf->oldpid.data : ccf->pid.data;
 
     if (ngx_delete_file(name) == NGX_FILE_ERROR) {
-        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                      ngx_delete_file_n " \"%s\" failed", name);
+        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, ngx_delete_file_n " \"%s\" failed", name);
     }
 }
 
@@ -1037,23 +1022,19 @@ ngx_test_lockfile(u_char *file, ngx_log_t *log)
 #if !(NGX_HAVE_ATOMIC_OPS)
     ngx_fd_t  fd;
 
-    fd = ngx_open_file(file, NGX_FILE_RDWR, NGX_FILE_CREATE_OR_OPEN,
-                       NGX_FILE_DEFAULT_ACCESS);
+    fd = ngx_open_file(file, NGX_FILE_RDWR, NGX_FILE_CREATE_OR_OPEN, NGX_FILE_DEFAULT_ACCESS);
 
     if (fd == NGX_INVALID_FILE) {
-        ngx_log_error(NGX_LOG_EMERG, log, ngx_errno,
-                      ngx_open_file_n " \"%s\" failed", file);
+        ngx_log_error(NGX_LOG_EMERG, log, ngx_errno, ngx_open_file_n " \"%s\" failed", file);
         return NGX_ERROR;
     }
 
     if (ngx_close_file(fd) == NGX_FILE_ERROR) {
-        ngx_log_error(NGX_LOG_ALERT, log, ngx_errno,
-                      ngx_close_file_n " \"%s\" failed", file);
+        ngx_log_error(NGX_LOG_ALERT, log, ngx_errno, ngx_close_file_n " \"%s\" failed", file);
     }
 
     if (ngx_delete_file(file) == NGX_FILE_ERROR) {
-        ngx_log_error(NGX_LOG_ALERT, log, ngx_errno,
-                      ngx_delete_file_n " \"%s\" failed", file);
+        ngx_log_error(NGX_LOG_ALERT, log, ngx_errno, ngx_delete_file_n " \"%s\" failed", file);
     }
 
 #endif
@@ -1186,6 +1167,7 @@ ngx_reopen_files(ngx_cycle_t *cycle, ngx_uid_t user)
 }
 
 
+//size 为0可以用于查找对应name和tag的ngx_shm_zone_t对象
 ngx_shm_zone_t *
 ngx_shared_memory_add(ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag)
 {
@@ -1213,17 +1195,13 @@ ngx_shared_memory_add(ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag)
             continue;
         }
 
-        if (ngx_strncmp(name->data, shm_zone[i].shm.name.data, name->len)
-            != 0)
-        {
+        if (ngx_strncmp(name->data, shm_zone[i].shm.name.data, name->len) != 0) {
             continue;
         }
 
         if (tag != shm_zone[i].tag) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                            "the shared memory zone \"%V\" is "
-                            "already declared for a different use",
-                            &shm_zone[i].shm.name);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "the shared memory zone \"%V\" is " 
+				"already declared for a different use", &shm_zone[i].shm.name);
             return NULL;
         }
 
@@ -1232,10 +1210,8 @@ ngx_shared_memory_add(ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag)
         }
 
         if (size && size != shm_zone[i].shm.size) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                            "the size %uz of shared memory zone \"%V\" "
-                            "conflicts with already declared size %uz",
-                            size, &shm_zone[i].shm.name, shm_zone[i].shm.size);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "the size %uz of shared memory zone \"%V\" " 
+				"conflicts with already declared size %uz", size, &shm_zone[i].shm.name, shm_zone[i].shm.size);
             return NULL;
         }
 

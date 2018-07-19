@@ -418,8 +418,7 @@ ngx_conf_set_path_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
 
 char *
-ngx_conf_merge_path_value(ngx_conf_t *cf, ngx_path_t **path, ngx_path_t *prev,
-    ngx_path_init_t *init)
+ngx_conf_merge_path_value(ngx_conf_t *cf, ngx_path_t **path, ngx_path_t *prev, ngx_path_init_t *init)
 {
     ngx_uint_t  i;
 
@@ -532,14 +531,9 @@ ngx_add_path(ngx_conf_t *cf, ngx_path_t **slot)
 
     p = cf->cycle->paths.elts;
     for (i = 0; i < cf->cycle->paths.nelts; i++) {
-        if (p[i]->name.len == path->name.len
-            && ngx_strcmp(p[i]->name.data, path->name.data) == 0)
-        {
+        if (p[i]->name.len == path->name.len && ngx_strcmp(p[i]->name.data, path->name.data) == 0) {
             if (p[i]->data != path->data) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "the same path name \"%V\" "
-                                   "used in %s:%ui and",
-                                   &p[i]->name, p[i]->conf_file, p[i]->line);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "the same path name \"%V\" " "used in %s:%ui and", &p[i]->name, p[i]->conf_file, p[i]->line);
                 return NGX_ERROR;
             }
 
@@ -547,28 +541,15 @@ ngx_add_path(ngx_conf_t *cf, ngx_path_t **slot)
                 if (p[i]->level[n] != path->level[n]) {
                     if (path->conf_file == NULL) {
                         if (p[i]->conf_file == NULL) {
-                            ngx_log_error(NGX_LOG_EMERG, cf->log, 0,
-                                      "the default path name \"%V\" has "
-                                      "the same name as another default path, "
-                                      "but the different levels, you need to "
-                                      "redefine one of them in http section",
-                                      &p[i]->name);
+                            ngx_log_error(NGX_LOG_EMERG, cf->log, 0, "the default path name \"%V\" has " "the same name as another default path, " "but the different levels, you need to " "redefine one of them in http section", &p[i]->name);
                             return NGX_ERROR;
                         }
 
-                        ngx_log_error(NGX_LOG_EMERG, cf->log, 0,
-                                      "the path name \"%V\" in %s:%ui has "
-                                      "the same name as default path, but "
-                                      "the different levels, you need to "
-                                      "define default path in http section",
-                                      &p[i]->name, p[i]->conf_file, p[i]->line);
+                        ngx_log_error(NGX_LOG_EMERG, cf->log, 0, "the path name \"%V\" in %s:%ui has " "the same name as default path, but " "the different levels, you need to " "define default path in http section", &p[i]->name, p[i]->conf_file, p[i]->line);
                         return NGX_ERROR;
                     }
 
-                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                      "the same path name \"%V\" in %s:%ui "
-                                      "has the different levels than",
-                                      &p[i]->name, p[i]->conf_file, p[i]->line);
+                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "the same path name \"%V\" in %s:%ui " "has the different levels than", &p[i]->name, p[i]->conf_file, p[i]->line);
                     return NGX_ERROR;
                 }
 
@@ -607,9 +588,7 @@ ngx_create_paths(ngx_cycle_t *cycle, ngx_uid_t user)
         if (ngx_create_dir(path[i]->name.data, 0700) == NGX_FILE_ERROR) {
             err = ngx_errno;
             if (err != NGX_EEXIST) {
-                ngx_log_error(NGX_LOG_EMERG, cycle->log, err,
-                              ngx_create_dir_n " \"%s\" failed",
-                              path[i]->name.data);
+                ngx_log_error(NGX_LOG_EMERG, cycle->log, err, ngx_create_dir_n " \"%s\" failed", path[i]->name.data);
                 return NGX_ERROR;
             }
         }
@@ -623,28 +602,22 @@ ngx_create_paths(ngx_cycle_t *cycle, ngx_uid_t user)
         ngx_file_info_t   fi;
 
         if (ngx_file_info(path[i]->name.data, &fi) == NGX_FILE_ERROR) {
-            ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno,
-                          ngx_file_info_n " \"%s\" failed", path[i]->name.data);
+            ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno, ngx_file_info_n " \"%s\" failed", path[i]->name.data);
             return NGX_ERROR;
         }
 
         if (fi.st_uid != user) {
             if (chown((const char *) path[i]->name.data, user, -1) == -1) {
-                ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno,
-                              "chown(\"%s\", %d) failed",
-                              path[i]->name.data, user);
+                ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno, "chown(\"%s\", %d) failed", path[i]->name.data, user);
                 return NGX_ERROR;
             }
         }
 
-        if ((fi.st_mode & (S_IRUSR|S_IWUSR|S_IXUSR))
-                                                  != (S_IRUSR|S_IWUSR|S_IXUSR))
-        {
+        if ((fi.st_mode & (S_IRUSR|S_IWUSR|S_IXUSR)) != (S_IRUSR|S_IWUSR|S_IXUSR)) {
             fi.st_mode |= (S_IRUSR|S_IWUSR|S_IXUSR);
 
             if (chmod((const char *) path[i]->name.data, fi.st_mode) == -1) {
-                ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno,
-                              "chmod() \"%s\" failed", path[i]->name.data);
+                ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno, "chmod() \"%s\" failed", path[i]->name.data);
                 return NGX_ERROR;
             }
         }

@@ -158,7 +158,7 @@ struct ngx_http_file_cache_s {
     ngx_http_file_cache_sh_t        *sh;
     ngx_slab_pool_t                 *shpool;
 
-    ngx_path_t                      *path;
+    ngx_path_t                      *path;		//缓存文件的存储目录
 
     off_t                            max_size;
     size_t                           bsize;
@@ -195,10 +195,8 @@ ngx_int_t ngx_http_cache_send(ngx_http_request_t *);
 void ngx_http_file_cache_free(ngx_http_cache_t *c, ngx_temp_file_t *tf);
 time_t ngx_http_file_cache_valid(ngx_array_t *cache_valid, ngx_uint_t status);
 
-char *ngx_http_file_cache_set_slot(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
-char *ngx_http_file_cache_valid_set_slot(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+char *ngx_http_file_cache_set_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+char *ngx_http_file_cache_valid_set_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 
 extern ngx_str_t  ngx_http_cache_status[];

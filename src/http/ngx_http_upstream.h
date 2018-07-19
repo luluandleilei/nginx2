@@ -181,7 +181,7 @@ typedef struct {
     ngx_flag_t                       cyclic_temp_file;
     ngx_flag_t                       force_ranges;
 
-    ngx_path_t                      *temp_path;
+    ngx_path_t                      *temp_path;		//a directory for storing temporary files with data received from backend servers(eg: proxied servers).
 
     ngx_hash_t                       hide_headers_hash;
     ngx_array_t                     *hide_headers;
@@ -190,8 +190,8 @@ typedef struct {
     ngx_http_upstream_local_t       *local;
 
 #if (NGX_HTTP_CACHE)
-    ngx_shm_zone_t                  *cache_zone;
-    ngx_http_complex_value_t        *cache_value;
+    ngx_shm_zone_t                  *cache_zone;	//a shared memory zone used for caching. 
+    ngx_http_complex_value_t        *cache_value;	//the name of a shared memory zone used for caching.
 
     ngx_uint_t                       cache_min_uses;
     ngx_uint_t                       cache_use_stale;
@@ -217,7 +217,7 @@ typedef struct {
     ngx_array_t                     *store_values;
 
 #if (NGX_HTTP_CACHE)
-    signed                           cache:2;
+    signed                           cache:2;	//-1表示未设置，0表示不进行cache，1表示进行cache
 #endif
     signed                           store:2;
     unsigned                         intercept_404:1;

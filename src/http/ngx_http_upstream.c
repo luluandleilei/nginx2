@@ -11,10 +11,8 @@
 
 
 #if (NGX_HTTP_CACHE)
-static ngx_int_t ngx_http_upstream_cache(ngx_http_request_t *r,
-    ngx_http_upstream_t *u);
-static ngx_int_t ngx_http_upstream_cache_get(ngx_http_request_t *r,
-    ngx_http_upstream_t *u, ngx_http_file_cache_t **cache);
+static ngx_int_t ngx_http_upstream_cache(ngx_http_request_t *r, ngx_http_upstream_t *u);
+static ngx_int_t ngx_http_upstream_cache_get(ngx_http_request_t *r, ngx_http_upstream_t *u, ngx_http_file_cache_t **cache);
 static ngx_int_t ngx_http_upstream_cache_send(ngx_http_request_t *r,
     ngx_http_upstream_t *u);
 static ngx_int_t ngx_http_upstream_cache_background_update(
@@ -560,7 +558,7 @@ ngx_http_upstream_init_request(ngx_http_request_t *r)
 
 #if (NGX_HTTP_CACHE)
 
-    if (u->conf->cache) {
+    if (u->conf->cache) {	//XXX: u->conf->cachez在什么时候不为0？
         ngx_int_t  rc;
 
         rc = ngx_http_upstream_cache(r, u);
@@ -812,7 +810,7 @@ ngx_http_upstream_cache(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     c = r->cache;
 
-    if (c == NULL) {
+    if (c == NULL) {	//XXX： 什么情况下会不为NULL？
 
         if (!(r->method & u->conf->cache_methods)) {
             return NGX_DECLINED;
@@ -881,8 +879,7 @@ ngx_http_upstream_cache(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     rc = ngx_http_file_cache_open(r);
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http upstream cache: %i", rc);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http upstream cache: %i", rc);
 
     switch (rc) {
 
@@ -980,8 +977,7 @@ ngx_http_upstream_cache(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
 
 static ngx_int_t
-ngx_http_upstream_cache_get(ngx_http_request_t *r, ngx_http_upstream_t *u,
-    ngx_http_file_cache_t **cache)
+ngx_http_upstream_cache_get(ngx_http_request_t *r, ngx_http_upstream_t *u, ngx_http_file_cache_t **cache)
 {
     ngx_str_t               *name, val;
     ngx_uint_t               i;
@@ -996,9 +992,7 @@ ngx_http_upstream_cache_get(ngx_http_request_t *r, ngx_http_upstream_t *u,
         return NGX_ERROR;
     }
 
-    if (val.len == 0
-        || (val.len == 3 && ngx_strncmp(val.data, "off", 3) == 0))
-    {
+    if (val.len == 0 || (val.len == 3 && ngx_strncmp(val.data, "off", 3) == 0)) {
         return NGX_DECLINED;
     }
 
@@ -1007,16 +1001,13 @@ ngx_http_upstream_cache_get(ngx_http_request_t *r, ngx_http_upstream_t *u,
     for (i = 0; i < u->caches->nelts; i++) {
         name = &caches[i]->shm_zone->shm.name;
 
-        if (name->len == val.len
-            && ngx_strncmp(name->data, val.data, val.len) == 0)
-        {
+        if (name->len == val.len && ngx_strncmp(name->data, val.data, val.len) == 0) {
             *cache = caches[i];
             return NGX_OK;
         }
     }
 
-    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                  "cache \"%V\" not found", &val);
+    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "cache \"%V\" not found", &val);
 
     return NGX_ERROR;
 }
@@ -3121,8 +3112,7 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     } else {
         p->temp_file->log_level = NGX_LOG_WARN;
-        p->temp_file->warn = "an upstream response is buffered "
-                             "to a temporary file";
+        p->temp_file->warn = "an upstream response is buffered " "to a temporary file";
     }
 
     p->max_temp_file_size = u->conf->max_temp_file_size;

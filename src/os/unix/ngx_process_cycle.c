@@ -44,9 +44,9 @@ sig_atomic_t  ngx_reconfigure;	//收到XXX信号;表示将重新加载配置
 sig_atomic_t  ngx_reopen;
 
 sig_atomic_t  ngx_change_binary;
-ngx_pid_t     ngx_new_binary;
+ngx_pid_t     ngx_new_binary;	//表示替换了新的nginx二进制程序
 ngx_uint_t    ngx_inherited;	//表示从环境变量中获取了继承的监听套接字到init_cycle中 //表示从先前的master进程继承了监听套接字(通过环境变量)
-ngx_uint_t    ngx_daemonized;
+ngx_uint_t    ngx_daemonized;	//表示已经进行daemon操作
 
 sig_atomic_t  ngx_noaccept;
 ngx_uint_t    ngx_noaccepting;

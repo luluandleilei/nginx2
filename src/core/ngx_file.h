@@ -14,14 +14,14 @@
 
 
 struct ngx_file_s {
-    ngx_fd_t                   fd;
-    ngx_str_t                  name;
-    ngx_file_info_t            info;
+    ngx_fd_t                   fd;		//文件描述符
+    ngx_str_t                  name;	//文件名
+    ngx_file_info_t            info;	//文件大小等资源信息，实际就是Linux系统定义的stat结构
 
     off_t                      offset;		//当前读到的文件偏移量位置
     off_t                      sys_offset;
 
-    ngx_log_t                 *log;
+    ngx_log_t                 *log;		//日志对象，相关的日志会输出到log指定的日志文件中
 
 #if (NGX_THREADS || NGX_COMPAT)
     ngx_int_t                (*thread_handler)(ngx_thread_task_t *task, ngx_file_t *file);
@@ -47,17 +47,17 @@ typedef void (*ngx_path_loader_pt) (void *data);
 
 
 typedef struct {
-    ngx_str_t                  name;
-    size_t                     len;
-    size_t                     level[NGX_MAX_PATH_LEVEL];
+    ngx_str_t                  name;	//目录的绝对路径
+    size_t                     len;		//所有层次的子目录的路径长度(包含路径分隔符)
+    size_t                     level[NGX_MAX_PATH_LEVEL];//每一层子目录的目录名长度(不包含路径分隔符)
 
     ngx_path_manager_pt        manager;
     ngx_path_purger_pt         purger;
-    ngx_path_loader_pt         loader;
-    void                      *data;
+    ngx_path_loader_pt         loader;	//决定是否启用cache loader进程  参考ngx_start_cache_manager_processes
+    void                      *data;	//ngx_http_file_cache_set_slot中设置为ngx_http_file_cache_t
 
-    u_char                    *conf_file;
-    ngx_uint_t                 line;
+    u_char                    *conf_file;	//定义该目录的配置项所在的配置文件(见ngx_http_file_cache_set_slot)
+    ngx_uint_t                 line;		//定义该目录的配置项在配置文件中的行号(见ngx_http_file_cache_set_slot)
 } ngx_path_t;
 
 
@@ -68,9 +68,9 @@ typedef struct {
 
 
 typedef struct {
-    ngx_file_t                 file;
+    ngx_file_t                 file;	//存储临时文件的文件名
     off_t                      offset;
-    ngx_path_t                *path;
+    ngx_path_t                *path;	//存储临时文件的目录
     ngx_pool_t                *pool;
     char                      *warn;
 
@@ -151,8 +151,7 @@ ngx_int_t ngx_walk_tree(ngx_tree_ctx_t *ctx, ngx_str_t *tree);
 ngx_atomic_uint_t ngx_next_temp_number(ngx_uint_t collision);
 
 char *ngx_conf_set_path_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-char *ngx_conf_merge_path_value(ngx_conf_t *cf, ngx_path_t **path,
-    ngx_path_t *prev, ngx_path_init_t *init);
+char *ngx_conf_merge_path_value(ngx_conf_t *cf, ngx_path_t **path, ngx_path_t *prev, ngx_path_init_t *init);
 char *ngx_conf_set_access_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 

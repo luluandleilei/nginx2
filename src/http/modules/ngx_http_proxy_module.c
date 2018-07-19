@@ -182,8 +182,7 @@ static char *ngx_http_proxy_cookie_path(ngx_conf_t *cf, ngx_command_t *cmd,
 static char *ngx_http_proxy_store(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 #if (NGX_HTTP_CACHE)
-static char *ngx_http_proxy_cache(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+static char *ngx_http_proxy_cache(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_http_proxy_cache_key(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 #endif
@@ -280,7 +279,53 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
       NULL },
+	/*
+	 Syntax:	proxy_store on | off | string;
+	 Default: 	proxy_store off;
+	 Context:	http, server, location
+	 
+	 Enables saving of files to a disk. The on parameter saves files with paths corresponding to the directives 'alias' or 'root'. 
+	 The off parameter disables saving of files. In addition, the file name can be set explicitly using the string with variables:
+		proxy_store /data/www$original_uri;
+		
+	 The modification time of files is set according to the received “Last-Modified” response header field. The response is first written to a temporary file, and then the file is renamed. Starting from version 0.8.9, temporary files and the persistent store can be put on different file systems. However, be aware that in this case a file is copied across two file systems instead of the cheap renaming operation. It is thus recommended that for any given location both saved files and a directory holding temporary files, set by the proxy_temp_path directive, are put on the same file system.
 
+	 This directive can be used to create local copies of static unchangeable files, e.g.:
+
+		location /images/ {
+		    root               /data/www;
+		    error_page         404 = /fetch$uri;
+		}
+
+		location /fetch/ {
+		    internal;
+
+		    proxy_pass         http://backend/;
+		    proxy_store        on;
+		    proxy_store_access user:rw group:rw all:r;
+		    proxy_temp_path    /data/temp;
+
+		    alias              /data/www/;
+		}
+		
+	 or like this:
+
+		location /images/ {
+		    root               /data/www;
+		    error_page         404 = @fetch;
+		}
+
+		location @fetch {
+		    internal;
+
+		    proxy_pass         http://backend;
+		    proxy_store        on;
+		    proxy_store_access user:rw group:rw all:r;
+		    proxy_temp_path    /data/temp;
+
+		    root               /data/www;
+		}
+	*/
     { ngx_string("proxy_store"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_http_proxy_store,
@@ -443,7 +488,14 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       NULL },
 
 #if (NGX_HTTP_CACHE)
-
+	/*
+	 Syntax:	proxy_cache zone | off;
+	 Default: 	proxy_cache off;
+	 Context:	http, server, location
+	 
+	 Defines a shared memory zone used for caching. The same zone can be used in several places. 
+	 Parameter value can contain variables (1.7.9). The off parameter disables caching inherited from the previous configuration level.
+	*/
     { ngx_string("proxy_cache"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_http_proxy_cache,
@@ -458,6 +510,65 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       0,
       NULL },
 
+	/*
+	 Syntax:	proxy_cache_path path [levels=levels] [use_temp_path=on|off] keys_zone=name:size [inactive=time] [max_size=size] 
+	 		 	[manager_files=number] [manager_sleep=time] [manager_threshold=time] [loader_files=number] [loader_sleep=time] 
+	 		 	[loader_threshold=time] [purger=on|off] [purger_files=number] [purger_sleep=time] [purger_threshold=time];
+	 Default:	—
+	 Context:	http
+	 
+	 Sets the path and other parameters of a cache. Cache data are stored in files. 
+	 The file name in a cache is a result of applying the MD5 function to the cache key. 
+	 The levels parameter defines hierarchy levels of a cache: from 1 to 3, each level accepts values 1 or 2. 
+	 For example, in the following configuration
+	 	proxy_cache_path /data/nginx/cache levels=1:2 keys_zone=one:10m;
+	 file names in a cache will look like this:
+		/data/nginx/cache/c/29/b7f54b2df7773722d382f4809d65029c
+		
+	 A cached response is first written to a temporary file, and then the file is renamed. 
+	 Starting from version 0.8.9, temporary files and the cache can be put on different file systems. 
+	 However, be aware that in this case a file is copied across two file systems instead of the cheap renaming operation. 
+	 It is thus recommended that for any given location both cache and a directory holding temporary files are put on the same file system. 
+	 The directory for temporary files is set based on the use_temp_path parameter (1.7.10). 
+	 If this parameter is omitted or set to the value on, the directory set by the 'proxy_temp_path' directive for the given location will be used. 
+	 If the value is set to off, temporary files will be put directly in the cache directory.
+
+	 In addition, all active keys and information about data are stored in a shared memory zone, whose name and size are configured by the keys_zone parameter. 
+	 One megabyte zone can store about 8 thousand keys.
+		 As part of commercial subscription, the shared memory zone also stores extended cache information, thus, it is required to specify a larger zone size for the same number of keys. 
+		 For example, one megabyte zone can store about 4 thousand keys.
+
+	 Cached data that are not accessed during the time specified by the inactive parameter get removed from the cache regardless of their freshness. 
+	 By default, inactive is set to 10 minutes.
+
+	 The special “cache manager” process monitors the maximum cache size set by the max_size parameter. 
+	 When this size is exceeded, it removes the least recently used data. 
+	 The data is removed in iterations configured by manager_files, manager_threshold, and manager_sleep parameters (1.11.5). 
+	 During one iteration no more than manager_files items are deleted (by default, 100). 
+	 The duration of one iteration is limited by the manager_threshold parameter (by default, 200 milliseconds). 
+	 Between iterations, a pause configured by the manager_sleep parameter (by default, 50 milliseconds) is made.
+
+	 A minute after the start the special “cache loader” process is activated. 
+	 It loads information about previously cached data stored on file system into a cache zone. 
+	 The loading is also done in iterations. During one iteration no more than loader_files items are loaded (by default, 100). 
+	 Besides, the duration of one iteration is limited by the loader_threshold parameter (by default, 200 milliseconds). 
+	 Between iterations, a pause configured by the loader_sleep parameter (by default, 50 milliseconds) is made.
+
+	 Additionally, the following parameters are available as part of our commercial subscription:
+
+		purger=on|off
+			Instructs whether cache entries that match a wildcard key will be removed from the disk by the cache purger (1.7.12). 
+			Setting the parameter to on (default is off) will activate the “cache purger” process that permanently iterates through all cache entries and deletes the entries that match the wildcard key.
+		purger_files=number
+			Sets the number of items that will be scanned during one iteration (1.7.12). By default, purger_files is set to 10.
+		purger_threshold=number
+			Sets the duration of one iteration (1.7.12). By default, purger_threshold is set to 50 milliseconds.
+		purger_sleep=number
+			Sets a pause between iterations (1.7.12). By default, purger_sleep is set to 50 milliseconds.
+
+		In versions 1.7.3, 1.7.7, and 1.11.10 cache header format has been changed. 
+		Previously cached responses will be considered invalid after upgrading to a newer nginx version.
+	*/
     { ngx_string("proxy_cache_path"),
       NGX_HTTP_MAIN_CONF|NGX_CONF_2MORE,
       ngx_http_file_cache_set_slot,
@@ -507,6 +618,16 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       offsetof(ngx_http_proxy_loc_conf_t, upstream.cache_use_stale),
       &ngx_http_proxy_next_upstream_masks },
 
+	/*
+	 Syntax:	proxy_cache_methods GET | HEAD | POST ...;
+	 Default: 	proxy_cache_methods GET HEAD;
+	 Context:	http, server, location
+	 This directive appeared in version 0.7.59.
+
+	 If the client request method is listed in this directive then the response will be cached. 
+	 “GET” and “HEAD” methods are always added to the list, though it is recommended to specify them explicitly. 
+	 See also the 'proxy_no_cache' directive.
+	*/
     { ngx_string("proxy_cache_methods"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_1MORE,
       ngx_conf_set_bitmask_slot,
@@ -557,7 +678,20 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       NULL },
 
 #endif
+	/*
+	 Syntax:	proxy_temp_path path [level1 [level2 [level3]]];
+	 Default: proxy_temp_path proxy_temp;
+	 Context:	http, server, location
+	 
+	 Defines a directory for storing temporary files with data received from proxied servers. 
+	 Up to three-level subdirectory hierarchy can be used underneath the specified directory. 
+	 For example, in the following configuration
+		proxy_temp_path /spool/nginx/proxy_temp 1 2;
+	 a temporary file might look like this:
+		/spool/nginx/proxy_temp/7/45/00000123457
 
+	 See also the use_temp_path parameter of the 'proxy_cache_path' directive.
+	*/
     { ngx_string("proxy_temp_path"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1234,
       ngx_conf_set_path_slot,
@@ -2763,10 +2897,7 @@ ngx_http_proxy_create_main_conf(ngx_conf_t *cf)
     }
 
 #if (NGX_HTTP_CACHE)
-    if (ngx_array_init(&conf->caches, cf->pool, 4,
-                       sizeof(ngx_http_file_cache_t *))
-        != NGX_OK)
-    {
+    if (ngx_array_init(&conf->caches, cf->pool, 4, sizeof(ngx_http_file_cache_t *)) != NGX_OK) {
         return NULL;
     }
 #endif
@@ -3077,15 +3208,10 @@ ngx_http_proxy_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
                                |NGX_HTTP_UPSTREAM_FT_TIMEOUT));
 
     if (conf->upstream.next_upstream & NGX_HTTP_UPSTREAM_FT_OFF) {
-        conf->upstream.next_upstream = NGX_CONF_BITMASK_SET
-                                       |NGX_HTTP_UPSTREAM_FT_OFF;
+        conf->upstream.next_upstream = NGX_CONF_BITMASK_SET |NGX_HTTP_UPSTREAM_FT_OFF;
     }
 
-    if (ngx_conf_merge_path_value(cf, &conf->upstream.temp_path,
-                              prev->upstream.temp_path,
-                              &ngx_http_proxy_temp_path)
-        != NGX_OK)
-    {
+    if (ngx_conf_merge_path_value(cf, &conf->upstream.temp_path, prev->upstream.temp_path, &ngx_http_proxy_temp_path) != NGX_OK) {
         return NGX_CONF_ERROR;
     }
 
@@ -3093,8 +3219,7 @@ ngx_http_proxy_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 #if (NGX_HTTP_CACHE)
 
     if (conf->upstream.cache == NGX_CONF_UNSET) {
-        ngx_conf_merge_value(conf->upstream.cache,
-                              prev->upstream.cache, 0);
+        ngx_conf_merge_value(conf->upstream.cache, prev->upstream.cache, 0);
 
         conf->upstream.cache_zone = prev->upstream.cache_zone;
         conf->upstream.cache_value = prev->upstream.cache_value;
@@ -3105,9 +3230,7 @@ ngx_http_proxy_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
         shm_zone = conf->upstream.cache_zone;
 
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "\"proxy_cache\" zone \"%V\" is unknown",
-                           &shm_zone->shm.name);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"proxy_cache\" zone \"%V\" is unknown", &shm_zone->shm.name);
 
         return NGX_CONF_ERROR;
     }
@@ -3317,9 +3440,7 @@ ngx_http_proxy_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 #endif
     }
 
-    if (clcf->lmt_excpt && clcf->handler == NULL
-        && (conf->upstream.upstream || conf->proxy_lengths))
-    {
+    if (clcf->lmt_excpt && clcf->handler == NULL && (conf->upstream.upstream || conf->proxy_lengths)) {
         clcf->handler = ngx_http_proxy_handler;
     }
 
@@ -4129,8 +4250,7 @@ ngx_http_proxy_cache(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     if (cv.lengths != NULL) {
 
-        plcf->upstream.cache_value = ngx_palloc(cf->pool,
-                                             sizeof(ngx_http_complex_value_t));
+        plcf->upstream.cache_value = ngx_palloc(cf->pool, sizeof(ngx_http_complex_value_t));
         if (plcf->upstream.cache_value == NULL) {
             return NGX_CONF_ERROR;
         }
@@ -4140,8 +4260,7 @@ ngx_http_proxy_cache(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_OK;
     }
 
-    plcf->upstream.cache_zone = ngx_shared_memory_add(cf, &value[1], 0,
-                                                      &ngx_http_proxy_module);
+    plcf->upstream.cache_zone = ngx_shared_memory_add(cf, &value[1], 0, &ngx_http_proxy_module);
     if (plcf->upstream.cache_zone == NULL) {
         return NGX_CONF_ERROR;
     }

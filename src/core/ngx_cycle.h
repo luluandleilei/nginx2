@@ -138,7 +138,7 @@ typedef struct {
     ngx_str_t                 lock_file;			//lock文件的路径
 
     ngx_str_t                 pid;		//保存master进程ID的pid文件存放路径
-    ngx_str_t                 oldpid;		//NGX_PID_PATH+NGX_OLDPID_EXT  热升级nginx进程的时候用
+    ngx_str_t                 oldpid;	//NGX_PID_PATH+NGX_OLDPID_EXT  热升级nginx进程的时候用
 
     ngx_array_t               env;			//ngx_str_t类型的动态数组, 存储环境变量
     char                    **environment;
