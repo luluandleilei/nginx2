@@ -156,7 +156,7 @@ typedef struct {
 
 struct ngx_http_file_cache_s {
     ngx_http_file_cache_sh_t        *sh;
-    ngx_slab_pool_t                 *shpool;
+    ngx_slab_pool_t                 *shpool;	//该指针指向的对象存在于共享内存中，用于管理共享内存空间的分配对象
 
     ngx_path_t                      *path;		//缓存文件的存储目录
 

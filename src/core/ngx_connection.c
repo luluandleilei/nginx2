@@ -17,8 +17,7 @@ static void ngx_drain_connections(ngx_cycle_t *cycle);
 
 
 ngx_listening_t *
-ngx_create_listening(ngx_conf_t *cf, struct sockaddr *sockaddr,
-    socklen_t socklen)
+ngx_create_listening(ngx_conf_t *cf, struct sockaddr *sockaddr, socklen_t socklen)
 {
     size_t            len;
     ngx_listening_t  *ls;
@@ -54,7 +53,7 @@ ngx_create_listening(ngx_conf_t *cf, struct sockaddr *sockaddr,
 #if (NGX_HAVE_UNIX_DOMAIN)
     case AF_UNIX:
         ls->addr_text_max_len = NGX_UNIX_ADDRSTRLEN;
-        len++;
+        len++;	//XXX: 为什么要加1？
         break;
 #endif
     case AF_INET:
@@ -415,25 +414,16 @@ ngx_open_listening_sockets(ngx_cycle_t *cycle)
 
 #ifdef SO_REUSEPORT_LB
 
-                if (setsockopt(ls[i].fd, SOL_SOCKET, SO_REUSEPORT_LB,
-                               (const void *) &reuseport, sizeof(int))
-                    == -1)
-                {
+                if (setsockopt(ls[i].fd, SOL_SOCKET, SO_REUSEPORT_LB, (const void *) &reuseport, sizeof(int)) == -1) {
                     ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_socket_errno,
-                                  "setsockopt(SO_REUSEPORT_LB) %V failed, "
-                                  "ignored",
-                                  &ls[i].addr_text);
+						"setsockopt(SO_REUSEPORT_LB) %V failed, " "ignored", &ls[i].addr_text);
                 }
 
 #else
 
-                if (setsockopt(ls[i].fd, SOL_SOCKET, SO_REUSEPORT,
-                               (const void *) &reuseport, sizeof(int))
-                    == -1)
-                {
+                if (setsockopt(ls[i].fd, SOL_SOCKET, SO_REUSEPORT, (const void *) &reuseport, sizeof(int)) == -1) {
                     ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_socket_errno,
-                                  "setsockopt(SO_REUSEPORT) %V failed, ignored",
-                                  &ls[i].addr_text);
+						"setsockopt(SO_REUSEPORT) %V failed, ignored", &ls[i].addr_text);
                 }
 #endif
 

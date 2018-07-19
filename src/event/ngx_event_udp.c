@@ -458,8 +458,7 @@ ngx_udp_shared_recv(ngx_connection_t *c, u_char *buf, size_t size)
 
 
 void
-ngx_udp_rbtree_insert_value(ngx_rbtree_node_t *temp,
-    ngx_rbtree_node_t *node, ngx_rbtree_node_t *sentinel)
+ngx_udp_rbtree_insert_value(ngx_rbtree_node_t *temp, ngx_rbtree_node_t *node, ngx_rbtree_node_t *sentinel)
 {
     ngx_int_t               rc;
     ngx_connection_t       *c, *ct;
@@ -484,12 +483,10 @@ ngx_udp_rbtree_insert_value(ngx_rbtree_node_t *temp,
             udpt = (ngx_udp_connection_t *) temp;
             ct = udpt->connection;
 
-            rc = ngx_cmp_sockaddr(c->sockaddr, c->socklen,
-                                  ct->sockaddr, ct->socklen, 1);
+            rc = ngx_cmp_sockaddr(c->sockaddr, c->socklen, ct->sockaddr, ct->socklen, 1);
 
             if (rc == 0 && c->listening->wildcard) {
-                rc = ngx_cmp_sockaddr(c->local_sockaddr, c->local_socklen,
-                                      ct->local_sockaddr, ct->local_socklen, 1);
+                rc = ngx_cmp_sockaddr(c->local_sockaddr, c->local_socklen, ct->local_sockaddr, ct->local_socklen, 1);
             }
 
             p = (rc < 0) ? &temp->left : &temp->right;

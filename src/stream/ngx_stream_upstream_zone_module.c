@@ -10,10 +10,8 @@
 #include <ngx_stream.h>
 
 
-static char *ngx_stream_upstream_zone(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
-static ngx_int_t ngx_stream_upstream_init_zone(ngx_shm_zone_t *shm_zone,
-    void *data);
+static char *ngx_stream_upstream_zone(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static ngx_int_t ngx_stream_upstream_init_zone(ngx_shm_zone_t *shm_zone, void *data);
 static ngx_stream_upstream_rr_peers_t *ngx_stream_upstream_zone_copy_peers(
     ngx_slab_pool_t *shpool, ngx_stream_upstream_srv_conf_t *uscf);
 static ngx_stream_upstream_rr_peer_t *ngx_stream_upstream_zone_copy_peer(
@@ -21,7 +19,19 @@ static ngx_stream_upstream_rr_peer_t *ngx_stream_upstream_zone_copy_peer(
 
 
 static ngx_command_t  ngx_stream_upstream_zone_commands[] = {
+	/*
+	 Syntax:	zone name [size];
+	 Default:	¡ª
+	 Context:	upstream
+	 
+	 Defines the name and size of the shared memory zone that keeps the group¡¯s configuration and run-time state that are shared between worker processes. 
+	 Several groups may share the same zone. In this case, it is enough to specify the zone size only once.
 
+	 Additionally, as part of our commercial subscription, 
+	 such groups allow changing the group membership or modifying the settings of a particular server without the need of restarting nginx. 
+	 The configuration is accessible via the 'API' module (1.13.3).
+		Prior to version 1.13.3, the configuration was accessible only via a special location handled by 'upstream_conf'.
+	*/
     { ngx_string("zone"),
       NGX_STREAM_UPS_CONF|NGX_CONF_TAKE12,
       ngx_stream_upstream_zone,
@@ -75,8 +85,7 @@ ngx_stream_upstream_zone(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     value = cf->args->elts;
 
     if (!value[1].len) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid zone name \"%V\"", &value[1]);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid zone name \"%V\"", &value[1]);
         return NGX_CONF_ERROR;
     }
 
@@ -84,14 +93,12 @@ ngx_stream_upstream_zone(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         size = ngx_parse_size(&value[2]);
 
         if (size == NGX_ERROR) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "invalid zone size \"%V\"", &value[2]);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid zone size \"%V\"", &value[2]);
             return NGX_CONF_ERROR;
         }
 
         if (size < (ssize_t) (8 * ngx_pagesize)) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "zone \"%V\" is too small", &value[1]);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "zone \"%V\" is too small", &value[1]);
             return NGX_CONF_ERROR;
         }
 
@@ -99,8 +106,7 @@ ngx_stream_upstream_zone(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         size = 0;
     }
 
-    uscf->shm_zone = ngx_shared_memory_add(cf, &value[1], size,
-                                           &ngx_stream_upstream_module);
+    uscf->shm_zone = ngx_shared_memory_add(cf, &value[1], size, &ngx_stream_upstream_module);
     if (uscf->shm_zone == NULL) {
         return NGX_CONF_ERROR;
     }

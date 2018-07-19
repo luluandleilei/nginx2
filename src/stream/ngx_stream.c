@@ -476,8 +476,7 @@ ngx_stream_optimize_servers(ngx_conf_t *cf, ngx_array_t *ports)
                 continue;
             }
 
-            ls = ngx_create_listening(cf, &addr[i].opt.sockaddr.sockaddr,
-                                      addr[i].opt.socklen);
+            ls = ngx_create_listening(cf, &addr[i].opt.sockaddr.sockaddr, addr[i].opt.socklen);
             if (ls == NULL) {
                 return NGX_CONF_ERROR;
             }

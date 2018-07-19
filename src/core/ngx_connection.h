@@ -20,7 +20,7 @@ struct ngx_listening_s {
 
     struct sockaddr    *sockaddr;	//本地绑定的套接字地址结构
     socklen_t           socklen;    /* size of sockaddr */
-    size_t              addr_text_max_len;
+    size_t              addr_text_max_len;	//地址的字符串表示的可能的最大长度
     ngx_str_t           addr_text;	//本地绑定的地址的字符串表示
 
     int                 type;
@@ -220,8 +220,7 @@ struct ngx_connection_s {
     }
 
 
-ngx_listening_t *ngx_create_listening(ngx_conf_t *cf, struct sockaddr *sockaddr,
-    socklen_t socklen);
+ngx_listening_t *ngx_create_listening(ngx_conf_t *cf, struct sockaddr *sockaddr, socklen_t socklen);
 ngx_int_t ngx_clone_listening(ngx_conf_t *cf, ngx_listening_t *ls);
 ngx_int_t ngx_set_inherited_sockets(ngx_cycle_t *cycle);
 ngx_int_t ngx_open_listening_sockets(ngx_cycle_t *cycle);

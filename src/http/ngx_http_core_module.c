@@ -501,7 +501,8 @@ static ngx_command_t  ngx_http_core_commands[] = {
 		Do not enable this feature unless the server can handle receiving the same SYN packet with data more than once. //XXX ??
 
 	 backlog=number
-		sets the backlog parameter in the listen() call that limits the maximum length for the queue of pending connections. By default, backlog is set to -1 on FreeBSD, DragonFly BSD, and macOS, and to 511 on other platforms.
+		sets the backlog parameter in the listen() call that limits the maximum length for the queue of pending connections. 
+		By default, backlog is set to -1 on FreeBSD, DragonFly BSD, and macOS, and to 511 on other platforms.
 
 	 rcvbuf=size
 		sets the receive buffer size (the SO_RCVBUF option) for the listening socket.
@@ -4588,9 +4589,7 @@ ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     if (ngx_parse_url(cf->pool, &u) != NGX_OK) {
         if (u.err) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "%s in \"%V\" of the \"listen\" directive",
-                               u.err, &u.url);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "%s in \"%V\" of the \"listen\" directive", u.err, &u.url);
         }
 
         return NGX_CONF_ERROR;

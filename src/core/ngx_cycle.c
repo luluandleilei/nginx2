@@ -318,7 +318,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
             goto failed;
         }
 
-    } else if (!ngx_is_init_cycle(old_cycle)) {
+    } else if (!ngx_is_init_cycle(old_cycle)) {	//reconfigure
 
         /*
          * we do not create the pid file in the first ngx_init_cycle() call
@@ -326,7 +326,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
          */
 
         old_ccf = (ngx_core_conf_t *) ngx_get_conf(old_cycle->conf_ctx, ngx_core_module);
-        if (ccf->pid.len != old_ccf->pid.len || ngx_strcmp(ccf->pid.data, old_ccf->pid.data) != 0) {	//reload配置后指定了新的pid文件
+        if (ccf->pid.len != old_ccf->pid.len || ngx_strcmp(ccf->pid.data, old_ccf->pid.data) != 0) {	//rreconfigure配置后指定了新的pid文件
             /* new pid file name */
 
             if (ngx_create_pidfile(&ccf->pid, log) != NGX_OK) {
@@ -429,7 +429,8 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
                 oshm_zone = opart->elts;
                 n = 0;
             }
-
+				
+			/*XXX:只有在reconfiure才能执行到这里？*/			
             if (shm_zone[i].shm.name.len != oshm_zone[n].shm.name.len) {
                 continue;
             }
@@ -514,10 +515,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
                     nls[n].deferred_accept = ls[i].deferred_accept;
 
                     if (ls[i].accept_filter && nls[n].accept_filter) {
-                        if (ngx_strcmp(ls[i].accept_filter,
-                                       nls[n].accept_filter)
-                            != 0)
-                        {
+                        if (ngx_strcmp(ls[i].accept_filter, nls[n].accept_filter) != 0) {
                             nls[n].delete_deferred = 1;
                             nls[n].add_deferred = 1;
                         }
@@ -690,8 +688,7 @@ old_shm_zone_done:
 
             name = ls[i].addr_text.data + sizeof("unix:") - 1;
 
-            ngx_log_error(NGX_LOG_WARN, cycle->log, 0,
-                          "deleting socket %s", name);
+            ngx_log_error(NGX_LOG_WARN, cycle->log, 0, "deleting socket %s", name);
 
             if (ngx_delete_file(name) == NGX_FILE_ERROR) {
                 ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_socket_errno, ngx_delete_file_n " %s failed", name); }

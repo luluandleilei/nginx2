@@ -91,11 +91,8 @@ ngx_http_file_cache_init(ngx_shm_zone_t *shm_zone, void *data)
 
     if (ocache) {
         if (ngx_strcmp(cache->path->name.data, ocache->path->name.data) != 0) {
-            ngx_log_error(NGX_LOG_EMERG, shm_zone->shm.log, 0,
-                          "cache \"%V\" uses the \"%V\" cache path "
-                          "while previously it used the \"%V\" cache path",
-                          &shm_zone->shm.name, &cache->path->name,
-                          &ocache->path->name);
+            ngx_log_error(NGX_LOG_EMERG, shm_zone->shm.log, 0, "cache \"%V\" uses the \"%V\" cache path "
+				"while previously it used the \"%V\" cache path", &shm_zone->shm.name, &cache->path->name, &ocache->path->name);
 
             return NGX_ERROR;
         }
@@ -103,8 +100,7 @@ ngx_http_file_cache_init(ngx_shm_zone_t *shm_zone, void *data)
         for (n = 0; n < NGX_MAX_PATH_LEVEL; n++) {
             if (cache->path->level[n] != ocache->path->level[n]) {
                 ngx_log_error(NGX_LOG_EMERG, shm_zone->shm.log, 0,
-                              "cache \"%V\" had previously different levels",
-                              &shm_zone->shm.name);
+					"cache \"%V\" had previously different levels", &shm_zone->shm.name);
                 return NGX_ERROR;
             }
         }
@@ -140,8 +136,7 @@ ngx_http_file_cache_init(ngx_shm_zone_t *shm_zone, void *data)
 
     cache->shpool->data = cache->sh;
 
-    ngx_rbtree_init(&cache->sh->rbtree, &cache->sh->sentinel,
-                    ngx_http_file_cache_rbtree_insert_value);
+    ngx_rbtree_init(&cache->sh->rbtree, &cache->sh->sentinel, ngx_http_file_cache_rbtree_insert_value);
 
     ngx_queue_init(&cache->sh->queue);
 
@@ -162,8 +157,7 @@ ngx_http_file_cache_init(ngx_shm_zone_t *shm_zone, void *data)
         return NGX_ERROR;
     }
 
-    ngx_sprintf(cache->shpool->log_ctx, " in cache keys zone \"%V\"%Z",
-                &shm_zone->shm.name);
+    ngx_sprintf(cache->shpool->log_ctx, " in cache keys zone \"%V\"%Z", &shm_zone->shm.name);
 
     cache->shpool->log_nomem = 0;
 
