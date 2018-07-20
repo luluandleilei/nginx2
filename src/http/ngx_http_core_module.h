@@ -68,27 +68,42 @@ typedef struct {
     ngx_sockaddr_t             sockaddr;
     socklen_t                  socklen;
 
-    unsigned                   set:1;
+    unsigned                   set:1;					//设置了套接字相关的选项
     unsigned                   default_server:1;
     unsigned                   bind:1;
     unsigned                   wildcard:1;
     unsigned                   ssl:1;
-    unsigned                   http2:1;
+    unsigned                   http2:1;	
 #if (NGX_HAVE_INET6)
+	//this parameter (0.7.42) determines (via the IPV6_V6ONLY socket option) whether an IPv6 socket listening on a wildcard address [::] will accept only IPv6 connections or both IPv6 and IPv4 connections. 
+	//This parameter is turned on by default. It can only be set once on start.
+	//Prior to version 1.3.4, if this parameter was omitted then the operating system’s settings were in effect for the socket.
     unsigned                   ipv6only:1;
 #endif
+	//instructs to use a deferred accept() (the TCP_DEFER_ACCEPT socket option) on Linux.
     unsigned                   deferred_accept:1;
+	//this parameter (1.9.1) instructs to create an individual listening socket for each worker process (using the SO_REUSEPORT socket option on Linux 3.9+ and DragonFly BSD, or SO_REUSEPORT_LB on FreeBSD 12+), allowing a kernel to distribute incoming connections between worker processes. 
+	//This currently works only on Linux 3.9+, DragonFly BSD, and FreeBSD 12+ (1.15.1).
+	//Inappropriate use of this option may have its security implications.	//XXX: ??
     unsigned                   reuseport:1;
     unsigned                   so_keepalive:2;
     unsigned                   proxy_protocol:1;
 
-    int                        backlog;
-    int                        rcvbuf;
-    int                        sndbuf;
+	//sets the backlog parameter in the listen() call that limits the maximum length for the queue of pending connections. 
+	//By default, backlog is set to -1 on FreeBSD, DragonFly BSD, and macOS, and to 511 on other platforms.
+    int                        backlog;		
+	//sets the receive buffer size (the SO_RCVBUF option) for the listening socket.
+	int                        rcvbuf;	
+	//the send buffer size (the SO_SNDBUF option) for the listening socket.
+    int                        sndbuf;		
 #if (NGX_HAVE_SETFIB)
-    int                        setfib;
+	//this parameter (0.8.44) sets the associated routing table, FIB (the SO_SETFIB option) for the listening socket. 
+	//This currently works only on FreeBSD.	//XXX ??
+    int                        setfib;		
 #endif
 #if (NGX_HAVE_TCP_FASTOPEN)
+	//enables “TCP Fast Open” for the listening socket and limits the maximum length for the queue of connections that have not yet completed the three-way handshake.
+	//Do not enable this feature unless the server can handle receiving the same SYN packet with data more than once.//XXX ??
     int                        fastopen;
 #endif
 #if (NGX_HAVE_KEEPALIVE_TUNABLE)
@@ -98,10 +113,12 @@ typedef struct {
 #endif
 
 #if (NGX_HAVE_DEFERRED_ACCEPT && defined SO_ACCEPTFILTER)
+	//sets the name of accept filter (the SO_ACCEPTFILTER option) for the listening socket that filters incoming connections before passing them to accept(). 
+	//This works only on FreeBSD and NetBSD 5.0+. Possible values are dataready and httpready.
     char                      *accept_filter;
 #endif
 
-    u_char                     addr[NGX_SOCKADDR_STRLEN + 1];
+    u_char                     addr[NGX_SOCKADDR_STRLEN + 1];	//sockaddr的字符串表示形式
 } ngx_http_listen_opt_t;
 
 
@@ -171,7 +188,7 @@ typedef struct {
 
     ngx_hash_keys_arrays_t    *variables_keys;	//缓存各个模块定义的变量(由于nginx的hash需要一次提供所有hash节点来构建hash表)
 
-    ngx_array_t               *ports;
+    ngx_array_t               *ports;	//array of ngx_http_conf_port_t //保存http{}配置块下监听的所有ngx_http_conf_port_t地址
 
     ngx_http_phase_t           phases[NGX_HTTP_LOG_PHASE + 1];
 } ngx_http_core_main_conf_t;
@@ -201,7 +218,7 @@ typedef struct {
     ngx_flag_t                  merge_slashes;
     ngx_flag_t                  underscores_in_headers;	//Enables or disables the use of underscores in client request header fields.
 
-    unsigned                    listen:1;
+    unsigned                    listen:1;	//表示当前server配置块下有listen配置项
 #if (NGX_PCRE)
     unsigned                    captures:1;
 #endif
@@ -266,22 +283,22 @@ typedef struct {
 
 
 typedef struct {
-    ngx_int_t                  family;
-    in_port_t                  port;
+    ngx_int_t                  family;	  //socket协议族
+    in_port_t                  port;	  //监听端口
     ngx_array_t                addrs;     /* array of ngx_http_conf_addr_t */
 } ngx_http_conf_port_t;
 
 
 typedef struct {
-    ngx_http_listen_opt_t      opt;
+    ngx_http_listen_opt_t      opt;		//监听套接字的各种属性
 
-    ngx_hash_t                 hash;
-    ngx_hash_wildcard_t       *wc_head;
-    ngx_hash_wildcard_t       *wc_tail;
+    ngx_hash_t                 hash;	//完全匹配server name的散列表
+    ngx_hash_wildcard_t       *wc_head;	//通配符前置的散列表
+    ngx_hash_wildcard_t       *wc_tail;	//通配符后置的散列表
 
 #if (NGX_PCRE)
-    ngx_uint_t                 nregex;
-    ngx_http_server_name_t    *regex;
+    ngx_uint_t                 nregex;	//regex数组中元素个数
+    ngx_http_server_name_t    *regex;	//
 #endif
 
     /* the default server configuration for this address:port */

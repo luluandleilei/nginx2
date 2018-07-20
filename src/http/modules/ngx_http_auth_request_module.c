@@ -167,14 +167,11 @@ ngx_http_auth_request_handler(ngx_http_request_t *r)
             return ctx->status;
         }
 
-        if (ctx->status >= NGX_HTTP_OK
-            && ctx->status < NGX_HTTP_SPECIAL_RESPONSE)
-        {
+        if (ctx->status >= NGX_HTTP_OK && ctx->status < NGX_HTTP_SPECIAL_RESPONSE) {
             return NGX_OK;
         }
 
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                      "auth request unexpected status: %ui", ctx->status);
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "auth request unexpected status: %ui", ctx->status);
 
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }

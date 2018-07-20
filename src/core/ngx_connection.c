@@ -1063,10 +1063,7 @@ ngx_get_connection(ngx_socket_t s, ngx_log_t *log)
     /* disable warning: Win32 SOCKET is u_int while UNIX socket is int */
 
     if (ngx_cycle->files && (ngx_uint_t) s >= ngx_cycle->files_n) {
-        ngx_log_error(NGX_LOG_ALERT, log, 0,
-                      "the new socket has number %d, "
-                      "but only %ui files are available",
-                      s, ngx_cycle->files_n);
+        ngx_log_error(NGX_LOG_ALERT, log, 0, "the new socket has number %d, " "but only %ui files are available", s, ngx_cycle->files_n);
         return NULL;
     }
 
@@ -1078,9 +1075,7 @@ ngx_get_connection(ngx_socket_t s, ngx_log_t *log)
     }
 
     if (c == NULL) {
-        ngx_log_error(NGX_LOG_ALERT, log, 0,
-                      "%ui worker_connections are not enough",
-                      ngx_cycle->connection_n);
+        ngx_log_error(NGX_LOG_ALERT, log, 0, "%ui worker_connections are not enough", ngx_cycle->connection_n);
 
         return NULL;
     }

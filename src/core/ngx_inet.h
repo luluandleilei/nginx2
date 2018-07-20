@@ -33,13 +33,13 @@
 
 
 typedef union {
-    struct sockaddr           sockaddr;
-    struct sockaddr_in        sockaddr_in;
+    struct sockaddr           sockaddr;		//通用的socket地址结构
+    struct sockaddr_in        sockaddr_in;	//IPv4的socket地址结构
 #if (NGX_HAVE_INET6)
-    struct sockaddr_in6       sockaddr_in6;
+    struct sockaddr_in6       sockaddr_in6;	//IPv6的socket地址结构
 #endif
 #if (NGX_HAVE_UNIX_DOMAIN)
-    struct sockaddr_un        sockaddr_un;
+    struct sockaddr_un        sockaddr_un;	//unix域的socket地址结构
 #endif
 } ngx_sockaddr_t;
 
@@ -79,29 +79,29 @@ typedef struct {
 
 
 typedef struct {
-    ngx_str_t                 url;
-    ngx_str_t                 host;
+    ngx_str_t                 url;			//[in]需要被解析的url
+    ngx_str_t                 host;			//[out]
     ngx_str_t                 port_text;
-    ngx_str_t                 uri;
+    ngx_str_t                 uri;			//[out]uri
 
-    in_port_t                 port;
-    in_port_t                 default_port;
-    int                       family;
+    in_port_t                 port;			//[out]
+    in_port_t                 default_port;	//[in]默认端口
+    int                       family;		//[out]协议族
 
-    unsigned                  listen:1;
-    unsigned                  uri_part:1;
-    unsigned                  no_resolve:1;
+    unsigned                  listen:1;		//[in]XXX:用于对listen配置的解析
+    unsigned                  uri_part:1;	//[in]XXX:包含uri部分
+    unsigned                  no_resolve:1;	//[in]不对域名进行解析
 
-    unsigned                  no_port:1;
-    unsigned                  wildcard:1;
+    unsigned                  no_port:1;	//[out]
+    unsigned                  wildcard:1;	//[out]未指定ip地址，INADDR_ANY
 
     socklen_t                 socklen;
     ngx_sockaddr_t            sockaddr;
 
-    ngx_addr_t               *addrs;
-    ngx_uint_t                naddrs;
+    ngx_addr_t               *addrs;		//[out]
+    ngx_uint_t                naddrs;		//[out]
 
-    char                     *err;
+    char                     *err;			//解析
 } ngx_url_t;
 
 

@@ -1967,7 +1967,7 @@ ngx_http_parse_multi_header_lines(ngx_array_t *headers, ngx_str_t *name,
 
             if (ngx_strncasecmp(start, name->data, name->len) != 0) {
                 goto skip;
-            }
+            } 
 
             for (start += name->len; start < end && *start == ' '; start++) {
                 /* void */

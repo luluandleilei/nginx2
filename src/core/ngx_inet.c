@@ -14,6 +14,7 @@ static ngx_int_t ngx_parse_inet_url(ngx_pool_t *pool, ngx_url_t *u);
 static ngx_int_t ngx_parse_inet6_url(ngx_pool_t *pool, ngx_url_t *u);
 
 
+//将字符串表示形式的IPv4地址转换成in_addr_t表示形式。转换出错，返回INADDR_NONE
 in_addr_t
 ngx_inet_addr(u_char *text, size_t len)
 {
@@ -59,6 +60,15 @@ ngx_inet_addr(u_char *text, size_t len)
 
 #if (NGX_HAVE_INET6)
 
+/*
+将字符串表示形式的IPv6地址转换成128bit位的地址。
+
+IPv6地址的表示形式一般为：
+	2001:0410:0000:1234:FB00:1400:5000:45FF    //首选格式
+	2001:0410 :: 1234:FB00:1400:5000:45FF      //压缩格式(注意压缩格式中，只能有一个地方压缩）
+	0:0:0:0:0:0:138.1.1.1                      //内嵌IPv4
+
+*/
 ngx_int_t
 ngx_inet6_addr(u_char *p, size_t len, u_char *addr)
 {
@@ -70,13 +80,14 @@ ngx_inet6_addr(u_char *p, size_t len, u_char *addr)
         return NGX_ERROR;
     }
 
-    zero = NULL;
-    digit = NULL;
-    len4 = 0;
-    nibbles = 0;
-    word = 0;
-    n = 8;
+    zero = NULL;	//用于记录IPv6中压缩格式出现的位置
+    digit = NULL;	//用于记录一个段中数据出现的起始位置
+    len4 = 0;		//用于记录从当前位置到结束位置的长度（主要是处理内嵌IPv4这一情况)
+    nibbles = 0;	//主要是用于记录一个段的长度（例如上述首选格式，分成8个段，每段长度为4)
+    word = 0;		//主要用于处理每一个段的转换
+    n = 8; 			//IPv6最长有8个段
 
+	//1) 跳过最前面的压缩
     if (p[0] == ':') {
         p++;
         len--;
@@ -85,13 +96,16 @@ ngx_inet6_addr(u_char *p, size_t len, u_char *addr)
     for (/* void */; len; len--) {
         c = *p++;
 
+		//2) 检测完了一段
         if (c == ':') {
             if (nibbles) {
+				//2.1) 将该段进行转换
                 digit = p;
                 len4 = len;
                 *addr++ = (u_char) (word >> 8);
                 *addr++ = (u_char) (word & 0xff);
 
+				//2.2) 判断IPv6最长只能为8段
                 if (--n) {
                     nibbles = 0;
                     word = 0;
@@ -99,6 +113,7 @@ ngx_inet6_addr(u_char *p, size_t len, u_char *addr)
                 }
 
             } else {
+            	 //2.3 记录压缩段的开始
                 if (zero == NULL) {
                     digit = p;
                     len4 = len;
@@ -110,7 +125,7 @@ ngx_inet6_addr(u_char *p, size_t len, u_char *addr)
             return NGX_ERROR;
         }
 
-        if (c == '.' && nibbles) {
+        if (c == '.' && nibbles) {	//3) 处理IPv6中内嵌IPv4的情况
             if (n < 2 || digit == NULL) {
                 return NGX_ERROR;
             }
@@ -127,6 +142,7 @@ ngx_inet6_addr(u_char *p, size_t len, u_char *addr)
             break;
         }
 
+		//4) 转换一个段中的16进制数据
         if (++nibbles > 4) {
             return NGX_ERROR;
         }
@@ -149,10 +165,12 @@ ngx_inet6_addr(u_char *p, size_t len, u_char *addr)
     if (nibbles == 0 && zero == NULL) {
         return NGX_ERROR;
     }
-
+	
+	 //5) 转换最后一个段
     *addr++ = (u_char) (word >> 8);
     *addr++ = (u_char) (word & 0xff);
 
+	//6) 处理有压缩情况下的填充（最终要填充到128bit)
     if (--n) {
         if (zero) {
             n *= 2;
@@ -177,9 +195,10 @@ ngx_inet6_addr(u_char *p, size_t len, u_char *addr)
 #endif
 
 
+//将sockaddr表示形式的地址（IPv4/IPv6/Unix Domain)，转换成字符串表示形式。
+//（注意：这里如果地址是IPv4/IPv6,也会对port参数进行转换）
 size_t
-ngx_sock_ntop(struct sockaddr *sa, socklen_t socklen, u_char *text, size_t len,
-    ngx_uint_t port)
+ngx_sock_ntop(struct sockaddr *sa, socklen_t socklen, u_char *text, size_t len, ngx_uint_t port)
 {
     u_char               *p;
 #if (NGX_HAVE_INET6 || NGX_HAVE_UNIX_DOMAIN)
@@ -201,11 +220,9 @@ ngx_sock_ntop(struct sockaddr *sa, socklen_t socklen, u_char *text, size_t len,
         p = (u_char *) &sin->sin_addr;
 
         if (port) {
-            p = ngx_snprintf(text, len, "%ud.%ud.%ud.%ud:%d",
-                             p[0], p[1], p[2], p[3], ntohs(sin->sin_port));
+            p = ngx_snprintf(text, len, "%ud.%ud.%ud.%ud:%d", p[0], p[1], p[2], p[3], ntohs(sin->sin_port));
         } else {
-            p = ngx_snprintf(text, len, "%ud.%ud.%ud.%ud",
-                             p[0], p[1], p[2], p[3]);
+            p = ngx_snprintf(text, len, "%ud.%ud.%ud.%ud", p[0], p[1], p[2], p[3]);
         }
 
         return (p - text);
@@ -225,8 +242,7 @@ ngx_sock_ntop(struct sockaddr *sa, socklen_t socklen, u_char *text, size_t len,
         n = ngx_inet6_ntop(sin6->sin6_addr.s6_addr, &text[n], len);
 
         if (port) {
-            n = ngx_sprintf(&text[1 + n], "]:%d",
-                            ntohs(sin6->sin6_port)) - text;
+            n = ngx_sprintf(&text[1 + n], "]:%d", ntohs(sin6->sin6_port)) - text;
         }
 
         return n;
@@ -243,8 +259,7 @@ ngx_sock_ntop(struct sockaddr *sa, socklen_t socklen, u_char *text, size_t len,
             p = ngx_snprintf(text, len, "unix:%Z");
 
         } else {
-            n = ngx_strnlen((u_char *) saun->sun_path,
-                            socklen - offsetof(struct sockaddr_un, sun_path));
+            n = ngx_strnlen((u_char *) saun->sun_path, socklen - offsetof(struct sockaddr_un, sun_path));
             p = ngx_snprintf(text, len, "unix:%*s%Z", n, saun->sun_path);
         }
 
@@ -260,6 +275,7 @@ ngx_sock_ntop(struct sockaddr *sa, socklen_t socklen, u_char *text, size_t len,
 }
 
 
+//将IPv4/IPv6地址转换成字符串表示形式。
 size_t
 ngx_inet_ntop(int family, void *addr, u_char *text, size_t len)
 {
@@ -271,9 +287,7 @@ ngx_inet_ntop(int family, void *addr, u_char *text, size_t len)
 
         p = addr;
 
-        return ngx_snprintf(text, len, "%ud.%ud.%ud.%ud",
-                            p[0], p[1], p[2], p[3])
-               - text;
+        return ngx_snprintf(text, len, "%ud.%ud.%ud.%ud", p[0], p[1], p[2], p[3]) - text;
 
 #if (NGX_HAVE_INET6)
 
@@ -290,6 +304,7 @@ ngx_inet_ntop(int family, void *addr, u_char *text, size_t len)
 
 #if (NGX_HAVE_INET6)
 
+//将128bit的IPv6地址转换成IPv6字符串表示形式。
 size_t
 ngx_inet6_ntop(u_char *p, u_char *text, size_t len)
 {
@@ -300,7 +315,9 @@ ngx_inet6_ntop(u_char *p, u_char *text, size_t len)
     if (len < NGX_INET6_ADDRSTRLEN) {
         return 0;
     }
-
+	
+	//1) IPv6地址总共16个字节，每2个字节一组，找出最长连续为0的组，
+   	// 用zero变量记录该组的起始位置，用max记录连续为0的组数目
     zero = (ngx_uint_t) -1;
     last = (ngx_uint_t) -1;
     max = 1;
@@ -329,6 +346,7 @@ ngx_inet6_ntop(u_char *p, u_char *text, size_t len)
         max = n;
     }
 
+	//2) 如果最长连续为0的组在头部（即zero==0)，则进一步判断是否是内嵌IPv4
     dst = text;
     n = 16;
 
@@ -344,6 +362,7 @@ ngx_inet6_ntop(u_char *p, u_char *text, size_t len)
         *dst++ = ':';
     }
 
+	//3) 将每一组转换成IPv6字符串表示形式
     for (i = 0; i < n; i += 2) {
 
         if (i == zero) {
@@ -359,6 +378,7 @@ ngx_inet6_ntop(u_char *p, u_char *text, size_t len)
         }
     }
 
+	//4) 处理内嵌IPv4情况
     if (n == 12) {
         dst = ngx_sprintf(dst, "%ud.%ud.%ud.%ud", p[12], p[13], p[14], p[15]);
     }
@@ -369,6 +389,11 @@ ngx_inet6_ntop(u_char *p, u_char *text, size_t len)
 #endif
 
 
+//将字符串转换成无类域间路由
+//1) 找出无类域间路由中"/"的位置，例如222.80.18.18/25， 该32bit地址中前25位为网络
+// 	 部分，后7位为主机部分。
+//2) 解析"/"前面部分的IP地址，是属于IPv4还是IPv6类型
+//3) 分别计算出IPv4/IPv6无类域间路由的“网络部分”（addr）及“掩码部分”(mask)
 ngx_int_t
 ngx_ptocidr(ngx_str_t *text, ngx_cidr_t *cidr)
 {
@@ -556,6 +581,7 @@ ngx_cidr_match(struct sockaddr *sa, ngx_array_t *cidrs)
 }
 
 
+//将字符串表示的IPv4/IPv6地址转换成ngx_addr_t形式
 ngx_int_t
 ngx_parse_addr(ngx_pool_t *pool, ngx_addr_t *addr, u_char *text, size_t len)
 {
@@ -678,6 +704,10 @@ ngx_parse_addr_port(ngx_pool_t *pool, ngx_addr_t *addr, u_char *text,
 }
 
 
+//解析url，分三种类型：
+//unix域URL: 调用ngx_parse_unix_domain_url()，例如unix:/var/run/nginx.sock	
+//IPv6 URL: 调用ngx_parse_inet6_url()，例如[::1]:5353	
+//IPv4 URL: 调用ngx_parse_inet_url()，例如127.0.0.1:12345
 ngx_int_t
 ngx_parse_url(ngx_pool_t *pool, ngx_url_t *u)
 {
@@ -699,6 +729,7 @@ ngx_parse_url(ngx_pool_t *pool, ngx_url_t *u)
 }
 
 
+//解析Unix域url地址
 static ngx_int_t
 ngx_parse_unix_domain_url(ngx_pool_t *pool, ngx_url_t *u)
 {
@@ -777,7 +808,29 @@ ngx_parse_unix_domain_url(ngx_pool_t *pool, ngx_url_t *u)
 }
 
 
-//Э������:[//��������ַ[:�˿ں�]][/��Դ�㼶UNIX�ļ�·��]�ļ���[?��ѯ][#Ƭ��ID]
+/*
+统一资源定位符的标准格式如下：
+	协议类型:[//服务器地址[:端口号]][/资源层级UNIX文件路径]文件名[?查询][#片段ID]
+
+统一资源定位符的完整格式如下：
+	协议类型:[//[访问资源需要的凭证信息@]服务器地址[:端口号]][/资源层级UNIX文件路径]文件名[?查询][#片段ID]
+
+解析ipv4类型的url地址
+例如：
+localhost:8088/query?id=1001
+listen 8000;
+//1) 找出port, uri以及args字段的起始位置
+
+//2) 解析uri
+
+//3) 解析port: 这里如果url中本身携带有port，则直接转换； 否则进行如下解析：
+//	 若uri为NULL并且u->listen为1(即类似于listen 8000)，调用ngx_atoi()进行转换；
+//	 否则设置u->no_port=1， 然后采用默认的端口
+
+
+//4) 转换u->host部分： 如果host直接是ip地址表示形式，可以直接转换；否则
+//调用ngx_inet_resolve_host()进行域名解析
+*/
 static ngx_int_t
 ngx_parse_inet_url(ngx_pool_t *pool, ngx_url_t *u)
 {
@@ -786,7 +839,7 @@ ngx_parse_inet_url(ngx_pool_t *pool, ngx_url_t *u)
     ngx_int_t             n;
     struct sockaddr_in   *sin;
 #if (NGX_HAVE_INET6)
-    struct sockaddr_in6  *sin6;
+    struct sockaddr_in6  *sin6;	//XXX:为什么还要处理ipv6？
 #endif
 
     u->socklen = sizeof(struct sockaddr_in);
@@ -796,15 +849,16 @@ ngx_parse_inet_url(ngx_pool_t *pool, ngx_url_t *u)
     u->family = AF_INET;
 
     host = u->url.data;
-
     last = host + u->url.len;
 
+	//1) 找出port, uri以及args字段的起始位置
     port = ngx_strlchr(host, last, ':');
 
-    uri = ngx_strlchr(host, last, '/');
+    uri = ngx_strlchr(host, last, '/');	//XXX: uri是什么？怎么感觉指的时path？
 
     args = ngx_strlchr(host, last, '?');
 
+	//2) 解析uri
     if (args) {
         if (uri == NULL || args < uri) {
             uri = args;
@@ -827,6 +881,9 @@ ngx_parse_inet_url(ngx_pool_t *pool, ngx_url_t *u)
         }
     }
 
+	//3) 解析port: 这里如果url中本身携带有port，则直接转换； 否则进行如下解析：
+   	//   若uri为NULL并且u->listen为1(即类似于listen 8000)，调用ngx_atoi()进行转换；
+   	//   否则设置u->no_port=1， 然后采用默认的端口
     if (port) {
         port++;
 
@@ -927,8 +984,7 @@ ngx_parse_inet_url(ngx_pool_t *pool, ngx_url_t *u)
             return NGX_ERROR;
         }
 
-        u->addrs[0].name.len = ngx_sprintf(p, "%V:%d",
-                                           &u->host, u->port) - p;
+        u->addrs[0].name.len = ngx_sprintf(p, "%V:%d", &u->host, u->port) - p;
         u->addrs[0].name.data = p;
 
         return NGX_OK;
@@ -973,6 +1029,13 @@ ngx_parse_inet_url(ngx_pool_t *pool, ngx_url_t *u)
 }
 
 
+/*
+解析ipv6类型的url地址
+例如： listen [::1]:12345
+
+//1) IPv6形式的url以“["开始，首先分析出其中的uri, port
+//2) 转换IPv6的host部分
+*/
 static ngx_int_t
 ngx_parse_inet6_url(ngx_pool_t *pool, ngx_url_t *u)
 {
@@ -1100,6 +1163,21 @@ ngx_parse_inet6_url(ngx_pool_t *pool, ngx_url_t *u)
 }
 
 
+/*
+将主机名解析成url的IP地址
+
+#if (NGX_HAVE_GETADDRINFO && NGX_HAVE_INET6)
+//1) 调用getaddrinfo()解析主机名
+
+//2) 对IPv4及IPv6形式的IP地址保存到ngx_url_t.addrs中
+#else
+// 1) 调用ngx_inet_addr()转换url中的Host主机
+
+//2) 如果转换结果为INADDR_NONE，表明不知直接IPv4表示形式的主机，此时调用
+// gethostbyname()函数来获得主机地址； 否则直接保存对应的ip即可
+#endif
+
+*/
 #if (NGX_HAVE_GETADDRINFO && NGX_HAVE_INET6)
 
 ngx_int_t
@@ -1360,9 +1438,9 @@ ngx_inet_resolve_host(ngx_pool_t *pool, ngx_url_t *u)
 #endif /* NGX_HAVE_GETADDRINFO && NGX_HAVE_INET6 */
 
 
+//比较两个socket地址是否相同
 ngx_int_t
-ngx_cmp_sockaddr(struct sockaddr *sa1, socklen_t slen1,
-    struct sockaddr *sa2, socklen_t slen2, ngx_uint_t cmp_port)
+ngx_cmp_sockaddr(struct sockaddr *sa1, socklen_t slen1, struct sockaddr *sa2, socklen_t slen2, ngx_uint_t cmp_port)
 {
     struct sockaddr_in   *sin1, *sin2;
 #if (NGX_HAVE_INET6)
