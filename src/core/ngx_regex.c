@@ -173,16 +173,12 @@ ngx_regex_compile(ngx_regex_compile_t *rc)
 
 failed:
 
-    rc->err.len = ngx_snprintf(rc->err.data, rc->err.len, p, &rc->pattern, n)
-                  - rc->err.data;
+    rc->err.len = ngx_snprintf(rc->err.data, rc->err.len, p, &rc->pattern, n) - rc->err.data;
     return NGX_ERROR;
 
 nomem:
 
-    rc->err.len = ngx_snprintf(rc->err.data, rc->err.len,
-                               "regex \"%V\" compilation failed: no memory",
-                               &rc->pattern)
-                  - rc->err.data;
+    rc->err.len = ngx_snprintf(rc->err.data, rc->err.len, "regex \"%V\" compilation failed: no memory", &rc->pattern) - rc->err.data;
     return NGX_ERROR;
 }
 
@@ -344,13 +340,10 @@ ngx_regex_module_init(ngx_cycle_t *cycle)
             int jit, n;
 
             jit = 0;
-            n = pcre_fullinfo(elts[i].regex->code, elts[i].regex->extra,
-                              PCRE_INFO_JIT, &jit);
+            n = pcre_fullinfo(elts[i].regex->code, elts[i].regex->extra, PCRE_INFO_JIT, &jit);
 
             if (n != 0 || jit != 1) {
-                ngx_log_error(NGX_LOG_INFO, cycle->log, 0,
-                              "JIT compiler does not support pattern: \"%s\"",
-                              elts[i].name);
+                ngx_log_error(NGX_LOG_INFO, cycle->log, 0, "JIT compiler does not support pattern: \"%s\"", elts[i].name);
             }
         }
 #endif

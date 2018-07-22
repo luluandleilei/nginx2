@@ -66,11 +66,11 @@ typedef struct {
 
 
 typedef struct {
-    ngx_regex_t                  *regex;
+    ngx_regex_t                  *regex;		//
     ngx_uint_t                    ncaptures;
-    ngx_http_regex_variable_t    *variables;
-    ngx_uint_t                    nvariables;
-    ngx_str_t                     name;
+    ngx_http_regex_variable_t    *variables;	//变量数组
+    ngx_uint_t                    nvariables;	//变量数组元素个数
+    ngx_str_t                     name;			//正则表达式字符串
 } ngx_http_regex_t;
 
 

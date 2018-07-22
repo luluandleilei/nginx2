@@ -48,14 +48,13 @@ ngx_queue_middle(ngx_queue_t *queue)
 /* the stable insertion sort */
 
 void
-ngx_queue_sort(ngx_queue_t *queue,
-    ngx_int_t (*cmp)(const ngx_queue_t *, const ngx_queue_t *))
+ngx_queue_sort(ngx_queue_t *queue, ngx_int_t (*cmp)(const ngx_queue_t *, const ngx_queue_t *))
 {
     ngx_queue_t  *q, *prev, *next;
 
     q = ngx_queue_head(queue);
 
-    if (q == ngx_queue_last(queue)) {
+    if (q == ngx_queue_last(queue)) {	//队列中没有元素或者仅有一个元素
         return;
     }
 
@@ -67,7 +66,7 @@ ngx_queue_sort(ngx_queue_t *queue,
         ngx_queue_remove(q);
 
         do {
-            if (cmp(prev, q) <= 0) {
+            if (cmp(prev, q) <= 0) {	//按照从小到大的方式进行排序
                 break;
             }
 

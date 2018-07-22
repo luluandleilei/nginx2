@@ -21,28 +21,28 @@
 
 
 typedef struct {
-    pcre        *code;
-    pcre_extra  *extra;
+    pcre        *code;	//Compiled regular expression
+    pcre_extra  *extra;	//Result of pcre[16|32]_study() or NULL
 } ngx_regex_t;
 
 
 typedef struct {
-    ngx_str_t     pattern;
-    ngx_pool_t   *pool;
-    ngx_int_t     options;
+    ngx_str_t     pattern;			//[in] A zero-terminated string containing the regular expression to be compiled
+    ngx_pool_t   *pool;				//[in]
+    ngx_int_t     options;			//[in]
 
-    ngx_regex_t  *regex;
-    int           captures;
-    int           named_captures;
-    int           name_size;
-    u_char       *names;
-    ngx_str_t     err;
+    ngx_regex_t  *regex;			//[out]
+    int           captures;			//[out]	Number of capturing subpatterns
+    int           named_captures;	//[out] Number of named subpatterns
+    int           name_size;		//[out] Size of name table entry
+    u_char       *names;			//[out] Pointer to name table
+    ngx_str_t     err;				//[out]存放编译正则表达式发生错误时的错误信息
 } ngx_regex_compile_t;
 
 
 typedef struct {
     ngx_regex_t  *regex;
-    u_char       *name;
+    u_char       *name;	//A zero-terminated string containing the regular expression to be compiled
 } ngx_regex_elt_t;
 
 

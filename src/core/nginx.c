@@ -395,7 +395,7 @@ main(int argc, char *const *argv)
     ngx_time_init();	
 
 #if (NGX_PCRE)
-    ngx_regex_init();
+    ngx_regex_init();	//初始化正则库的内存分配/释放函数
 #endif
 
     ngx_pid = ngx_getpid();
