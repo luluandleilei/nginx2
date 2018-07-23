@@ -2340,11 +2340,11 @@ ngx_http_test_content_type(ngx_http_request_t *r, ngx_hash_t *types_hash)
     size_t      len;
     ngx_uint_t  i, hash;
 
-    if (types_hash->size == 0) {
+    if (types_hash->size == 0) {	//matches any MIME type 
         return (void *) 4;
     }
 
-    if (r->headers_out.content_type.len == 0) {
+    if (r->headers_out.content_type.len == 0) {	
         return NULL;
     }
 
@@ -2370,8 +2370,7 @@ ngx_http_test_content_type(ngx_http_request_t *r, ngx_hash_t *types_hash)
         r->headers_out.content_type_hash = hash;
     }
 
-    return ngx_hash_find(types_hash, r->headers_out.content_type_hash,
-                         r->headers_out.content_type_lowcase, len);
+    return ngx_hash_find(types_hash, r->headers_out.content_type_hash, r->headers_out.content_type_lowcase, len);
 }
 
 
@@ -2505,10 +2504,7 @@ ngx_http_weak_etag(ngx_http_request_t *r)
         return;
     }
 
-    if (etag->value.len > 2
-        && etag->value.data[0] == 'W'
-        && etag->value.data[1] == '/')
-    {
+    if (etag->value.len > 2 && etag->value.data[0] == 'W' && etag->value.data[1] == '/') {
         return;
     }
 
@@ -2533,8 +2529,7 @@ ngx_http_weak_etag(ngx_http_request_t *r)
 
 
 ngx_int_t
-ngx_http_send_response(ngx_http_request_t *r, ngx_uint_t status,
-    ngx_str_t *ct, ngx_http_complex_value_t *cv)
+ngx_http_send_response(ngx_http_request_t *r, ngx_uint_t status, ngx_str_t *ct, ngx_http_complex_value_t *cv)
 {
     ngx_int_t     rc;
     ngx_str_t     val;
@@ -2641,8 +2636,7 @@ ngx_http_output_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     c = r->connection;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "http output filter \"%V?%V\"", &r->uri, &r->args);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0, "http output filter \"%V?%V\"", &r->uri, &r->args);
 
     rc = ngx_http_top_body_filter(r, in);
 

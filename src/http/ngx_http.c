@@ -1856,8 +1856,7 @@ ngx_http_types_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             }
 
             type->key = *default_type;
-            type->key_hash = ngx_hash_key(default_type->data,
-                                          default_type->len);
+            type->key_hash = ngx_hash_key(default_type->data, default_type->len);
             type->value = (void *) 4;
         }
     }
@@ -1878,8 +1877,7 @@ ngx_http_types_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         for (n = 0; n < (*types)->nelts; n++) {
 
             if (ngx_strcmp(value[i].data, type[n].key.data) == 0) {
-                ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
-                                   "duplicate MIME type \"%V\"", &value[i]);
+                ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "duplicate MIME type \"%V\"", &value[i]);
                 goto next;
             }
         }
@@ -1904,8 +1902,7 @@ ngx_http_types_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
 char *
 ngx_http_merge_types(ngx_conf_t *cf, ngx_array_t **keys, ngx_hash_t *types_hash,
-    ngx_array_t **prev_keys, ngx_hash_t *prev_types_hash,
-    ngx_str_t *default_types)
+    ngx_array_t **prev_keys, ngx_hash_t *prev_types_hash, ngx_str_t *default_types)
 {
     ngx_hash_init_t  hash;
 
@@ -1934,9 +1931,7 @@ ngx_http_merge_types(ngx_conf_t *cf, ngx_array_t **keys, ngx_hash_t *types_hash,
 
         if (*prev_keys == NULL) {
 
-            if (ngx_http_set_default_types(cf, prev_keys, default_types)
-                != NGX_OK)
-            {
+            if (ngx_http_set_default_types(cf, prev_keys, default_types) != NGX_OK) {
                 return NGX_CONF_ERROR;
             }
 
@@ -1953,9 +1948,7 @@ ngx_http_merge_types(ngx_conf_t *cf, ngx_array_t **keys, ngx_hash_t *types_hash,
         hash.pool = cf->pool;
         hash.temp_pool = NULL;
 
-        if (ngx_hash_init(&hash, (*prev_keys)->elts, (*prev_keys)->nelts)
-            != NGX_OK)
-        {
+        if (ngx_hash_init(&hash, (*prev_keys)->elts, (*prev_keys)->nelts) != NGX_OK) {
             return NGX_CONF_ERROR;
         }
     }
@@ -1968,8 +1961,7 @@ ngx_http_merge_types(ngx_conf_t *cf, ngx_array_t **keys, ngx_hash_t *types_hash,
 
 
 ngx_int_t
-ngx_http_set_default_types(ngx_conf_t *cf, ngx_array_t **types,
-    ngx_str_t *default_type)
+ngx_http_set_default_types(ngx_conf_t *cf, ngx_array_t **types, ngx_str_t *default_type)
 {
     ngx_hash_key_t  *type;
 
@@ -1986,8 +1978,7 @@ ngx_http_set_default_types(ngx_conf_t *cf, ngx_array_t **types,
         }
 
         type->key = *default_type;
-        type->key_hash = ngx_hash_key(default_type->data,
-                                      default_type->len);
+        type->key_hash = ngx_hash_key(default_type->data, default_type->len);
         type->value = (void *) 4;
 
         default_type++;

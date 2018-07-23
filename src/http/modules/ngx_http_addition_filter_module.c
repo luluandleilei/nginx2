@@ -14,8 +14,8 @@ typedef struct {
     ngx_str_t     before_body;
     ngx_str_t     after_body;
 
-    ngx_hash_t    types;
-    ngx_array_t  *types_keys;
+    ngx_hash_t    types;		//根据types_keys构造的散列表
+    ngx_array_t  *types_keys;	//Array of ngx_hash_key_t, 临时存储addition_types配置项添加MIME类型， 当为(void*)-1时表示所有MIME类型
 } ngx_http_addition_conf_t;
 
 
@@ -25,13 +25,19 @@ typedef struct {
 
 
 static void *ngx_http_addition_create_conf(ngx_conf_t *cf);
-static char *ngx_http_addition_merge_conf(ngx_conf_t *cf, void *parent,
-    void *child);
+static char *ngx_http_addition_merge_conf(ngx_conf_t *cf, void *parent, void *child);
 static ngx_int_t ngx_http_addition_filter_init(ngx_conf_t *cf);
 
 
 static ngx_command_t  ngx_http_addition_commands[] = {
-
+	/*
+	 Syntax:	add_before_body uri;
+	 Default:	—
+	 Context:	http, server, location
+	 
+	 Adds the text returned as a result of processing a given subrequest before the response body. 
+	 An empty string ("") as a parameter cancels addition inherited from the previous configuration level.
+	*/
     { ngx_string("add_before_body"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_str_slot,
@@ -39,6 +45,14 @@ static ngx_command_t  ngx_http_addition_commands[] = {
       offsetof(ngx_http_addition_conf_t, before_body),
       NULL },
 
+	/*
+	 Syntax:	add_after_body uri;
+	 Default:	—
+	 Context:	http, server, location
+	 
+	 Adds the text returned as a result of processing a given subrequest after the response body. 
+	 An empty string ("") as a parameter cancels addition inherited from the previous configuration level.
+	*/
     { ngx_string("add_after_body"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_str_slot,
@@ -46,6 +60,15 @@ static ngx_command_t  ngx_http_addition_commands[] = {
       offsetof(ngx_http_addition_conf_t, after_body),
       NULL },
 
+	/*
+	 Syntax:	addition_types mime-type ...;
+	 Default: 	addition_types text/html;
+	 Context:	http, server, location
+	 This directive appeared in version 0.7.9.
+
+	 Allows adding text in responses with the specified MIME types, in addition to “text/html”. 
+	 The special value “*” matches any MIME type (0.8.29).
+	*/
     { ngx_string("addition_types"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_1MORE,
       ngx_http_types_slot,
@@ -144,7 +167,6 @@ ngx_http_addition_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
     }
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_addition_filter_module);
-
     if (ctx == NULL) {
         return ngx_http_next_body_filter(r, in);
     }
@@ -155,9 +177,7 @@ ngx_http_addition_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         ctx->before_body_sent = 1;
 
         if (conf->before_body.len) {
-            if (ngx_http_subrequest(r, &conf->before_body, NULL, &sr, NULL, 0)
-                != NGX_OK)
-            {
+            if (ngx_http_subrequest(r, &conf->before_body, NULL, &sr, NULL, 0) != NGX_OK) {
                 return NGX_ERROR;
             }
         }
@@ -181,13 +201,11 @@ ngx_http_addition_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     rc = ngx_http_next_body_filter(r, in);
 
-    if (rc == NGX_ERROR || !last || conf->after_body.len == 0) {
+    if (rc == NGX_ERROR || !last || conf->after_body.len == 0) {	//XXX:这里为什么还需要判断一遍conf->after_body.len == 0 ???
         return rc;
     }
 
-    if (ngx_http_subrequest(r, &conf->after_body, NULL, &sr, NULL, 0)
-        != NGX_OK)
-    {
+    if (ngx_http_subrequest(r, &conf->after_body, NULL, &sr, NULL, 0) != NGX_OK) {
         return NGX_ERROR;
     }
 
@@ -242,11 +260,8 @@ ngx_http_addition_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_str_value(conf->before_body, prev->before_body, "");
     ngx_conf_merge_str_value(conf->after_body, prev->after_body, "");
 
-    if (ngx_http_merge_types(cf, &conf->types_keys, &conf->types,
-                             &prev->types_keys, &prev->types,
-                             ngx_http_html_default_types)
-        != NGX_OK)
-    {
+    if (ngx_http_merge_types(cf, &conf->types_keys, &conf->types, 
+			&prev->types_keys, &prev->types, ngx_http_html_default_types) != NGX_OK) {
         return NGX_CONF_ERROR;
     }
 

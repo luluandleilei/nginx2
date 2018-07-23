@@ -1082,8 +1082,7 @@ ngx_http_upstream_cache_send(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
 
 static ngx_int_t
-ngx_http_upstream_cache_background_update(ngx_http_request_t *r,
-    ngx_http_upstream_t *u)
+ngx_http_upstream_cache_background_update(ngx_http_request_t *r, ngx_http_upstream_t *u)
 {
     ngx_http_request_t  *sr;
 

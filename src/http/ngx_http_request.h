@@ -277,7 +277,7 @@ typedef struct {
     ngx_str_t                         content_type;
     ngx_str_t                         charset;
     u_char                           *content_type_lowcase;
-    ngx_uint_t                        content_type_hash;
+    ngx_uint_t                        content_type_hash;	//content_type_lowcase对应的散列值
 
     ngx_array_t                       cache_control;
     ngx_array_t                       link;
