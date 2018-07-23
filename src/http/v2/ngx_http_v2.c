@@ -3539,8 +3539,7 @@ ngx_http_v2_parse_header(ngx_http_request_t *r,
 
         cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
 
-        header->hh = ngx_hash_find(&cmcf->headers_in_hash, header->hash,
-                                   h->lowcase_key, h->key.len);
+        header->hh = ngx_hash_find(&cmcf->headers_in_hash, header->hash, h->lowcase_key, h->key.len);
         if (header->hh == NULL) {
             return NGX_ERROR;
         }
@@ -3715,8 +3714,7 @@ ngx_http_v2_construct_cookie_header(ngx_http_request_t *r)
 
     cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
 
-    hh = ngx_hash_find(&cmcf->headers_in_hash, h->hash,
-                       h->lowcase_key, h->key.len);
+    hh = ngx_hash_find(&cmcf->headers_in_hash, h->hash, h->lowcase_key, h->key.len);
 
     if (hh == NULL) {
         ngx_http_v2_close_stream(r->stream, NGX_HTTP_INTERNAL_SERVER_ERROR);

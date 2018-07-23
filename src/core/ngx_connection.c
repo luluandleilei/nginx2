@@ -109,8 +109,7 @@ ngx_clone_listening(ngx_conf_t *cf, ngx_listening_t *ls)
 
     ols = *ls;
 
-    ccf = (ngx_core_conf_t *) ngx_get_conf(cf->cycle->conf_ctx,
-                                           ngx_core_module);
+    ccf = (ngx_core_conf_t *) ngx_get_conf(cf->cycle->conf_ctx, ngx_core_module);
 
     for (n = 1; n < ccf->worker_processes; n++) {
 

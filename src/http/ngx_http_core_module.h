@@ -71,7 +71,7 @@ typedef struct {
     unsigned                   set:1;					//设置了套接字相关的选项
     unsigned                   default_server:1;
     unsigned                   bind:1;
-    unsigned                   wildcard:1;
+    unsigned                   wildcard:1;				//XXX: wildcard address ??
     unsigned                   ssl:1;
     unsigned                   http2:1;	
 #if (NGX_HAVE_INET6)
@@ -172,13 +172,13 @@ typedef struct {
 
     ngx_http_phase_engine_t    phase_engine;
 
-    ngx_hash_t                 headers_in_hash;
+    ngx_hash_t                 headers_in_hash;	//XXX: 将ngx_http_headers_in构造的散列表
 
     ngx_hash_t                 variables_hash;	//存储被散列的变量的散列表
 
     ngx_array_t                variables;         /* ngx_http_variable_t */		//XXX:记录实际被引用的变量 //存储索引过的变量的数组
     ngx_array_t                prefix_variables;  /* ngx_http_variable_t */		//存储前缀匹配的变量的数组
-    ngx_uint_t                 ncaptures;
+    ngx_uint_t                 ncaptures;		  //XXX: max number of capturing subpatterns of server_name
 
     ngx_uint_t                 server_names_hash_max_size;		//the maximum size of the server names hash tables
     ngx_uint_t                 server_names_hash_bucket_size;	//the bucket size for the server names hash tables
@@ -201,7 +201,7 @@ typedef struct {
     /* server ctx */
     ngx_http_conf_ctx_t        *ctx;	//指向当前server块所属的ngx_http_conf_ctx_t结构体
 
-    u_char                     *file_name;
+    u_char                     *file_name;	//
     ngx_uint_t                  line;
 
     ngx_str_t                   server_name;	//当前server块的虚拟主机名，如果存在的话，则会与HTTP请求中的Host头部做匹配，匹配上后由当前ngx_http_core_srv_conf_t处理请求
@@ -260,7 +260,7 @@ struct ngx_http_addr_conf_s {
 
 
 typedef struct {
-    in_addr_t                  addr;
+    in_addr_t                  addr;	 //ip地址（网络字节序）
     ngx_http_addr_conf_t       conf;
 } ngx_http_in_addr_t;
 
@@ -278,7 +278,7 @@ typedef struct {
 typedef struct {
     /* ngx_http_in_addr_t or ngx_http_in6_addr_t */
     void                      *addrs;
-    ngx_uint_t                 naddrs;
+    ngx_uint_t                 naddrs;	//XXX: addrs中元素个数
 } ngx_http_port_t;
 
 
@@ -292,18 +292,17 @@ typedef struct {
 typedef struct {
     ngx_http_listen_opt_t      opt;		//监听套接字的各种属性
 
-    ngx_hash_t                 hash;	//完全匹配server name的散列表
-    ngx_hash_wildcard_t       *wc_head;	//通配符前置的散列表
-    ngx_hash_wildcard_t       *wc_tail;	//通配符后置的散列表
+    ngx_hash_t                 hash;	//完全匹配server_name的散列表
+    ngx_hash_wildcard_t       *wc_head;	//通配符前置的server_name的散列表
+    ngx_hash_wildcard_t       *wc_tail;	//通配符后置的server_name的散列表
 
 #if (NGX_PCRE)
-    ngx_uint_t                 nregex;	//regex数组中元素个数
-    ngx_http_server_name_t    *regex;	//
+    ngx_uint_t                 nregex;	//正则匹配的server_name的数组中元素个数
+    ngx_http_server_name_t    *regex;	//正则匹配的server_name的数组
 #endif
-
-    /* the default server configuration for this address:port */
-    ngx_http_core_srv_conf_t  *default_server;
-    ngx_array_t                servers;  /* array of ngx_http_core_srv_conf_t */
+    
+    ngx_http_core_srv_conf_t  *default_server;	/* the default server configuration for this address:port */
+    ngx_array_t                servers;  		/* array of ngx_http_core_srv_conf_t */
 } ngx_http_conf_addr_t;
 
 

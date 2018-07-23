@@ -288,26 +288,18 @@ static ngx_http_ssi_param_t  ngx_http_ssi_no_params[] = {
 
 
 static ngx_http_ssi_command_t  ngx_http_ssi_commands[] = {
-    { ngx_string("include"), ngx_http_ssi_include,
-                       ngx_http_ssi_include_params, 0, 0, 1 },
-    { ngx_string("echo"), ngx_http_ssi_echo,
-                       ngx_http_ssi_echo_params, 0, 0, 0 },
-    { ngx_string("config"), ngx_http_ssi_config,
-                       ngx_http_ssi_config_params, 0, 0, 0 },
+    { ngx_string("include"), ngx_http_ssi_include, ngx_http_ssi_include_params, 0, 0, 1 },
+    { ngx_string("echo"), ngx_http_ssi_echo, ngx_http_ssi_echo_params, 0, 0, 0 },
+    { ngx_string("config"), ngx_http_ssi_config, ngx_http_ssi_config_params, 0, 0, 0 },
     { ngx_string("set"), ngx_http_ssi_set, ngx_http_ssi_set_params, 0, 0, 0 },
 
     { ngx_string("if"), ngx_http_ssi_if, ngx_http_ssi_if_params, 0, 0, 0 },
-    { ngx_string("elif"), ngx_http_ssi_if, ngx_http_ssi_if_params,
-                       NGX_HTTP_SSI_COND_IF, 0, 0 },
-    { ngx_string("else"), ngx_http_ssi_else, ngx_http_ssi_no_params,
-                       NGX_HTTP_SSI_COND_IF, 0, 0 },
-    { ngx_string("endif"), ngx_http_ssi_endif, ngx_http_ssi_no_params,
-                       NGX_HTTP_SSI_COND_ELSE, 0, 0 },
+    { ngx_string("elif"), ngx_http_ssi_if, ngx_http_ssi_if_params, NGX_HTTP_SSI_COND_IF, 0, 0 },
+    { ngx_string("else"), ngx_http_ssi_else, ngx_http_ssi_no_params, NGX_HTTP_SSI_COND_IF, 0, 0 },
+    { ngx_string("endif"), ngx_http_ssi_endif, ngx_http_ssi_no_params, NGX_HTTP_SSI_COND_ELSE, 0, 0 },
 
-    { ngx_string("block"), ngx_http_ssi_block,
-                       ngx_http_ssi_block_params, 0, 0, 0 },
-    { ngx_string("endblock"), ngx_http_ssi_endblock,
-                       ngx_http_ssi_no_params, 0, 1, 0 },
+    { ngx_string("block"), ngx_http_ssi_block, ngx_http_ssi_block_params, 0, 0, 0 },
+    { ngx_string("endblock"), ngx_http_ssi_endblock, ngx_http_ssi_no_params, 0, 1, 0 },
 
     { ngx_null_string, NULL, NULL, 0, 0, 0 }
 };
@@ -2242,8 +2234,7 @@ ngx_http_ssi_set_variable(ngx_http_request_t *r, void *data, ngx_int_t rc)
 
 
 static ngx_int_t
-ngx_http_ssi_echo(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx,
-    ngx_str_t **params)
+ngx_http_ssi_echo(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx, ngx_str_t **params)
 {
     u_char                     *p;
     uintptr_t                   len;
@@ -2255,8 +2246,7 @@ ngx_http_ssi_echo(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx,
 
     var = params[NGX_HTTP_SSI_ECHO_VAR];
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "ssi echo \"%V\"", var);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "ssi echo \"%V\"", var);
 
     key = ngx_hash_strlow(var->data, var->data, var->len);
 
@@ -2797,16 +2787,14 @@ ngx_http_ssi_preconfiguration(ngx_conf_t *cf)
     smcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_ssi_filter_module);
 
     for (cmd = ngx_http_ssi_commands; cmd->name.len; cmd++) {
-        rc = ngx_hash_add_key(&smcf->commands, &cmd->name, cmd,
-                              NGX_HASH_READONLY_KEY);
+        rc = ngx_hash_add_key(&smcf->commands, &cmd->name, cmd, NGX_HASH_READONLY_KEY);
 
         if (rc == NGX_OK) {
             continue;
         }
 
         if (rc == NGX_BUSY) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "conflicting SSI command \"%V\"", &cmd->name);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "conflicting SSI command \"%V\"", &cmd->name);
         }
 
         return NGX_ERROR;

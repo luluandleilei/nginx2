@@ -36,7 +36,7 @@ typedef struct {
     int           named_captures;	//[out] Number of named subpatterns
     int           name_size;		//[out] Size of name table entry
     u_char       *names;			//[out] Pointer to name table
-    ngx_str_t     err;				//[out]´æ·Å±àÒëÕıÔò±í´ïÊ½·¢Éú´íÎóÊ±µÄ´íÎóĞÅÏ¢
+    ngx_str_t     err;				//[out]	å­˜æ”¾ç¼–è¯‘æ­£åˆ™è¡¨è¾¾å¼å‘ç”Ÿé”™è¯¯æ—¶çš„é”™è¯¯ä¿¡æ¯
 } ngx_regex_compile_t;
 
 

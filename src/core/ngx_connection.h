@@ -16,12 +16,12 @@
 typedef struct ngx_listening_s  ngx_listening_t;
 
 struct ngx_listening_s {
-    ngx_socket_t        fd;		////套接字
+    ngx_socket_t        fd;					////套接字
 
-    struct sockaddr    *sockaddr;	//本地绑定的套接字地址结构
-    socklen_t           socklen;    /* size of sockaddr */
+    struct sockaddr    *sockaddr;			//本地绑定的套接字地址结构
+    socklen_t           socklen;    		/* size of sockaddr */
     size_t              addr_text_max_len;	//地址的字符串表示的可能的最大长度
-    ngx_str_t           addr_text;	//本地绑定的地址的字符串表示
+    ngx_str_t           addr_text;			//本地绑定的地址的字符串表示
 
     int                 type;
 
@@ -54,7 +54,7 @@ struct ngx_listening_s {
     ngx_rbtree_t        rbtree;		//
     ngx_rbtree_node_t   sentinel;
 
-    ngx_uint_t          worker;
+    ngx_uint_t          worker;		//该listen对象所属于的worker进程的编号
 
     unsigned            open:1;
     unsigned            remain:1;
@@ -129,13 +129,14 @@ struct ngx_connection_s {
 	//Arbitrary connection context. Normally, it is a pointer to a higher-level object built on top
 	//of the connection, such as an HTTP request or a Stream session.
     void               *data;	 //连接未使用时，data成员用于充当连接池中空闲连接链表中的next指针。 //当连接被使用时，data的意义由使用它的nginx模块而定，如在HTTP框架中，data指向ngx_http_request_t请求
-    ngx_event_t        *read;	//Read and write events for the connection.//连接对应的读事件
-    ngx_event_t        *write;	//连接对应的写事件
+    ngx_event_t        *read;	//Read events for the connection.	//连接对应的读事件
+    ngx_event_t        *write;	//write events for the connection.	//连接对应的写事件
 
     ngx_socket_t        fd;		//Socket descriptor//连接对象对应的套接字 //连接对应的套接字句柄
 
 	 //下面4个成员以方法指针的形式出现， 说明每个连接都可以采用不同的接收方法， 每个事件消费模块都可以灵活地决定其行为。
     //不同的事件驱动机制需要使用的接收、发送方法多半是不一样的。
+    //recv, send, recv_chain, send_chain — I/O operations for the connection.
     ngx_recv_pt         recv;	//直接接受网络字符流的方法，根据系统环境的不同指向不同的函数
     ngx_send_pt         send;	//直接发送网络字符流的方法，根据系统环境的不同指向不同的函数
     ngx_recv_chain_pt   recv_chain;	//以ngx_chain_t链表为参数来接收网络字节流的方法
@@ -145,9 +146,9 @@ struct ngx_connection_s {
 
     off_t               sent;	//连接上已经发送出去的字节数
 
-    ngx_log_t          *log;	//Connection log.//可以记录日志的ngx_log_t对象
+    ngx_log_t          *log;	//Connection log.	//可以记录日志的ngx_log_t对象
 
-    ngx_pool_t         *pool;	//Connection pool.//内存池。 一般在accept一个新连接时会创建一个内存池，而在这个连接结束时会销毁内存池。 //这个内存池的大小将由上面的listening监听对象中的pool_size成员决定 //注意， 这里所说的连接是指成功建立的TCP连接， 所有的ngx_connection_t结构体都是预分配的。
+    ngx_pool_t         *pool;	//Connection pool.	//内存池。 一般在accept一个新连接时会创建一个内存池，而在这个连接结束时会销毁内存池。 //这个内存池的大小将由上面的listening监听对象中的pool_size成员决定 //注意， 这里所说的连接是指成功建立的TCP连接， 所有的ngx_connection_t结构体都是预分配的。
 
     int                 type;	//套接字类型SOCK_STREAM|SOCK_DATAGRAM
 
@@ -167,7 +168,8 @@ struct ngx_connection_s {
 
     ngx_udp_connection_t  *udp;
 
-	//local_sockaddr, local_socklen — Local socket address in binary form. Initially, these fields are empty. Use the ngx_connection_local_sockaddr() function to get the local socket address.
+	//local_sockaddr, local_socklen — Local socket address in binary form. Initially, these fields are empty. 
+	//Use the ngx_connection_local_sockaddr() function to get the local socket address.
     struct sockaddr    *local_sockaddr;	//本机的监听端口对应的sockaddr结构体，也就是listening监听对象中的sockaddr成员
     socklen_t           local_socklen;
 

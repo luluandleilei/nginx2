@@ -81,122 +81,75 @@ static char *ngx_http_client_errors[] = {
 
 
 ngx_http_header_t  ngx_http_headers_in[] = {
-    { ngx_string("Host"), offsetof(ngx_http_headers_in_t, host),
-                 ngx_http_process_host },
+    { ngx_string("Host"), offsetof(ngx_http_headers_in_t, host), ngx_http_process_host },
 
-    { ngx_string("Connection"), offsetof(ngx_http_headers_in_t, connection),
-                 ngx_http_process_connection },
+    { ngx_string("Connection"), offsetof(ngx_http_headers_in_t, connection), ngx_http_process_connection },
 
-    { ngx_string("If-Modified-Since"),
-                 offsetof(ngx_http_headers_in_t, if_modified_since),
-                 ngx_http_process_unique_header_line },
+    { ngx_string("If-Modified-Since"), offsetof(ngx_http_headers_in_t, if_modified_since), ngx_http_process_unique_header_line },
 
-    { ngx_string("If-Unmodified-Since"),
-                 offsetof(ngx_http_headers_in_t, if_unmodified_since),
-                 ngx_http_process_unique_header_line },
+    { ngx_string("If-Unmodified-Since"), offsetof(ngx_http_headers_in_t, if_unmodified_since), ngx_http_process_unique_header_line },
 
-    { ngx_string("If-Match"),
-                 offsetof(ngx_http_headers_in_t, if_match),
-                 ngx_http_process_unique_header_line },
+    { ngx_string("If-Match"), offsetof(ngx_http_headers_in_t, if_match), ngx_http_process_unique_header_line },
 
-    { ngx_string("If-None-Match"),
-                 offsetof(ngx_http_headers_in_t, if_none_match),
-                 ngx_http_process_unique_header_line },
+    { ngx_string("If-None-Match"), offsetof(ngx_http_headers_in_t, if_none_match), ngx_http_process_unique_header_line },
 
-    { ngx_string("User-Agent"), offsetof(ngx_http_headers_in_t, user_agent),
-                 ngx_http_process_user_agent },
+    { ngx_string("User-Agent"), offsetof(ngx_http_headers_in_t, user_agent), ngx_http_process_user_agent },
 
-    { ngx_string("Referer"), offsetof(ngx_http_headers_in_t, referer),
-                 ngx_http_process_header_line },
+    { ngx_string("Referer"), offsetof(ngx_http_headers_in_t, referer), ngx_http_process_header_line },
 
-    { ngx_string("Content-Length"),
-                 offsetof(ngx_http_headers_in_t, content_length),
-                 ngx_http_process_unique_header_line },
+    { ngx_string("Content-Length"), offsetof(ngx_http_headers_in_t, content_length), ngx_http_process_unique_header_line },
 
-    { ngx_string("Content-Range"),
-                 offsetof(ngx_http_headers_in_t, content_range),
-                 ngx_http_process_unique_header_line },
+    { ngx_string("Content-Range"), offsetof(ngx_http_headers_in_t, content_range), ngx_http_process_unique_header_line },
 
-    { ngx_string("Content-Type"),
-                 offsetof(ngx_http_headers_in_t, content_type),
-                 ngx_http_process_header_line },
+    { ngx_string("Content-Type"), offsetof(ngx_http_headers_in_t, content_type), ngx_http_process_header_line },
 
-    { ngx_string("Range"), offsetof(ngx_http_headers_in_t, range),
-                 ngx_http_process_header_line },
+    { ngx_string("Range"), offsetof(ngx_http_headers_in_t, range), ngx_http_process_header_line },
 
-    { ngx_string("If-Range"),
-                 offsetof(ngx_http_headers_in_t, if_range),
-                 ngx_http_process_unique_header_line },
+    { ngx_string("If-Range"), offsetof(ngx_http_headers_in_t, if_range), ngx_http_process_unique_header_line },
 
-    { ngx_string("Transfer-Encoding"),
-                 offsetof(ngx_http_headers_in_t, transfer_encoding),
-                 ngx_http_process_header_line },
+    { ngx_string("Transfer-Encoding"), offsetof(ngx_http_headers_in_t, transfer_encoding), ngx_http_process_header_line },
 
-    { ngx_string("TE"),
-                 offsetof(ngx_http_headers_in_t, te),
-                 ngx_http_process_header_line },
+    { ngx_string("TE"), offsetof(ngx_http_headers_in_t, te), ngx_http_process_header_line },
 
-    { ngx_string("Expect"),
-                 offsetof(ngx_http_headers_in_t, expect),
-                 ngx_http_process_unique_header_line },
+    { ngx_string("Expect"), offsetof(ngx_http_headers_in_t, expect), ngx_http_process_unique_header_line },
 
-    { ngx_string("Upgrade"),
-                 offsetof(ngx_http_headers_in_t, upgrade),
-                 ngx_http_process_header_line },
+    { ngx_string("Upgrade"), offsetof(ngx_http_headers_in_t, upgrade), ngx_http_process_header_line },
 
 #if (NGX_HTTP_GZIP || NGX_HTTP_HEADERS)
-    { ngx_string("Accept-Encoding"),
-                 offsetof(ngx_http_headers_in_t, accept_encoding),
-                 ngx_http_process_header_line },
+    { ngx_string("Accept-Encoding"), offsetof(ngx_http_headers_in_t, accept_encoding), ngx_http_process_header_line },
 
-    { ngx_string("Via"), offsetof(ngx_http_headers_in_t, via),
-                 ngx_http_process_header_line },
+    { ngx_string("Via"), offsetof(ngx_http_headers_in_t, via), ngx_http_process_header_line },
 #endif
 
-    { ngx_string("Authorization"),
-                 offsetof(ngx_http_headers_in_t, authorization),
-                 ngx_http_process_unique_header_line },
+    { ngx_string("Authorization"), offsetof(ngx_http_headers_in_t, authorization), ngx_http_process_unique_header_line },
 
-    { ngx_string("Keep-Alive"), offsetof(ngx_http_headers_in_t, keep_alive),
-                 ngx_http_process_header_line },
+    { ngx_string("Keep-Alive"), offsetof(ngx_http_headers_in_t, keep_alive), ngx_http_process_header_line },
 
 #if (NGX_HTTP_X_FORWARDED_FOR)
-    { ngx_string("X-Forwarded-For"),
-                 offsetof(ngx_http_headers_in_t, x_forwarded_for),
-                 ngx_http_process_multi_header_lines },
+    { ngx_string("X-Forwarded-For"), offsetof(ngx_http_headers_in_t, x_forwarded_for), ngx_http_process_multi_header_lines },
 #endif
 
 #if (NGX_HTTP_REALIP)
-    { ngx_string("X-Real-IP"),
-                 offsetof(ngx_http_headers_in_t, x_real_ip),
-                 ngx_http_process_header_line },
+    { ngx_string("X-Real-IP"), offsetof(ngx_http_headers_in_t, x_real_ip), ngx_http_process_header_line },
 #endif
 
 #if (NGX_HTTP_HEADERS)
-    { ngx_string("Accept"), offsetof(ngx_http_headers_in_t, accept),
-                 ngx_http_process_header_line },
+    { ngx_string("Accept"), offsetof(ngx_http_headers_in_t, accept), ngx_http_process_header_line },
 
-    { ngx_string("Accept-Language"),
-                 offsetof(ngx_http_headers_in_t, accept_language),
-                 ngx_http_process_header_line },
+    { ngx_string("Accept-Language"), offsetof(ngx_http_headers_in_t, accept_language), ngx_http_process_header_line },
 #endif
 
 #if (NGX_HTTP_DAV)
-    { ngx_string("Depth"), offsetof(ngx_http_headers_in_t, depth),
-                 ngx_http_process_header_line },
+    { ngx_string("Depth"), offsetof(ngx_http_headers_in_t, depth), ngx_http_process_header_line },
 
-    { ngx_string("Destination"), offsetof(ngx_http_headers_in_t, destination),
-                 ngx_http_process_header_line },
+    { ngx_string("Destination"), offsetof(ngx_http_headers_in_t, destination), ngx_http_process_header_line },
 
-    { ngx_string("Overwrite"), offsetof(ngx_http_headers_in_t, overwrite),
-                 ngx_http_process_header_line },
+    { ngx_string("Overwrite"), offsetof(ngx_http_headers_in_t, overwrite), ngx_http_process_header_line },
 
-    { ngx_string("Date"), offsetof(ngx_http_headers_in_t, date),
-                 ngx_http_process_header_line },
+    { ngx_string("Date"), offsetof(ngx_http_headers_in_t, date), ngx_http_process_header_line },
 #endif
 
-    { ngx_string("Cookie"), offsetof(ngx_http_headers_in_t, cookies),
-                 ngx_http_process_multi_header_lines },
+    { ngx_string("Cookie"), offsetof(ngx_http_headers_in_t, cookies), ngx_http_process_multi_header_lines },
 
     { ngx_null_string, 0, NULL }
 };
@@ -1333,16 +1286,13 @@ ngx_http_process_request_headers(ngx_event_t *rev)
                 ngx_strlow(h->lowcase_key, h->key.data, h->key.len);
             }
 
-            hh = ngx_hash_find(&cmcf->headers_in_hash, h->hash,
-                               h->lowcase_key, h->key.len);
+            hh = ngx_hash_find(&cmcf->headers_in_hash, h->hash, h->lowcase_key, h->key.len);
 
             if (hh && hh->handler(r, h, hh->offset) != NGX_OK) {
                 return;
             }
 
-            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                           "http header: \"%V: %V\"",
-                           &h->key, &h->value);
+            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http header: \"%V: %V\"", &h->key, &h->value);
 
             continue;
         }
@@ -2070,9 +2020,7 @@ ngx_http_set_virtual_server(ngx_http_request_t *r, ngx_str_t *host)
 
 #endif
 
-    rc = ngx_http_find_virtual_server(r->connection,
-                                      hc->addr_conf->virtual_names,
-                                      host, r, &cscf);
+    rc = ngx_http_find_virtual_server(r->connection, hc->addr_conf->virtual_names, host, r, &cscf);
 
     if (rc == NGX_ERROR) {
         ngx_http_close_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
@@ -2248,7 +2196,7 @@ ngx_http_run_posted_requests(ngx_connection_t *c)
 
     for ( ;; ) {
 
-        if (c->destroyed) {
+        if (c->destroyed) {	//连接已经断开，直接返回
             return;
         }
 
@@ -2265,8 +2213,7 @@ ngx_http_run_posted_requests(ngx_connection_t *c)
 
         ngx_http_set_log_request(c->log, r);
 
-        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                       "http posted request: \"%V?%V\"", &r->uri, &r->args);
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0, "http posted request: \"%V?%V\"", &r->uri, &r->args);
 
         r->write_event_handler(r);
     }
@@ -3560,8 +3507,7 @@ ngx_http_close_connection(ngx_connection_t *c)
 {
     ngx_pool_t  *pool;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "close http connection: %d", c->fd);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0, "close http connection: %d", c->fd);
 
 #if (NGX_HTTP_SSL)
 

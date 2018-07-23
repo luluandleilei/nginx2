@@ -2324,8 +2324,7 @@ ngx_http_map_find(ngx_http_request_t *r, ngx_http_map_t *map, ngx_str_t *match)
 #if (NGX_PCRE)
 
 static ngx_int_t
-ngx_http_variable_not_found(ngx_http_request_t *r, ngx_http_variable_value_t *v,
-    uintptr_t data)
+ngx_http_variable_not_found(ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data)
 {
     v->not_found = 1;
     return NGX_OK;
@@ -2364,7 +2363,6 @@ ngx_http_regex_compile(ngx_conf_t *cf, ngx_regex_compile_t *rc)
     cmcf->ncaptures = ngx_max(cmcf->ncaptures, re->ncaptures);
 
     n = (ngx_uint_t) rc->named_captures;
-
     if (n == 0) {
         return re;
     }

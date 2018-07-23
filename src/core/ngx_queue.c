@@ -54,7 +54,7 @@ ngx_queue_sort(ngx_queue_t *queue, ngx_int_t (*cmp)(const ngx_queue_t *, const n
 
     q = ngx_queue_head(queue);
 
-    if (q == ngx_queue_last(queue)) {	//¶ÓÁÐÖÐÃ»ÓÐÔªËØ»òÕß½öÓÐÒ»¸öÔªËØ
+    if (q == ngx_queue_last(queue)) {	//é˜Ÿåˆ—ä¸­æ²¡æœ‰å…ƒç´ æˆ–è€…ä»…æœ‰ä¸€ä¸ªå…ƒç´ 
         return;
     }
 
@@ -66,7 +66,7 @@ ngx_queue_sort(ngx_queue_t *queue, ngx_int_t (*cmp)(const ngx_queue_t *, const n
         ngx_queue_remove(q);
 
         do {
-            if (cmp(prev, q) <= 0) {	//°´ÕÕ´ÓÐ¡µ½´óµÄ·½Ê½½øÐÐÅÅÐò
+            if (cmp(prev, q) <= 0) {	//æŒ‰ç…§ä»Žå°åˆ°å¤§çš„æ–¹å¼è¿›è¡ŒæŽ’åº
                 break;
             }
 

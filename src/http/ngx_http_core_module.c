@@ -30,11 +30,9 @@ static ngx_int_t ngx_http_core_postconfiguration(ngx_conf_t *cf);
 static void *ngx_http_core_create_main_conf(ngx_conf_t *cf);
 static char *ngx_http_core_init_main_conf(ngx_conf_t *cf, void *conf);
 static void *ngx_http_core_create_srv_conf(ngx_conf_t *cf);
-static char *ngx_http_core_merge_srv_conf(ngx_conf_t *cf,
-    void *parent, void *child);
+static char *ngx_http_core_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child);
 static void *ngx_http_core_create_loc_conf(ngx_conf_t *cf);
-static char *ngx_http_core_merge_loc_conf(ngx_conf_t *cf,
-    void *parent, void *child);
+static char *ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
 
 static char *ngx_http_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy);
 static char *ngx_http_core_location(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy);
@@ -772,6 +770,7 @@ static ngx_command_t  ngx_http_core_commands[] = {
 	 Syntax:	limit_except method ... { ... }
 	 Default:	—
 	 Context:	location
+	 
 	 Limits allowed HTTP methods inside a location. 
 	 The method parameter can be one of the following: GET, HEAD, POST, PUT, DELETE, MKCOL, COPY, MOVE, OPTIONS, PROPFIND, PROPPATCH, LOCK, UNLOCK, or PATCH. 
 	 Allowing the GET method makes the HEAD method also allowed. 
@@ -3107,8 +3106,7 @@ ngx_http_subrequest(ngx_http_request_t *r,
     ngx_http_postponed_request_t  *pr, *p;
 
     if (r->subrequests == 0) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                      "subrequests cycle while processing \"%V\"", uri);
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "subrequests cycle while processing \"%V\"", uri);
         return NGX_ERROR;
     }
 
@@ -3116,15 +3114,12 @@ ngx_http_subrequest(ngx_http_request_t *r,
      * 1000 is reserved for other purposes.
      */
     if (r->main->count >= 65535 - 1000) {
-        ngx_log_error(NGX_LOG_CRIT, r->connection->log, 0,
-                      "request reference counter overflow "
-                      "while processing \"%V\"", uri);
+        ngx_log_error(NGX_LOG_CRIT, r->connection->log, 0, "request reference counter overflow " "while processing \"%V\"", uri);
         return NGX_ERROR;
     }
 
     if (r->subrequest_in_memory) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                      "nested in-memory subrequest \"%V\"", uri);
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "nested in-memory subrequest \"%V\"", uri);
         return NGX_ERROR;
     }
 
@@ -3196,8 +3191,8 @@ ngx_http_subrequest(ngx_http_request_t *r,
     sr->main = r->main;
     sr->parent = r;
     sr->post_subrequest = ps;
-    sr->read_event_handler = ngx_http_request_empty_handler;
-    sr->write_event_handler = ngx_http_handler;
+    sr->read_event_handler = ngx_http_request_empty_handler;	//读事件handler赋值为不做任何事的函数，因为子请求不用再读数据或者检查连接状态；
+    sr->write_event_handler = ngx_http_handler;	//写事件handler为ngx_http_handler，它会重走phase 
 
     sr->variables = r->variables;
 
@@ -4092,10 +4087,7 @@ ngx_http_core_create_srv_conf(ngx_conf_t *cf)
      *     conf->client_large_buffers.num = 0;
      */
 
-    if (ngx_array_init(&cscf->server_names, cf->temp_pool, 4,
-                       sizeof(ngx_http_server_name_t))
-        != NGX_OK)
-    {
+    if (ngx_array_init(&cscf->server_names, cf->temp_pool, 4, sizeof(ngx_http_server_name_t)) != NGX_OK) {
         return NULL;
     }
 
@@ -4125,31 +4117,21 @@ ngx_http_core_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
 
     /* TODO: it does not merge, it inits only */
 
-    ngx_conf_merge_size_value(conf->connection_pool_size,
-                              prev->connection_pool_size, 64 * sizeof(void *));
-    ngx_conf_merge_size_value(conf->request_pool_size,
-                              prev->request_pool_size, 4096);
-    ngx_conf_merge_msec_value(conf->client_header_timeout,
-                              prev->client_header_timeout, 60000);
+    ngx_conf_merge_size_value(conf->connection_pool_size, prev->connection_pool_size, 64 * sizeof(void *));
+    ngx_conf_merge_size_value(conf->request_pool_size, prev->request_pool_size, 4096);
+    ngx_conf_merge_msec_value(conf->client_header_timeout, prev->client_header_timeout, 60000);
     ngx_conf_merge_size_value(conf->client_header_buffer_size, prev->client_header_buffer_size, 1024);
-    ngx_conf_merge_bufs_value(conf->large_client_header_buffers,
-                              prev->large_client_header_buffers,
-                              4, 8192);
-
+    ngx_conf_merge_bufs_value(conf->large_client_header_buffers, prev->large_client_header_buffers, 4, 8192); 
     if (conf->large_client_header_buffers.size < conf->connection_pool_size) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "the \"large_client_header_buffers\" size must be "
-                           "equal to or greater than \"connection_pool_size\"");
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "the \"large_client_header_buffers\" size must be " "equal to or greater than \"connection_pool_size\"");
         return NGX_CONF_ERROR;
     }
 
-    ngx_conf_merge_value(conf->ignore_invalid_headers,
-                              prev->ignore_invalid_headers, 1);
+    ngx_conf_merge_value(conf->ignore_invalid_headers, prev->ignore_invalid_headers, 1);
 
     ngx_conf_merge_value(conf->merge_slashes, prev->merge_slashes, 1);
 
-    ngx_conf_merge_value(conf->underscores_in_headers,
-                              prev->underscores_in_headers, 0);
+    ngx_conf_merge_value(conf->underscores_in_headers, prev->underscores_in_headers, 0);
 
     if (conf->server_names.nelts == 0) {
         /* the array has 4 empty preallocated elements, so push cannot fail */
@@ -4965,6 +4947,7 @@ ngx_http_core_server_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             return NGX_CONF_ERROR;
         }
 
+		//跳过开头的'~'字符
         value[i].len--;
         value[i].data++;
 

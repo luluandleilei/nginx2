@@ -67,10 +67,10 @@ typedef struct {
 
 typedef struct {
     ngx_regex_t                  *regex;		//
-    ngx_uint_t                    ncaptures;
+    ngx_uint_t                    ncaptures;	//Number of capturing subpatterns
     ngx_http_regex_variable_t    *variables;	//变量数组
     ngx_uint_t                    nvariables;	//变量数组元素个数
-    ngx_str_t                     name;			//正则表达式字符串
+    ngx_str_t                     name;			//正则表达式字符串 //A zero-terminated string containing the regular expression to be compiled
 } ngx_http_regex_t;
 
 

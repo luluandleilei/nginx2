@@ -352,9 +352,7 @@ ngx_http_referer_merge_conf(ngx_conf_t *cf, void *parent, void *child)
 #if (NGX_PCRE)
             if (sn[n].regex) {
 
-                if (ngx_http_add_regex_server_name(cf, conf, sn[n].regex)
-                    != NGX_OK)
-                {
+                if (ngx_http_add_regex_server_name(cf, conf, sn[n].regex) != NGX_OK) {
                     return NGX_CONF_ERROR;
                 }
 
@@ -362,9 +360,7 @@ ngx_http_referer_merge_conf(ngx_conf_t *cf, void *parent, void *child)
             }
 #endif
 
-            if (ngx_http_add_referer(cf, conf->keys, &sn[n].name, NULL)
-                != NGX_OK)
-            {
+            if (ngx_http_add_referer(cf, conf->keys, &sn[n].name, NULL) != NGX_OK) {
                 return NGX_CONF_ERROR;
             }
         }

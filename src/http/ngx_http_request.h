@@ -62,7 +62,7 @@
 
 /* unused                                  1 */
 #define NGX_HTTP_SUBREQUEST_IN_MEMORY      2
-#define NGX_HTTP_SUBREQUEST_WAITED         4
+#define NGX_HTTP_SUBREQUEST_WAITED         4	//表示如果该子请求提前完成(按后续遍历的顺序)，是否设置将它的状态设为done，当设置该参数时，提前完成就会设置done，不设时，会让该子请求等待它之前的子请求处理完毕才会将状态设置为done
 #define NGX_HTTP_SUBREQUEST_CLONE          8
 #define NGX_HTTP_SUBREQUEST_BACKGROUND     16
 
@@ -402,7 +402,7 @@ struct ngx_http_request_s {
     ngx_msec_t                        start_msec;
 
     ngx_uint_t                        method;
-    ngx_uint_t                        http_version;
+    ngx_uint_t                        http_version;	//Client HTTP protocol version in numeric form (NGX_HTTP_VERSION_10, NGX_HTTP_VERSION_11, etc.).
 
     ngx_str_t                         request_line;
     ngx_str_t                         uri;
@@ -411,17 +411,24 @@ struct ngx_http_request_s {
     ngx_str_t                         unparsed_uri;
 
     ngx_str_t                         method_name;
-    ngx_str_t                         http_protocol;
+    ngx_str_t                         http_protocol;	//Client HTTP protocol version in its original text form (“HTTP/1.0”, “HTTP/1.1” etc).
     ngx_str_t                         schema;
 
     ngx_chain_t                      *out;
-    ngx_http_request_t               *main;			//Pointer to a main request object. This object is created to process a client HTTP request, as opposed to subrequests, which are created to perform a specific subtask within the main request.
+	//Pointer to a main request object. 
+	//This object is created to process a client HTTP request, as opposed to subrequests, which are created to perform a specific subtask within the main request.
+    ngx_http_request_t               *main;			
     ngx_http_request_t               *parent;		//Pointer to the parent request of a subrequest.
-    ngx_http_postponed_request_t     *postponed;
-    ngx_http_post_subrequest_t       *post_subrequest;
-    ngx_http_posted_request_t        *posted_requests;
+    //List of output buffers and subrequests, in the order in which they are sent and created. 
+    //The list is used by the postpone filter to provide consistent request output when parts of it are created by subrequests.
+    ngx_http_postponed_request_t     *postponed;	
+	//Pointer to a handler with the context to be called when a subrequest gets finalized. Unused for main requests.
+	ngx_http_post_subrequest_t       *post_subrequest;	
+	//List of requests to be started or resumed, which is done by calling the request's write_event_handler. 
+	//Normally, this handler holds the request main function, which at first runs request phases and then produces the output.
+	ngx_http_posted_request_t        *posted_requests;	
 
-    ngx_int_t                         phase_handler;
+    ngx_int_t                         phase_handler;	//Index of current request phase.
     ngx_http_handler_pt               content_handler;
     ngx_uint_t                        access_code;
 
@@ -584,8 +591,8 @@ struct ngx_http_request_s {
     u_char                           *port_start;
     u_char                           *port_end;
 
-    unsigned                          http_minor:16;
-    unsigned                          http_major:16;
+    unsigned                          http_minor:16;	//Client HTTP protocol version in numeric form split into major and minor parts.
+    unsigned                          http_major:16;	//Client HTTP protocol version in numeric form split into major and minor parts.
 };
 
 
