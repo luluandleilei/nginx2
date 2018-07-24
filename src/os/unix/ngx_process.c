@@ -30,10 +30,10 @@ int              ngx_argc;
 char           **ngx_argv;		//nginx对操作系统传递的argv的一份拷贝
 char           **ngx_os_argv;	//指向操作系统传递给进程的argv参数，//ngx_argv, ngx_os_argv有和区别
 
-ngx_int_t        ngx_process_slot;	//XXX：master进程正在使用xxx;当前的work进程使用ngx_processes数组内的元素的下标
-ngx_socket_t     ngx_channel;		//XXX: 当前Work进程XXX
-ngx_int_t        ngx_last_process;	//ngx_processes数组中下一个可以使用的空闲一个对象的索引
-ngx_process_t    ngx_processes[NGX_MAX_PROCESSES];
+ngx_int_t        ngx_process_slot;	//XXX：master进程当前正在处理的(使用的)xxx;worker进程使用ngx_processes数组内的元素的下标
+ngx_socket_t     ngx_channel;		//XXX: 当前Worker进程XXX
+ngx_int_t        ngx_last_process;	//当前使用ngx_processes数组的最大索引
+ngx_process_t    ngx_processes[NGX_MAX_PROCESSES];	//master进程用于记录每个子进程(worker进程，cache进程等)的状态
 
 //罗列了nginx将要处理的信号，handle为空表示用SIG_IGN进行处理
 //未罗列的信号将按照系统默认的方式进行处理
@@ -85,99 +85,89 @@ ngx_signal_t  signals[] = {
 
 
 ngx_pid_t
-ngx_spawn_process(ngx_cycle_t *cycle, ngx_spawn_proc_pt proc, void *data,
-    char *name, ngx_int_t respawn)
+ngx_spawn_process(ngx_cycle_t *cycle, ngx_spawn_proc_pt proc, void *data, char *name, ngx_int_t respawn)
 {
     u_long     on;
     ngx_pid_t  pid;
-    ngx_int_t  s;
+    ngx_int_t  s;	//表示将要fork的子进程在ngx_processes中的位置，  
 
-	//查找ngx_processes数组内第一个可用元素的下标，用s指向之
-    if (respawn >= 0) {	
+	/*查找ngx_processes数组内第一个可用元素的下标，用s指向之*/
+	
+    if (respawn >= 0) {	//如果传递进来的类型大于0,则就是已经确定这个进程已经退出，我们就可以直接确定slot
         s = respawn;
 
-    } else {
-        for (s = 0; s < ngx_last_process; s++) {
+    } else {	
+        for (s = 0; s < ngx_last_process; s++) {//遍历ngx_processess，从而找到空闲的slot，
             if (ngx_processes[s].pid == -1) {
                 break;
             }
         }
 
+		//没有空闲的slot，新分配一个
         if (s == NGX_MAX_PROCESSES) {
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, 0,
-                          "no more than %d processes can be spawned",
-                          NGX_MAX_PROCESSES);
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, 0, "no more than %d processes can be spawned", NGX_MAX_PROCESSES);
             return NGX_INVALID_PID;
         }
     }
 
-
+	/*设置ngx_processes.channel*/
+	
     if (respawn != NGX_PROCESS_DETACHED) {
 
         /* Solaris 9 still has no AF_LOCAL */
 
-        if (socketpair(AF_UNIX, SOCK_STREAM, 0, ngx_processes[s].channel) == -1)
-        {
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                          "socketpair() failed while spawning \"%s\"", name);
+		//建立socketpair  
+        if (socketpair(AF_UNIX, SOCK_STREAM, 0, ngx_processes[s].channel) == -1) {
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "socketpair() failed while spawning \"%s\"", name);
             return NGX_INVALID_PID;
         }
 
-        ngx_log_debug2(NGX_LOG_DEBUG_CORE, cycle->log, 0,
-                       "channel %d:%d",
-                       ngx_processes[s].channel[0],
-                       ngx_processes[s].channel[1]);
+        ngx_log_debug2(NGX_LOG_DEBUG_CORE, cycle->log, 0, "channel %d:%d", ngx_processes[s].channel[0], ngx_processes[s].channel[1]);
 
+		//设置非阻塞模式
         if (ngx_nonblocking(ngx_processes[s].channel[0]) == -1) {
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                          ngx_nonblocking_n " failed while spawning \"%s\"",
-                          name);
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, ngx_nonblocking_n " failed while spawning \"%s\"", name);
             ngx_close_channel(ngx_processes[s].channel, cycle->log);
             return NGX_INVALID_PID;
         }
 
         if (ngx_nonblocking(ngx_processes[s].channel[1]) == -1) {
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                          ngx_nonblocking_n " failed while spawning \"%s\"",
-                          name);
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, ngx_nonblocking_n " failed while spawning \"%s\"", name);
             ngx_close_channel(ngx_processes[s].channel, cycle->log);
             return NGX_INVALID_PID;
         }
 
+		//打开异步模式  
         on = 1;
         if (ioctl(ngx_processes[s].channel[0], FIOASYNC, &on) == -1) {
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                          "ioctl(FIOASYNC) failed while spawning \"%s\"", name);
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "ioctl(FIOASYNC) failed while spawning \"%s\"", name);
             ngx_close_channel(ngx_processes[s].channel, cycle->log);
             return NGX_INVALID_PID;
         }
 
+		//设置异步io的所有者  
         if (fcntl(ngx_processes[s].channel[0], F_SETOWN, ngx_pid) == -1) {
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                          "fcntl(F_SETOWN) failed while spawning \"%s\"", name);
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "fcntl(F_SETOWN) failed while spawning \"%s\"", name);
             ngx_close_channel(ngx_processes[s].channel, cycle->log);
             return NGX_INVALID_PID;
         }
 
-        if (fcntl(ngx_processes[s].channel[0], F_SETFD, FD_CLOEXEC) == -1) {
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                          "fcntl(FD_CLOEXEC) failed while spawning \"%s\"",
-                           name);
+		//当exec后关闭句柄
+        if (fcntl(ngx_processes[s].channel[0], F_SETFD, FD_CLOEXEC) == -1) {	
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "fcntl(FD_CLOEXEC) failed while spawning \"%s\"", name);
             ngx_close_channel(ngx_processes[s].channel, cycle->log);
             return NGX_INVALID_PID;
         }
 
         if (fcntl(ngx_processes[s].channel[1], F_SETFD, FD_CLOEXEC) == -1) {
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                          "fcntl(FD_CLOEXEC) failed while spawning \"%s\"",
-                           name);
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "fcntl(FD_CLOEXEC) failed while spawning \"%s\"", name);
             ngx_close_channel(ngx_processes[s].channel, cycle->log);
             return NGX_INVALID_PID;
         }
 
-        ngx_channel = ngx_processes[s].channel[1];
+        ngx_channel = ngx_processes[s].channel[1];	//设置当前的子进程的句柄 
 
-    } else {
+    } else {	//如果类型为NGX_PROCESS_DETACHED，则说明是热代码替换(热代码替换也是通过这个函数进行处理的)，因此不需要新建socketpair。
         ngx_processes[s].channel[0] = -1;
         ngx_processes[s].channel[1] = -1;
     }
@@ -189,20 +179,19 @@ ngx_spawn_process(ngx_cycle_t *cycle, ngx_spawn_proc_pt proc, void *data,
 
     switch (pid) {
 
-    case -1:
-        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                      "fork() failed while spawning \"%s\"", name);
-        ngx_close_channel(ngx_processes[s].channel, cycle->log);
-        return NGX_INVALID_PID;
+	    case -1:
+	        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "fork() failed while spawning \"%s\"", name);
+	        ngx_close_channel(ngx_processes[s].channel, cycle->log);
+	        return NGX_INVALID_PID;
 
-    case 0:
-        ngx_parent = ngx_pid;
-        ngx_pid = ngx_getpid();
-        proc(cycle, data);
-        break;
+	    case 0:
+	        ngx_parent = ngx_pid;
+	        ngx_pid = ngx_getpid();
+	        proc(cycle, data);
+	        break;
 
-    default:
-        break;
+	    default:
+	        break;
     }
 
     ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0, "start %s %P", name, pid);
@@ -221,35 +210,35 @@ ngx_spawn_process(ngx_cycle_t *cycle, ngx_spawn_proc_pt proc, void *data,
 
     switch (respawn) {
 
-    case NGX_PROCESS_NORESPAWN:
-        ngx_processes[s].respawn = 0;
-        ngx_processes[s].just_spawn = 0;
-        ngx_processes[s].detached = 0;
-        break;
+	    case NGX_PROCESS_NORESPAWN:
+	        ngx_processes[s].respawn = 0;
+	        ngx_processes[s].just_spawn = 0;
+	        ngx_processes[s].detached = 0;
+	        break;
 
-    case NGX_PROCESS_JUST_SPAWN:
-        ngx_processes[s].respawn = 0;
-        ngx_processes[s].just_spawn = 1;
-        ngx_processes[s].detached = 0;
-        break;
+	    case NGX_PROCESS_JUST_SPAWN:
+	        ngx_processes[s].respawn = 0;
+	        ngx_processes[s].just_spawn = 1;
+	        ngx_processes[s].detached = 0;
+	        break;
 
-    case NGX_PROCESS_RESPAWN:
-        ngx_processes[s].respawn = 1;
-        ngx_processes[s].just_spawn = 0;
-        ngx_processes[s].detached = 0;
-        break;
+	    case NGX_PROCESS_RESPAWN:
+	        ngx_processes[s].respawn = 1;
+	        ngx_processes[s].just_spawn = 0;
+	        ngx_processes[s].detached = 0;
+	        break;
 
-    case NGX_PROCESS_JUST_RESPAWN:
-        ngx_processes[s].respawn = 1;
-        ngx_processes[s].just_spawn = 1;
-        ngx_processes[s].detached = 0;
-        break;
+	    case NGX_PROCESS_JUST_RESPAWN:
+	        ngx_processes[s].respawn = 1;
+	        ngx_processes[s].just_spawn = 1;
+	        ngx_processes[s].detached = 0;
+	        break;
 
-    case NGX_PROCESS_DETACHED:
-        ngx_processes[s].respawn = 0;
-        ngx_processes[s].just_spawn = 0;
-        ngx_processes[s].detached = 1;
-        break;
+	    case NGX_PROCESS_DETACHED:
+	        ngx_processes[s].respawn = 0;
+	        ngx_processes[s].just_spawn = 0;
+	        ngx_processes[s].detached = 1;
+	        break;
     }
 
     if (s == ngx_last_process) {
@@ -263,8 +252,7 @@ ngx_spawn_process(ngx_cycle_t *cycle, ngx_spawn_proc_pt proc, void *data,
 ngx_pid_t
 ngx_execute(ngx_cycle_t *cycle, ngx_exec_ctx_t *ctx)
 {
-    return ngx_spawn_process(cycle, ngx_execute_proc, ctx, ctx->name,
-                             NGX_PROCESS_DETACHED);
+    return ngx_spawn_process(cycle, ngx_execute_proc, ctx, ctx->name, NGX_PROCESS_DETACHED);
 }
 
 
@@ -274,9 +262,7 @@ ngx_execute_proc(ngx_cycle_t *cycle, void *data)
     ngx_exec_ctx_t  *ctx = data;
 
     if (execve(ctx->path, ctx->argv, ctx->envp) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                      "execve() failed while executing %s \"%s\"",
-                      ctx->name, ctx->path);
+        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "execve() failed while executing %s \"%s\"", ctx->name, ctx->path);
     }
 
     exit(1);
@@ -444,21 +430,14 @@ ngx_signal_handler(int signo, siginfo_t *siginfo, void *ucontext)
     }
 
     if (siginfo && siginfo->si_pid) {
-        ngx_log_error(NGX_LOG_NOTICE, ngx_cycle->log, 0,
-                      "signal %d (%s) received from %P%s",
-                      signo, sig->signame, siginfo->si_pid, action);
+        ngx_log_error(NGX_LOG_NOTICE, ngx_cycle->log, 0, "signal %d (%s) received from %P%s", signo, sig->signame, siginfo->si_pid, action);
 
     } else {
-        ngx_log_error(NGX_LOG_NOTICE, ngx_cycle->log, 0,
-                      "signal %d (%s) received%s",
-                      signo, sig->signame, action);
+        ngx_log_error(NGX_LOG_NOTICE, ngx_cycle->log, 0, "signal %d (%s) received%s", signo, sig->signame, action);
     }
 
     if (ignore) {
-        ngx_log_error(NGX_LOG_CRIT, ngx_cycle->log, 0,
-                      "the changing binary signal is ignored: "
-                      "you should shutdown or terminate "
-                      "before either old or new binary's process");
+        ngx_log_error(NGX_LOG_CRIT, ngx_cycle->log, 0, "the changing binary signal is ignored: " "you should shutdown or terminate " "before either old or new binary's process");
     }
 
     if (signo == SIGCHLD) {
@@ -509,13 +488,11 @@ ngx_process_get_status(void)
              */
 
             if (err == NGX_ECHILD) {
-                ngx_log_error(NGX_LOG_INFO, ngx_cycle->log, err,
-                              "waitpid() failed");
+                ngx_log_error(NGX_LOG_INFO, ngx_cycle->log, err, "waitpid() failed");
                 return;
             }
 
-            ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, err,
-                          "waitpid() failed");
+            ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, err, "waitpid() failed");
             return;
         }
 
@@ -534,27 +511,18 @@ ngx_process_get_status(void)
 
         if (WTERMSIG(status)) {
 #ifdef WCOREDUMP
-            ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, 0,
-                          "%s %P exited on signal %d%s",
-                          process, pid, WTERMSIG(status),
-                          WCOREDUMP(status) ? " (core dumped)" : "");
+            ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, 0, "%s %P exited on signal %d%s",
+            	process, pid, WTERMSIG(status), WCOREDUMP(status) ? " (core dumped)" : "");
 #else
-            ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, 0,
-                          "%s %P exited on signal %d",
-                          process, pid, WTERMSIG(status));
+            ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, 0, "%s %P exited on signal %d", process, pid, WTERMSIG(status));
 #endif
 
         } else {
-            ngx_log_error(NGX_LOG_NOTICE, ngx_cycle->log, 0,
-                          "%s %P exited with code %d",
-                          process, pid, WEXITSTATUS(status));
+            ngx_log_error(NGX_LOG_NOTICE, ngx_cycle->log, 0, "%s %P exited with code %d", process, pid, WEXITSTATUS(status));
         }
 
         if (WEXITSTATUS(status) == 2 && ngx_processes[i].respawn) {
-            ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, 0,
-                          "%s %P exited with fatal code %d "
-                          "and cannot be respawned",
-                          process, pid, WEXITSTATUS(status));
+            ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, 0, "%s %P exited with fatal code %d " "and cannot be respawned", process, pid, WEXITSTATUS(status));
             ngx_processes[i].respawn = 0;
         }
 

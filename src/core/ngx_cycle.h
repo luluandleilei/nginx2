@@ -122,7 +122,7 @@ typedef struct {
     ngx_int_t                 debug_points;		//Nginx在一些关键的错误逻辑中设置了调试点。如果设置了debug_points为NGX_DEBUG_POINTS_STOP，那么Nginx执行到这些调试点时就会发出SIGSTOP信号以用于调试，如果设置了debug_points为NGX_DEBUG_POINTS_ABORT，那么Nginx执行到这些调试点时就会产生一个coredump文件，可以使用gdb来查看Nginx当时的各种信息
 
     ngx_int_t                 rlimit_nofile;	//每个工作进程的打开文件数的最大值限制(RLIMIT_NOFILE)	
-    off_t                     rlimit_core;		//coredump核心转储文件的最大大小。在Linux系统中，当进程发生错误或收到信号而终止时，系统会将进程执行时的内存内容(核心映像)写入一个文件(core文件)，以作调试之用，这就是所谓的核心转储(core dump)
+    off_t                     rlimit_core;		//coredump(核心转储)文件的最大大小。在Linux系统中，当进程发生错误或收到信号而终止时，系统会将进程执行时的内存内容(核心映像)写入一个文件(core文件)，以作调试之用，这就是所谓的核心转储(core dump)
 
     int                       priority;	//指定Nginx worker进程的nice优先级
 
@@ -140,8 +140,8 @@ typedef struct {
     ngx_str_t                 pid;		//保存master进程ID的pid文件存放路径
     ngx_str_t                 oldpid;	//NGX_PID_PATH+NGX_OLDPID_EXT  热升级nginx进程的时候用
 
-    ngx_array_t               env;			//ngx_str_t类型的动态数组, 存储环境变量
-    char                    **environment;
+    ngx_array_t               env;			//Array of ngx_str_t, allows preserving some of the inherited variables, changing their values, or creating new environment variables.
+    char                    **environment;	//存储当前运行时的环境变量
 
     ngx_uint_t                transparent;  /* unsigned  transparent:1; */
 } ngx_core_conf_t;

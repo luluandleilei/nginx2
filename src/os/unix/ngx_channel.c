@@ -11,8 +11,7 @@
 
 
 ngx_int_t
-ngx_write_channel(ngx_socket_t s, ngx_channel_t *ch, size_t size,
-    ngx_log_t *log)
+ngx_write_channel(ngx_socket_t s, ngx_channel_t *ch, size_t size, ngx_log_t *log)
 {
     ssize_t             n;
     ngx_err_t           err;
@@ -196,8 +195,7 @@ ngx_read_channel(ngx_socket_t s, ngx_channel_t *ch, size_t size, ngx_log_t *log)
 
 
 ngx_int_t
-ngx_add_channel_event(ngx_cycle_t *cycle, ngx_fd_t fd, ngx_int_t event,
-    ngx_event_handler_pt handler)
+ngx_add_channel_event(ngx_cycle_t *cycle, ngx_fd_t fd, ngx_int_t event, ngx_event_handler_pt handler)
 {
     ngx_event_t       *ev, *rev, *wev;
     ngx_connection_t  *c;

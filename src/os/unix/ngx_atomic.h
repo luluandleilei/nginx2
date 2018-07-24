@@ -30,10 +30,8 @@ typedef volatile ngx_atomic_uint_t  ngx_atomic_t;
 #define NGX_ATOMIC_T_LEN            (sizeof("-2147483648") - 1)
 #endif
 
-#define ngx_atomic_cmp_set(lock, old, new)                                    \
-    AO_compare_and_swap(lock, old, new)
-#define ngx_atomic_fetch_add(value, add)                                      \
-    AO_fetch_and_add(value, add)
+#define ngx_atomic_cmp_set(lock, old, new) AO_compare_and_swap(lock, old, new)
+#define ngx_atomic_fetch_add(value, add) AO_fetch_and_add(value, add)
 #define ngx_memory_barrier()        AO_nop()
 #define ngx_cpu_pause()
 
@@ -61,11 +59,9 @@ typedef int64_t                     ngx_atomic_int_t;
 typedef uint64_t                    ngx_atomic_uint_t;
 #define NGX_ATOMIC_T_LEN            (sizeof("-9223372036854775808") - 1)
 
-#define ngx_atomic_cmp_set(lock, old, new)                                    \
-    OSAtomicCompareAndSwap64Barrier(old, new, (int64_t *) lock)
+#define ngx_atomic_cmp_set(lock, old, new) OSAtomicCompareAndSwap64Barrier(old, new, (int64_t *) lock)
 
-#define ngx_atomic_fetch_add(value, add)                                      \
-    (OSAtomicAdd64(add, (int64_t *) value) - add)
+#define ngx_atomic_fetch_add(value, add) (OSAtomicAdd64(add, (int64_t *) value) - add)
 
 #else
 
@@ -73,11 +69,9 @@ typedef int32_t                     ngx_atomic_int_t;
 typedef uint32_t                    ngx_atomic_uint_t;
 #define NGX_ATOMIC_T_LEN            (sizeof("-2147483648") - 1)
 
-#define ngx_atomic_cmp_set(lock, old, new)                                    \
-    OSAtomicCompareAndSwap32Barrier(old, new, (int32_t *) lock)
+#define ngx_atomic_cmp_set(lock, old, new) OSAtomicCompareAndSwap32Barrier(old, new, (int32_t *) lock)
 
-#define ngx_atomic_fetch_add(value, add)                                      \
-    (OSAtomicAdd32(add, (int32_t *) value) - add)
+#define ngx_atomic_fetch_add(value, add) (OSAtomicAdd32(add, (int32_t *) value) - add)
 
 #endif
 
@@ -106,11 +100,9 @@ typedef unsigned long               ngx_atomic_uint_t;
 typedef volatile ngx_atomic_uint_t  ngx_atomic_t;
 
 
-#define ngx_atomic_cmp_set(lock, old, set)                                    \
-    __sync_bool_compare_and_swap(lock, old, set)
+#define ngx_atomic_cmp_set(lock, old, set) __sync_bool_compare_and_swap(lock, old, set)
 
-#define ngx_atomic_fetch_add(value, add)                                      \
-    __sync_fetch_and_add(value, add)
+#define ngx_atomic_fetch_add(value, add) __sync_fetch_and_add(value, add)
 
 #define ngx_memory_barrier()        __sync_synchronize()
 
@@ -133,20 +125,15 @@ typedef volatile ngx_atomic_uint_t  ngx_atomic_t;
 
 #define NGX_HAVE_ATOMIC_OPS  1
 
-ngx_atomic_uint_t
-ngx_atomic_cmp_set(ngx_atomic_t *lock, ngx_atomic_uint_t old,
-    ngx_atomic_uint_t set);
+ngx_atomic_uint_t ngx_atomic_cmp_set(ngx_atomic_t *lock, ngx_atomic_uint_t old, ngx_atomic_uint_t set);
 
-ngx_atomic_int_t
-ngx_atomic_fetch_add(ngx_atomic_t *value, ngx_atomic_int_t add);
-
+ngx_atomic_int_t ngx_atomic_fetch_add(ngx_atomic_t *value, ngx_atomic_int_t add); 
 /*
  * Sun Studio 12 exits with segmentation fault on '__asm ("pause")',
  * so ngx_cpu_pause is declared in src/os/unix/ngx_sunpro_x86.il
  */
 
-void
-ngx_cpu_pause(void);
+void ngx_cpu_pause(void);
 
 /* the code in src/os/unix/ngx_sunpro_x86.il */
 
@@ -174,20 +161,15 @@ typedef volatile ngx_atomic_uint_t  ngx_atomic_t;
 
 #define NGX_HAVE_ATOMIC_OPS  1
 
-ngx_atomic_uint_t
-ngx_atomic_cmp_set(ngx_atomic_t *lock, ngx_atomic_uint_t old,
-    ngx_atomic_uint_t set);
+ngx_atomic_uint_t ngx_atomic_cmp_set(ngx_atomic_t *lock, ngx_atomic_uint_t old, ngx_atomic_uint_t set);
 
-ngx_atomic_int_t
-ngx_atomic_fetch_add(ngx_atomic_t *value, ngx_atomic_int_t add);
-
+ngx_atomic_int_t ngx_atomic_fetch_add(ngx_atomic_t *value, ngx_atomic_int_t add); 
 /*
  * Sun Studio 12 exits with segmentation fault on '__asm ("pause")',
  * so ngx_cpu_pause is declared in src/os/unix/ngx_sunpro_amd64.il
  */
 
-void
-ngx_cpu_pause(void);
+void ngx_cpu_pause(void);
 
 /* the code in src/os/unix/ngx_sunpro_amd64.il */
 
@@ -275,8 +257,7 @@ typedef volatile ngx_atomic_uint_t  ngx_atomic_t;
 
 
 static ngx_inline ngx_atomic_uint_t
-ngx_atomic_cmp_set(ngx_atomic_t *lock, ngx_atomic_uint_t old,
-    ngx_atomic_uint_t set)
+ngx_atomic_cmp_set(ngx_atomic_t *lock, ngx_atomic_uint_t old, ngx_atomic_uint_t set)
 {
     if (*lock == old) {
         *lock = set;

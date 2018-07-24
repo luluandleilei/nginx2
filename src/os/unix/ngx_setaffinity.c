@@ -17,16 +17,12 @@ ngx_setaffinity(ngx_cpuset_t *cpu_affinity, ngx_log_t *log)
 
     for (i = 0; i < CPU_SETSIZE; i++) {
         if (CPU_ISSET(i, cpu_affinity)) {
-            ngx_log_error(NGX_LOG_NOTICE, log, 0,
-                          "cpuset_setaffinity(): using cpu #%ui", i);
+            ngx_log_error(NGX_LOG_NOTICE, log, 0, "cpuset_setaffinity(): using cpu #%ui", i);
         }
     }
 
-    if (cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1,
-                           sizeof(cpuset_t), cpu_affinity) == -1)
-    {
-        ngx_log_error(NGX_LOG_ALERT, log, ngx_errno,
-                      "cpuset_setaffinity() failed");
+    if (cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1, sizeof(cpuset_t), cpu_affinity) == -1) {
+        ngx_log_error(NGX_LOG_ALERT, log, ngx_errno, "cpuset_setaffinity() failed");
     }
 }
 

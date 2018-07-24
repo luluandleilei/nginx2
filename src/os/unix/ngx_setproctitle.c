@@ -29,21 +29,21 @@
 
 extern char **environ;
 
-static char *ngx_os_argv_last;
+static char *ngx_os_argv_last;	//指向存储系统命令行参数和系统环境变量的内存空间中从ngx_os_argv[0]开始的连续内存空间的最后位置(包含该位置)(能用于存储新的进程名称的空间)
 
 ngx_int_t
 ngx_init_setproctitle(ngx_log_t *log)
 {
-    u_char      *p;
+    u_char      *p;		//指向存储迁移的环境变量的空间
     size_t       size;
     ngx_uint_t   i;
 
     size = 0;
-
+	
     for (i = 0; environ[i]; i++) {
         size += ngx_strlen(environ[i]) + 1;
     }
-
+	
     p = ngx_alloc(size, log);
     if (p == NULL) {
         return NGX_ERROR;
@@ -52,14 +52,14 @@ ngx_init_setproctitle(ngx_log_t *log)
     ngx_os_argv_last = ngx_os_argv[0];
 
     for (i = 0; ngx_os_argv[i]; i++) {
-        if (ngx_os_argv_last == ngx_os_argv[i]) {
+        if (ngx_os_argv_last == ngx_os_argv[i]) {	//命令行参数连续存放 (命令行参数在ngx_save_argv()函数中已经被备份到ngx_argv中)
             ngx_os_argv_last = ngx_os_argv[i] + ngx_strlen(ngx_os_argv[i]) + 1;
         }
     }
 
     for (i = 0; environ[i]; i++) {
-        if (ngx_os_argv_last == environ[i]) {
-
+        if (ngx_os_argv_last == environ[i]) {	//环境变量连续存放在命令行参数后面
+        	//迁移环境变量指向新的空间，腾出环境变量空间用于存储新的进程标题
             size = ngx_strlen(environ[i]) + 1;
             ngx_os_argv_last = environ[i] + size;
 
@@ -89,8 +89,7 @@ ngx_setproctitle(char *title)
 
     ngx_os_argv[1] = NULL;
 
-    p = ngx_cpystrn((u_char *) ngx_os_argv[0], (u_char *) "nginx: ",
-                    ngx_os_argv_last - ngx_os_argv[0]);
+    p = ngx_cpystrn((u_char *) ngx_os_argv[0], (u_char *) "nginx: ", ngx_os_argv_last - ngx_os_argv[0]);
 
     p = ngx_cpystrn(p, (u_char *) title, ngx_os_argv_last - (char *) p);
 
@@ -112,8 +111,7 @@ ngx_setproctitle(char *title)
         p = ngx_cpystrn(p, (u_char *) " (", ngx_os_argv_last - (char *) p);
 
         for (i = 0; i < ngx_argc; i++) {
-            p = ngx_cpystrn(p, (u_char *) ngx_argv[i],
-                            ngx_os_argv_last - (char *) p);
+            p = ngx_cpystrn(p, (u_char *) ngx_argv[i], ngx_os_argv_last - (char *) p);
             p = ngx_cpystrn(p, (u_char *) " ", ngx_os_argv_last - (char *) p);
         }
 
@@ -124,7 +122,7 @@ ngx_setproctitle(char *title)
 
 #endif
 
-    if (ngx_os_argv_last - (char *) p) {
+    if (ngx_os_argv_last - (char *) p) {	//剩余空间用NGX_SETPROCTITLE_PAD填充
         ngx_memset(p, NGX_SETPROCTITLE_PAD, ngx_os_argv_last - (char *) p);
     }
 

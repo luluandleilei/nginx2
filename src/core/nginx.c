@@ -21,10 +21,8 @@ static char *ngx_core_module_init_conf(ngx_cycle_t *cycle, void *conf);
 static char *ngx_set_user(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_set_env(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_set_priority(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-static char *ngx_set_cpu_affinity(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
-static char *ngx_set_worker_processes(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+static char *ngx_set_cpu_affinity(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *ngx_set_worker_processes(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_load_module(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 #if (NGX_HAVE_DLOPEN)
 static void ngx_unload_module(void *data);
@@ -186,9 +184,10 @@ static ngx_command_t  ngx_core_commands[] = {
 
 	/*
 	 Syntax:	worker_cpu_affinity cpumask ...;
-	 worker_cpu_affinity auto [cpumask];
+	 			worker_cpu_affinity auto [cpumask];
  	 Default:	—
 	 Context:	main
+	 
 	 Binds worker processes to the sets of CPUs. Each CPU set is represented by a bitmask of allowed
 	 CPUs. There should be a separate set defined for each of the worker processes. By default, 
 	 worker processes are not bound to any specific CPUs.
@@ -220,6 +219,7 @@ static ngx_command_t  ngx_core_commands[] = {
 	 Syntax:	worker_rlimit_nofile number;
 	 Default:	—
 	 Context:	main
+	 
 	 Changes the limit on the maximum number of open files (RLIMIT_NOFILE) for worker processes. 
 	 Used to increase the limit without restarting the main process.
 	*/
@@ -296,7 +296,7 @@ static ngx_command_t  ngx_core_commands[] = {
 		env PERL5LIB=/data/site/modules;
 		env OPENSSL_ALLOW_PROXY_CERTS=1;
 		
-	 The NGINX environment variable is used internally by nginx and should not be set directly by 
+	 The 'NGINX' environment variable is used internally by nginx and should not be set directly by 
 	 the user.
 	*/
     { ngx_string("env"),
@@ -694,9 +694,7 @@ ngx_set_environment(ngx_cycle_t *cycle, ngx_uint_t *last)
     var = ccf->env.elts;
 
     for (i = 0; i < ccf->env.nelts; i++) {
-        if (ngx_strcmp(var[i].data, "TZ") == 0
-            || ngx_strncmp(var[i].data, "TZ=", 3) == 0)
-        {
+        if (ngx_strcmp(var[i].data, "TZ") == 0 || ngx_strncmp(var[i].data, "TZ=", 3) == 0) {
             goto tz_found;
         }
     }
@@ -724,9 +722,7 @@ tz_found:
 
         for (p = ngx_os_environ; *p; p++) {
 
-            if (ngx_strncmp(*p, var[i].data, var[i].len) == 0
-                && (*p)[var[i].len] == '=')
-            {
+            if (ngx_strncmp(*p, var[i].data, var[i].len) == 0 && (*p)[var[i].len] == '=') {
                 n++;
                 break;
             }
@@ -741,7 +737,7 @@ tz_found:
 
         *last = n;
 
-    } else {
+    } else {	//XXX: 为什么需要这样做？
         cln = ngx_pool_cleanup_add(cycle->pool, 0);
         if (cln == NULL) {
             return NULL;
@@ -767,9 +763,7 @@ tz_found:
 
         for (p = ngx_os_environ; *p; p++) {
 
-            if (ngx_strncmp(*p, var[i].data, var[i].len) == 0
-                && (*p)[var[i].len] == '=')
-            {
+            if (ngx_strncmp(*p, var[i].data, var[i].len) == 0 && (*p)[var[i].len] == '=') {
                 env[n++] = *p;
                 break;
             }
@@ -1032,8 +1026,9 @@ ngx_get_options(int argc, char *const *argv)
 }
 
 
-//备份master进程的命令行参数到ngx_os_argv
-//备份master进程的环境变量到ngx_os_environ
+//令ngx_os_argv保存系统argv值
+//令ngx_os_environ保存系统environ值
+//备份命令行参数到ngx_argc和ngx_argv中
 //用于reload nginx二进制文件？
 static ngx_int_t
 ngx_save_argv(ngx_cycle_t *cycle, int argc, char *const *argv)
@@ -1342,8 +1337,7 @@ ngx_set_user(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
 #if (NGX_WIN32)
 
-    ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
-                       "\"user\" is not supported, ignored");
+    ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "\"user\" is not supported, ignored");
 
     return NGX_CONF_OK;
 
@@ -1361,10 +1355,7 @@ ngx_set_user(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     if (geteuid() != 0) {
-        ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
-                           "the \"user\" directive makes sense only "
-                           "if the master process runs "
-                           "with super-user privileges, ignored");
+        ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "the \"user\" directive makes sense only " "if the master process runs " "with super-user privileges, ignored");
         return NGX_CONF_OK;
     }
 
@@ -1375,8 +1366,7 @@ ngx_set_user(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_set_errno(0);
     pwd = getpwnam((const char *) value[1].data);
     if (pwd == NULL) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, ngx_errno,
-                           "getpwnam(\"%s\") failed", value[1].data);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, ngx_errno, "getpwnam(\"%s\") failed", value[1].data);
         return NGX_CONF_ERROR;
     }
 
@@ -1387,8 +1377,7 @@ ngx_set_user(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_set_errno(0);
     grp = getgrnam(group);
     if (grp == NULL) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, ngx_errno,
-                           "getgrnam(\"%s\") failed", group);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, ngx_errno, "getgrnam(\"%s\") failed", group);
         return NGX_CONF_ERROR;
     }
 
@@ -1498,9 +1487,7 @@ ngx_set_cpu_affinity(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     if (ngx_strcmp(value[1].data, "auto") == 0) {
 
         if (cf->args->nelts > 3) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "invalid number of arguments in "
-                               "\"worker_cpu_affinity\" directive");
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid number of arguments in " "\"worker_cpu_affinity\" directive");
             return NGX_CONF_ERROR;
         }
 
@@ -1520,19 +1507,14 @@ ngx_set_cpu_affinity(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     for ( /* void */ ; n < cf->args->nelts; n++) {
 
         if (value[n].len > CPU_SETSIZE) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                         "\"worker_cpu_affinity\" supports up to %d CPUs only",
-                         CPU_SETSIZE);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"worker_cpu_affinity\" supports up to %d CPUs only", CPU_SETSIZE);
             return NGX_CONF_ERROR;
         }
 
         i = 0;
         CPU_ZERO(&mask[n - 1]);
 
-        for (p = value[n].data + value[n].len - 1;
-             p >= value[n].data;
-             p--)
-        {
+        for (p = value[n].data + value[n].len - 1; p >= value[n].data; p--) {
             ch = *p;
 
             if (ch == ' ') {
@@ -1550,18 +1532,14 @@ ngx_set_cpu_affinity(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
                 continue;
             }
 
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                          "invalid character \"%c\" in \"worker_cpu_affinity\"",
-                          ch);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid character \"%c\" in \"worker_cpu_affinity\"", ch);
             return NGX_CONF_ERROR;
         }
     }
 
 #else
 
-    ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
-                       "\"worker_cpu_affinity\" is not supported "
-                       "on this platform, ignored");
+    ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "\"worker_cpu_affinity\" is not supported " "on this platform, ignored");
 #endif
 
     return NGX_CONF_OK;
@@ -1578,8 +1556,7 @@ ngx_get_cpu_affinity(ngx_uint_t n)
 
     static ngx_cpuset_t  result;
 
-    ccf = (ngx_core_conf_t *) ngx_get_conf(ngx_cycle->conf_ctx,
-                                           ngx_core_module);
+    ccf = (ngx_core_conf_t *) ngx_get_conf(ngx_cycle->conf_ctx, ngx_core_module);
 
     if (ccf->cpu_affinity == NULL) {
         return NULL;

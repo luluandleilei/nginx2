@@ -11,10 +11,8 @@
 #include <ngx_channel.h>
 
 
-static void ngx_start_worker_processes(ngx_cycle_t *cycle, ngx_int_t n,
-    ngx_int_t type);
-static void ngx_start_cache_manager_processes(ngx_cycle_t *cycle,
-    ngx_uint_t respawn);
+static void ngx_start_worker_processes(ngx_cycle_t *cycle, ngx_int_t n, ngx_int_t type);
+static void ngx_start_cache_manager_processes(ngx_cycle_t *cycle, ngx_uint_t respawn);
 static void ngx_pass_open_channel(ngx_cycle_t *cycle, ngx_channel_t *ch);
 static void ngx_signal_worker_processes(ngx_cycle_t *cycle, int signo);
 static ngx_uint_t ngx_reap_children(ngx_cycle_t *cycle);
@@ -85,7 +83,8 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
     ngx_listening_t   *ls;
     ngx_core_conf_t   *ccf;
 
-	//XXX:信号处理
+	/*XXX:信号处理*/
+	
     sigemptyset(&set);
     sigaddset(&set, SIGCHLD);
     sigaddset(&set, SIGALRM);
@@ -104,7 +103,8 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
 
     sigemptyset(&set);
 
-
+	/*设置master进程标题*/
+	
     size = sizeof(master_process);
 
     for (i = 0; i < ngx_argc; i++) {
@@ -125,12 +125,14 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
 
     ngx_setproctitle(title);
 
-
+	/*产生worker进程和manager进程*/
+	
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
 
-    ngx_start_worker_processes(cycle, ccf->worker_processes,
-                               NGX_PROCESS_RESPAWN);
+    ngx_start_worker_processes(cycle, ccf->worker_processes, NGX_PROCESS_RESPAWN);
     ngx_start_cache_manager_processes(cycle, 0);
+
+	/*循环等待信号，对不同信号进行处理*/
 
     ngx_new_binary = 0;
     delay = 0;	//XXX:通知子进程结束后，等待子进程结束的时间(收到SIGCHLD表示子进程结束）
@@ -194,16 +196,14 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
             if (delay > 1000) {
                 ngx_signal_worker_processes(cycle, SIGKILL);
             } else {
-                ngx_signal_worker_processes(cycle,
-                                       ngx_signal_value(NGX_TERMINATE_SIGNAL));
+                ngx_signal_worker_processes(cycle, ngx_signal_value(NGX_TERMINATE_SIGNAL));
             }
 
             continue;
         }
 
         if (ngx_quit) {
-            ngx_signal_worker_processes(cycle,
-                                        ngx_signal_value(NGX_SHUTDOWN_SIGNAL));
+            ngx_signal_worker_processes(cycle, ngx_signal_value(NGX_SHUTDOWN_SIGNAL));
 
             ls = cycle->listening.elts;
             for (n = 0; n < cycle->listening.nelts; n++) {
@@ -222,8 +222,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
             ngx_reconfigure = 0;
 
             if (ngx_new_binary) {
-                ngx_start_worker_processes(cycle, ccf->worker_processes,
-                                           NGX_PROCESS_RESPAWN);
+                ngx_start_worker_processes(cycle, ccf->worker_processes, NGX_PROCESS_RESPAWN);
                 ngx_start_cache_manager_processes(cycle, 0);
                 ngx_noaccepting = 0;
 
@@ -247,14 +246,12 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
             ngx_msleep(100);
 
             live = 1;
-            ngx_signal_worker_processes(cycle,
-                                        ngx_signal_value(NGX_SHUTDOWN_SIGNAL));
+            ngx_signal_worker_processes(cycle, ngx_signal_value(NGX_SHUTDOWN_SIGNAL));
         }
 
         if (ngx_restart) {
             ngx_restart = 0;
-            ngx_start_worker_processes(cycle, ccf->worker_processes,
-                                       NGX_PROCESS_RESPAWN);
+            ngx_start_worker_processes(cycle, ccf->worker_processes, NGX_PROCESS_RESPAWN);
             ngx_start_cache_manager_processes(cycle, 0);
             live = 1;
         }
@@ -263,8 +260,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
             ngx_reopen = 0;
             ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0, "reopening logs");
             ngx_reopen_files(cycle, ccf->user);
-            ngx_signal_worker_processes(cycle,
-                                        ngx_signal_value(NGX_REOPEN_SIGNAL));
+            ngx_signal_worker_processes(cycle, ngx_signal_value(NGX_REOPEN_SIGNAL));
         }
 
         if (ngx_change_binary) {
@@ -276,8 +272,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
         if (ngx_noaccept) {
             ngx_noaccept = 0;
             ngx_noaccepting = 1;
-            ngx_signal_worker_processes(cycle,
-                                        ngx_signal_value(NGX_SHUTDOWN_SIGNAL));
+            ngx_signal_worker_processes(cycle, ngx_signal_value(NGX_SHUTDOWN_SIGNAL));
         }
     }
 }
@@ -339,7 +334,7 @@ ngx_single_process_cycle(ngx_cycle_t *cycle)
     }
 }
 
-//fork产生子进程(work进程)
+//fork产生子进程(worker进程)
 //n -- 子进程的数目
 static void
 ngx_start_worker_processes(ngx_cycle_t *cycle, ngx_int_t n, ngx_int_t type)
@@ -355,10 +350,10 @@ ngx_start_worker_processes(ngx_cycle_t *cycle, ngx_int_t n, ngx_int_t type)
 
     for (i = 0; i < n; i++) {
 
-        ngx_spawn_process(cycle, ngx_worker_process_cycle,
-                          (void *) (intptr_t) i, "worker process", type);
+        ngx_spawn_process(cycle, ngx_worker_process_cycle, (void *) (intptr_t) i, "worker process", type);
 		
-		/*将新的work进程的相关信息告知前面已生成的子进程*/				  
+		/*将新的work进程的相关信息告知前面已生成的子进程*/	
+	
         ch.pid = ngx_processes[ngx_process_slot].pid;
         ch.slot = ngx_process_slot;
         ch.fd = ngx_processes[ngx_process_slot].channel[0];
@@ -394,9 +389,7 @@ ngx_start_cache_manager_processes(ngx_cycle_t *cycle, ngx_uint_t respawn)
         return;
     }
 
-    ngx_spawn_process(cycle, ngx_cache_manager_process_cycle,
-                      &ngx_cache_manager_ctx, "cache manager process",
-                      respawn ? NGX_PROCESS_JUST_RESPAWN : NGX_PROCESS_RESPAWN);
+    ngx_spawn_process(cycle, ngx_cache_manager_process_cycle, &ngx_cache_manager_ctx, "cache manager process", respawn ? NGX_PROCESS_JUST_RESPAWN : NGX_PROCESS_RESPAWN);
 
     ngx_memzero(&ch, sizeof(ngx_channel_t));
 
@@ -411,9 +404,7 @@ ngx_start_cache_manager_processes(ngx_cycle_t *cycle, ngx_uint_t respawn)
         return;
     }
 
-    ngx_spawn_process(cycle, ngx_cache_manager_process_cycle,
-                      &ngx_cache_loader_ctx, "cache loader process",
-                      respawn ? NGX_PROCESS_JUST_SPAWN : NGX_PROCESS_NORESPAWN);
+    ngx_spawn_process(cycle, ngx_cache_manager_process_cycle, &ngx_cache_loader_ctx, "cache loader process", respawn ? NGX_PROCESS_JUST_SPAWN : NGX_PROCESS_NORESPAWN);
 
     ch.command = NGX_CMD_OPEN_CHANNEL;
     ch.pid = ngx_processes[ngx_process_slot].pid;
@@ -431,23 +422,16 @@ ngx_pass_open_channel(ngx_cycle_t *cycle, ngx_channel_t *ch)
 
     for (i = 0; i < ngx_last_process; i++) {
 
-        if (i == ngx_process_slot
-            || ngx_processes[i].pid == -1
-            || ngx_processes[i].channel[0] == -1)
-        {
+        if (i == ngx_process_slot || ngx_processes[i].pid == -1 || ngx_processes[i].channel[0] == -1) {
             continue;
         }
 
-        ngx_log_debug6(NGX_LOG_DEBUG_CORE, cycle->log, 0,
-                      "pass channel s:%i pid:%P fd:%d to s:%i pid:%P fd:%d",
-                      ch->slot, ch->pid, ch->fd,
-                      i, ngx_processes[i].pid,
-                      ngx_processes[i].channel[0]);
+        ngx_log_debug6(NGX_LOG_DEBUG_CORE, cycle->log, 0, "pass channel s:%i pid:%P fd:%d to s:%i pid:%P fd:%d",
+        	ch->slot, ch->pid, ch->fd, i, ngx_processes[i].pid, ngx_processes[i].channel[0]);
 
         /* TODO: NGX_AGAIN */
 
-        ngx_write_channel(ngx_processes[i].channel[0],
-                          ch, sizeof(ngx_channel_t), cycle->log);
+        ngx_write_channel(ngx_processes[i].channel[0], ch, sizeof(ngx_channel_t), cycle->log);
     }
 }
 
@@ -469,20 +453,20 @@ ngx_signal_worker_processes(ngx_cycle_t *cycle, int signo)
 
     switch (signo) {
 
-    case ngx_signal_value(NGX_SHUTDOWN_SIGNAL):
-        ch.command = NGX_CMD_QUIT;
-        break;
+	    case ngx_signal_value(NGX_SHUTDOWN_SIGNAL):
+	        ch.command = NGX_CMD_QUIT;
+	        break;
 
-    case ngx_signal_value(NGX_TERMINATE_SIGNAL):
-        ch.command = NGX_CMD_TERMINATE;
-        break;
+	    case ngx_signal_value(NGX_TERMINATE_SIGNAL):
+	        ch.command = NGX_CMD_TERMINATE;
+	        break;
 
-    case ngx_signal_value(NGX_REOPEN_SIGNAL):
-        ch.command = NGX_CMD_REOPEN;
-        break;
+	    case ngx_signal_value(NGX_REOPEN_SIGNAL):
+	        ch.command = NGX_CMD_REOPEN;
+	        break;
 
-    default:
-        ch.command = 0;
+	    default:
+	        ch.command = 0;
     }
 
 #endif
@@ -492,15 +476,7 @@ ngx_signal_worker_processes(ngx_cycle_t *cycle, int signo)
 
     for (i = 0; i < ngx_last_process; i++) {
 
-        ngx_log_debug7(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
-                       "child: %i %P e:%d t:%d d:%d r:%d j:%d",
-                       i,
-                       ngx_processes[i].pid,
-                       ngx_processes[i].exiting,
-                       ngx_processes[i].exited,
-                       ngx_processes[i].detached,
-                       ngx_processes[i].respawn,
-                       ngx_processes[i].just_spawn);
+        ngx_log_debug7(NGX_LOG_DEBUG_EVENT, cycle->log, 0, "child: %i %P e:%d t:%d d:%d r:%d j:%d", i, ngx_processes[i].pid, ngx_processes[i].exiting, ngx_processes[i].exited, ngx_processes[i].detached, ngx_processes[i].respawn, ngx_processes[i].just_spawn);
 
         if (ngx_processes[i].detached || ngx_processes[i].pid == -1) {
             continue;
@@ -511,17 +487,12 @@ ngx_signal_worker_processes(ngx_cycle_t *cycle, int signo)
             continue;
         }
 
-        if (ngx_processes[i].exiting
-            && signo == ngx_signal_value(NGX_SHUTDOWN_SIGNAL))
-        {
+        if (ngx_processes[i].exiting && signo == ngx_signal_value(NGX_SHUTDOWN_SIGNAL)) {
             continue;
         }
 
         if (ch.command) {
-            if (ngx_write_channel(ngx_processes[i].channel[0],
-                                  &ch, sizeof(ngx_channel_t), cycle->log)
-                == NGX_OK)
-            {
+            if (ngx_write_channel(ngx_processes[i].channel[0], &ch, sizeof(ngx_channel_t), cycle->log) == NGX_OK) {
                 if (signo != ngx_signal_value(NGX_REOPEN_SIGNAL)) {
                     ngx_processes[i].exiting = 1;
                 }
@@ -530,13 +501,11 @@ ngx_signal_worker_processes(ngx_cycle_t *cycle, int signo)
             }
         }
 
-        ngx_log_debug2(NGX_LOG_DEBUG_CORE, cycle->log, 0,
-                       "kill (%P, %d)", ngx_processes[i].pid, signo);
+        ngx_log_debug2(NGX_LOG_DEBUG_CORE, cycle->log, 0, "kill (%P, %d)", ngx_processes[i].pid, signo);
 
         if (kill(ngx_processes[i].pid, signo) == -1) {
             err = ngx_errno;
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, err,
-                          "kill(%P, %d) failed", ngx_processes[i].pid, signo);
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, err, "kill(%P, %d) failed", ngx_processes[i].pid, signo);
 
             if (err == NGX_ESRCH) {
                 ngx_processes[i].exited = 1;
@@ -570,15 +539,8 @@ ngx_reap_children(ngx_cycle_t *cycle)
     live = 0;
     for (i = 0; i < ngx_last_process; i++) {
 
-        ngx_log_debug7(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
-                       "child: %i %P e:%d t:%d d:%d r:%d j:%d",
-                       i,
-                       ngx_processes[i].pid,
-                       ngx_processes[i].exiting,
-                       ngx_processes[i].exited,
-                       ngx_processes[i].detached,
-                       ngx_processes[i].respawn,
-                       ngx_processes[i].just_spawn);
+        ngx_log_debug7(NGX_LOG_DEBUG_EVENT, cycle->log, 0, "child: %i %P e:%d t:%d d:%d r:%d j:%d", i, ngx_processes[i].pid, 
+			ngx_processes[i].exiting, ngx_processes[i].exited, ngx_processes[i].detached, ngx_processes[i].respawn, ngx_processes[i].just_spawn);
 
         if (ngx_processes[i].pid == -1) {
             continue;
@@ -596,37 +558,21 @@ ngx_reap_children(ngx_cycle_t *cycle)
                 ch.slot = i;
 
                 for (n = 0; n < ngx_last_process; n++) {
-                    if (ngx_processes[n].exited
-                        || ngx_processes[n].pid == -1
-                        || ngx_processes[n].channel[0] == -1)
-                    {
+                    if (ngx_processes[n].exited || ngx_processes[n].pid == -1 || ngx_processes[n].channel[0] == -1) {
                         continue;
                     }
 
-                    ngx_log_debug3(NGX_LOG_DEBUG_CORE, cycle->log, 0,
-                                   "pass close channel s:%i pid:%P to:%P",
-                                   ch.slot, ch.pid, ngx_processes[n].pid);
+                    ngx_log_debug3(NGX_LOG_DEBUG_CORE, cycle->log, 0, "pass close channel s:%i pid:%P to:%P", ch.slot, ch.pid, ngx_processes[n].pid);
 
                     /* TODO: NGX_AGAIN */
 
-                    ngx_write_channel(ngx_processes[n].channel[0],
-                                      &ch, sizeof(ngx_channel_t), cycle->log);
+                    ngx_write_channel(ngx_processes[n].channel[0], &ch, sizeof(ngx_channel_t), cycle->log);
                 }
             }
 
-            if (ngx_processes[i].respawn
-                && !ngx_processes[i].exiting
-                && !ngx_terminate
-                && !ngx_quit)
-            {
-                if (ngx_spawn_process(cycle, ngx_processes[i].proc,
-                                      ngx_processes[i].data,
-                                      ngx_processes[i].name, i)
-                    == NGX_INVALID_PID)
-                {
-                    ngx_log_error(NGX_LOG_ALERT, cycle->log, 0,
-                                  "could not respawn %s",
-                                  ngx_processes[i].name);
+            if (ngx_processes[i].respawn && !ngx_processes[i].exiting && !ngx_terminate && !ngx_quit) {
+                if (ngx_spawn_process(cycle, ngx_processes[i].proc, ngx_processes[i].data, ngx_processes[i].name, i) == NGX_INVALID_PID) {
+                    ngx_log_error(NGX_LOG_ALERT, cycle->log, 0, "could not respawn %s", ngx_processes[i].name);
                     continue;
                 }
 
@@ -757,8 +703,7 @@ ngx_worker_process_cycle(ngx_cycle_t *cycle, void *data)
 
         if (ngx_quit) {
             ngx_quit = 0;
-            ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0,
-                          "gracefully shutting down");
+            ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0, "gracefully shutting down");
             ngx_setproctitle("worker process is shutting down");
 
             if (!ngx_exiting) {
@@ -790,6 +735,7 @@ ngx_worker_process_init(ngx_cycle_t *cycle, ngx_int_t worker)
     ngx_core_conf_t  *ccf;
     ngx_listening_t  *ls;
 
+	/*设置进程的环境变量*/
     if (ngx_set_environment(cycle, NULL) == NULL) {
         /* fatal */
         exit(2);
@@ -797,54 +743,49 @@ ngx_worker_process_init(ngx_cycle_t *cycle, ngx_int_t worker)
 
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
 
+	/*设置进程(worker)的优先级*/
     if (worker >= 0 && ccf->priority != 0) {
         if (setpriority(PRIO_PROCESS, 0, ccf->priority) == -1) {
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                          "setpriority(%d) failed", ccf->priority);
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "setpriority(%d) failed", ccf->priority);
         }
     }
 
+	/*设置进程打开文件最大数限制*/
     if (ccf->rlimit_nofile != NGX_CONF_UNSET) {
         rlmt.rlim_cur = (rlim_t) ccf->rlimit_nofile;
         rlmt.rlim_max = (rlim_t) ccf->rlimit_nofile;
 
         if (setrlimit(RLIMIT_NOFILE, &rlmt) == -1) {
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                          "setrlimit(RLIMIT_NOFILE, %i) failed",
-                          ccf->rlimit_nofile);
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "setrlimit(RLIMIT_NOFILE, %i) failed", ccf->rlimit_nofile);
         }
     }
 
+	/*设置进程的核心转储(coredump)文件最大大小*/
     if (ccf->rlimit_core != NGX_CONF_UNSET) {
         rlmt.rlim_cur = (rlim_t) ccf->rlimit_core;
         rlmt.rlim_max = (rlim_t) ccf->rlimit_core;
 
         if (setrlimit(RLIMIT_CORE, &rlmt) == -1) {
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                          "setrlimit(RLIMIT_CORE, %O) failed",
-                          ccf->rlimit_core);
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "setrlimit(RLIMIT_CORE, %O) failed", ccf->rlimit_core);
         }
     }
 
+	/*设置进程的uid，gid*/
     if (geteuid() == 0) {
         if (setgid(ccf->group) == -1) {
-            ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno,
-                          "setgid(%d) failed", ccf->group);
+            ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno, "setgid(%d) failed", ccf->group);
             /* fatal */
             exit(2);
         }
 
         if (initgroups(ccf->username, ccf->group) == -1) {
-            ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno,
-                          "initgroups(%s, %d) failed",
-                          ccf->username, ccf->group);
+            ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno, "initgroups(%s, %d) failed", ccf->username, ccf->group);
         }
 
 #if (NGX_HAVE_PR_SET_KEEPCAPS && NGX_HAVE_CAPABILITIES)
         if (ccf->transparent && ccf->user) {
             if (prctl(PR_SET_KEEPCAPS, 1, 0, 0, 0) == -1) {
-                ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno,
-                              "prctl(PR_SET_KEEPCAPS, 1) failed");
+                ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno, "prctl(PR_SET_KEEPCAPS, 1) failed");
                 /* fatal */
                 exit(2);
             }
@@ -852,8 +793,7 @@ ngx_worker_process_init(ngx_cycle_t *cycle, ngx_int_t worker)
 #endif
 
         if (setuid(ccf->user) == -1) {
-            ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno,
-                          "setuid(%d) failed", ccf->user);
+            ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno, "setuid(%d) failed", ccf->user);
             /* fatal */
             exit(2);
         }
@@ -871,8 +811,7 @@ ngx_worker_process_init(ngx_cycle_t *cycle, ngx_int_t worker)
             data.permitted = data.effective;
 
             if (syscall(SYS_capset, &header, &data) == -1) {
-                ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno,
-                              "capset() failed");
+                ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno, "capset() failed");
                 /* fatal */
                 exit(2);
             }
@@ -880,7 +819,7 @@ ngx_worker_process_init(ngx_cycle_t *cycle, ngx_int_t worker)
 #endif
     }
 
-	/*设置work进程的CPU亲和性*/
+	/*设置进程(worker)的CPU亲和性*/
     if (worker >= 0) {
         cpu_affinity = ngx_get_cpu_affinity(worker);
 
@@ -894,27 +833,24 @@ ngx_worker_process_init(ngx_cycle_t *cycle, ngx_int_t worker)
     /* allow coredump after setuid() in Linux 2.4.x */
 
     if (prctl(PR_SET_DUMPABLE, 1, 0, 0, 0) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                      "prctl(PR_SET_DUMPABLE) failed");
+        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "prctl(PR_SET_DUMPABLE) failed");
     }
 
 #endif
 
-	/*设置work进程的工作目录*/
+	/*设置进程的工作目录*/
     if (ccf->working_directory.len) {
         if (chdir((char *) ccf->working_directory.data) == -1) {
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                          "chdir(\"%s\") failed", ccf->working_directory.data);
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "chdir(\"%s\") failed", ccf->working_directory.data);
             /* fatal */
             exit(2);
         }
     }
 
+	/*设置进程的信号屏蔽字*/
     sigemptyset(&set);
-
     if (sigprocmask(SIG_SETMASK, &set, NULL) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                      "sigprocmask() failed");
+        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "sigprocmask() failed");
     }
 
     tp = ngx_timeofday();
@@ -939,8 +875,7 @@ ngx_worker_process_init(ngx_cycle_t *cycle, ngx_int_t worker)
         }
     }
 
-	//关掉其他work进程的写channel(chandle 用于进程间通信)
-	
+	/*关掉其他进程的写channel(chandle 用于进程间通信)*/
     for (n = 0; n < ngx_last_process; n++) {
 
         if (ngx_processes[n].pid == -1) {
@@ -956,14 +891,12 @@ ngx_worker_process_init(ngx_cycle_t *cycle, ngx_int_t worker)
         }
 
         if (close(ngx_processes[n].channel[1]) == -1) {
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                          "close() channel failed");
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "close() channel failed");
         }
     }
 
     if (close(ngx_processes[ngx_process_slot].channel[0]) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                      "close() channel failed");
+        ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "close() channel failed");
     }
 
 #if 0
@@ -971,10 +904,7 @@ ngx_worker_process_init(ngx_cycle_t *cycle, ngx_int_t worker)
 #endif
 
 	//将ngx_channel(channel[1])加入到读事件监听集里，对应的回调处理函数为ngx_channel_handler
-    if (ngx_add_channel_event(cycle, ngx_channel, NGX_READ_EVENT,
-                              ngx_channel_handler)
-        == NGX_ERROR)
-    {
+    if (ngx_add_channel_event(cycle, ngx_channel, NGX_READ_EVENT, ngx_channel_handler) == NGX_ERROR) {
         /* fatal */
         exit(2);
     }

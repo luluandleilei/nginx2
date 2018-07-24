@@ -25,8 +25,8 @@ typedef struct {
 #if (NGX_HAVE_ATOMIC_OPS)
     ngx_atomic_t  *lock;
 #if (NGX_HAVE_POSIX_SEM)
-    ngx_atomic_t  *wait;
-    ngx_uint_t     semaphore;
+    ngx_atomic_t  *wait;		//表示等待在当前锁的进程数
+    ngx_uint_t     semaphore;	//表示是否使用信号量sem
     sem_t          sem;
 #endif
 #else
@@ -37,8 +37,7 @@ typedef struct {
 } ngx_shmtx_t;
 
 
-ngx_int_t ngx_shmtx_create(ngx_shmtx_t *mtx, ngx_shmtx_sh_t *addr,
-    u_char *name);
+ngx_int_t ngx_shmtx_create(ngx_shmtx_t *mtx, ngx_shmtx_sh_t *addr, u_char *name);
 void ngx_shmtx_destroy(ngx_shmtx_t *mtx);
 ngx_uint_t ngx_shmtx_trylock(ngx_shmtx_t *mtx);
 void ngx_shmtx_lock(ngx_shmtx_t *mtx);

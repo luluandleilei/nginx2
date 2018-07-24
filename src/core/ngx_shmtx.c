@@ -20,7 +20,7 @@ ngx_shmtx_create(ngx_shmtx_t *mtx, ngx_shmtx_sh_t *addr, u_char *name)
 {
     mtx->lock = &addr->lock;
 
-    if (mtx->spin == (ngx_uint_t) -1) {
+    if (mtx->spin == (ngx_uint_t) -1) {	// 如果有指定为-1，则表示关掉自旋等待
         return NGX_OK;
     }
 
@@ -49,8 +49,7 @@ ngx_shmtx_destroy(ngx_shmtx_t *mtx)
 
     if (mtx->semaphore) {
         if (sem_destroy(&mtx->sem) == -1) {
-            ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, ngx_errno,
-                          "sem_destroy() failed");
+            ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, ngx_errno, "sem_destroy() failed");
         }
     }
 
@@ -102,30 +101,28 @@ ngx_shmtx_lock(ngx_shmtx_t *mtx)
                 return;
             }
 
-            ngx_log_debug1(NGX_LOG_DEBUG_CORE, ngx_cycle->log, 0,
-                           "shmtx wait %uA", *mtx->wait);
+            ngx_log_debug1(NGX_LOG_DEBUG_CORE, ngx_cycle->log, 0, "shmtx wait %uA", *mtx->wait);
 
+			/*如果没有拿到锁，这时Nginx进程将会睡眠，直到其他进程释放了锁*/
             while (sem_wait(&mtx->sem) == -1) {
                 ngx_err_t  err;
 
                 err = ngx_errno;
 
                 if (err != NGX_EINTR) {
-                    ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, err,
-                                  "sem_wait() failed while waiting on shmtx");
+                    ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, err, "sem_wait() failed while waiting on shmtx");
                     break;
                 }
             }
 
-            ngx_log_debug0(NGX_LOG_DEBUG_CORE, ngx_cycle->log, 0,
-                           "shmtx awoke");
+            ngx_log_debug0(NGX_LOG_DEBUG_CORE, ngx_cycle->log, 0, "shmtx awoke");
 
             continue;
         }
 
 #endif
 
-        ngx_sched_yield();
+        ngx_sched_yield();	//让出CPU
     }
 }
 
@@ -146,8 +143,7 @@ ngx_shmtx_unlock(ngx_shmtx_t *mtx)
 ngx_uint_t
 ngx_shmtx_force_unlock(ngx_shmtx_t *mtx, ngx_pid_t pid)
 {
-    ngx_log_debug0(NGX_LOG_DEBUG_CORE, ngx_cycle->log, 0,
-                   "shmtx forced unlock");
+    ngx_log_debug0(NGX_LOG_DEBUG_CORE, ngx_cycle->log, 0, "shmtx forced unlock");
 
     if (ngx_atomic_cmp_set(mtx->lock, pid, 0)) {
         ngx_shmtx_wakeup(mtx);
@@ -181,12 +177,10 @@ ngx_shmtx_wakeup(ngx_shmtx_t *mtx)
         }
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_CORE, ngx_cycle->log, 0,
-                   "shmtx wake %uA", wait);
+    ngx_log_debug1(NGX_LOG_DEBUG_CORE, ngx_cycle->log, 0, "shmtx wake %uA", wait);
 
     if (sem_post(&mtx->sem) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, ngx_errno,
-                      "sem_post() failed while wake shmtx");
+        ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, ngx_errno, "sem_post() failed while wake shmtx");
     }
 
 #endif

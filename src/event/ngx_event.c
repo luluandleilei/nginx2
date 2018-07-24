@@ -58,17 +58,17 @@ ngx_int_t             ngx_accept_disabled;
 #if (NGX_STAT_STUB)
 
 static ngx_atomic_t   ngx_stat_accepted0;
-ngx_atomic_t         *ngx_stat_accepted = &ngx_stat_accepted0;
+ngx_atomic_t         *ngx_stat_accepted = &ngx_stat_accepted0;	//已经建立成功过的TCP连接数
 static ngx_atomic_t   ngx_stat_handled0;
-ngx_atomic_t         *ngx_stat_handled = &ngx_stat_handled0;
+ngx_atomic_t         *ngx_stat_handled = &ngx_stat_handled0;	//连接建立成功且获取到ngx_connection_t结构体后，已经分配过内存池，并且在表示初始化了读/写事件后的连接数
 static ngx_atomic_t   ngx_stat_requests0;
-ngx_atomic_t         *ngx_stat_requests = &ngx_stat_requests0;
+ngx_atomic_t         *ngx_stat_requests = &ngx_stat_requests0;	//已经由HTTP模块处理过的连接数
 static ngx_atomic_t   ngx_stat_active0;
-ngx_atomic_t         *ngx_stat_active = &ngx_stat_active0;
+ngx_atomic_t         *ngx_stat_active = &ngx_stat_active0;		//已经从ngx_cycle_t核心结构体的free_connection连接池中获取到ngx_connection_t对象的活跃连接数
 static ngx_atomic_t   ngx_stat_reading0;
-ngx_atomic_t         *ngx_stat_reading = &ngx_stat_reading0;
+ngx_atomic_t         *ngx_stat_reading = &ngx_stat_reading0;	//正在接收TCP流的连接数
 static ngx_atomic_t   ngx_stat_writing0;
-ngx_atomic_t         *ngx_stat_writing = &ngx_stat_writing0;
+ngx_atomic_t         *ngx_stat_writing = &ngx_stat_writing0;	//正在发送TCP流的连接数
 static ngx_atomic_t   ngx_stat_waiting0;
 ngx_atomic_t         *ngx_stat_waiting = &ngx_stat_waiting0;
 
@@ -173,7 +173,8 @@ static ngx_command_t  ngx_event_core_commands[] = {
 	 Syntax:	accept_mutex on | off;
 	 Default: 	accept_mutex off;
 	 Context:	events
-	 If accept_mutex is enabled, worker processes will accept new connections by turn. Otherwise, all worker processes will be notified about new connections, and if volume of new connections is low, some of the worker processes may just waste system resources.
+	 If accept_mutex is enabled, worker processes will accept new connections by turn. 
+	 Otherwise, all worker processes will be notified about new connections, and if volume of new connections is low, some of the worker processes may just waste system resources.
 	 There is no need to enable accept_mutex on systems that support the 'EPOLLEXCLUSIVE' flag (1.11.3) or when using 'reuseport'.
 	 Prior to version 1.11.3, the default value was on.//XXX: EPOLLEXCLUSIVE和reuseport可以避免惊群，但是怎么负载均衡
 	*/
@@ -503,8 +504,7 @@ ngx_event_module_init(ngx_cycle_t *cycle)
 
     } else {
         if (ecf->connections > (ngx_uint_t) rlmt.rlim_cur
-            && (ccf->rlimit_nofile == NGX_CONF_UNSET
-                || ecf->connections > (ngx_uint_t) ccf->rlimit_nofile))
+            && (ccf->rlimit_nofile == NGX_CONF_UNSET || ecf->connections > (ngx_uint_t) ccf->rlimit_nofile))
         {
             limit = (ccf->rlimit_nofile == NGX_CONF_UNSET) ? (ngx_int_t) rlmt.rlim_cur : ccf->rlimit_nofile;
 
@@ -526,6 +526,12 @@ ngx_event_module_init(ngx_cycle_t *cycle)
 
 
     /* cl should be equal to or greater than cache line size */
+	//计算出需要使用的共享内存大小。
+	//为什么每个数据的空间(128字节)需要大于或等待cache line呢？
+	//为了提高性能, Nginx充分考虑了CPU的二级缓存(目前许多CPU架构下cache line的大小都是128字节)
+	//这样可以将各个数据分开到不同的cache line中去，
+	//于是，某个数据的修改(所有数据是原子操作，可并发修改)就不会导致其他的数据的cache line的失效
+	//http://blog.yufeng.info/archives/tag/cache-line
 
     cl = 128;
 
@@ -545,6 +551,7 @@ ngx_event_module_init(ngx_cycle_t *cycle)
 
 #endif
 
+	/*初始化描述共享内存的ngx_shm_t结构体*/
     shm.size = size;
     ngx_str_set(&shm.name, "nginx_shared_zone");
     shm.log = cycle->log;
@@ -676,8 +683,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
         sigemptyset(&sa.sa_mask);
 
         if (sigaction(SIGALRM, &sa, NULL) == -1) {
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                          "sigaction(SIGALRM) failed");
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "sigaction(SIGALRM) failed");
             return NGX_ERROR;
         }
 
@@ -687,8 +693,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
         itv.it_value.tv_usec = (ngx_timer_resolution % 1000 ) * 1000;
 
         if (setitimer(ITIMER_REAL, &itv, NULL) == -1) {
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                          "setitimer() failed");
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "setitimer() failed");
         }
     }
 
@@ -696,15 +701,13 @@ ngx_event_process_init(ngx_cycle_t *cycle)
         struct rlimit  rlmt;
 
         if (getrlimit(RLIMIT_NOFILE, &rlmt) == -1) {
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                          "getrlimit(RLIMIT_NOFILE) failed");
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "getrlimit(RLIMIT_NOFILE) failed");
             return NGX_ERROR;
         }
 
         cycle->files_n = (ngx_uint_t) rlmt.rlim_cur;
 
-        cycle->files = ngx_calloc(sizeof(ngx_connection_t *) * cycle->files_n,
-                                  cycle->log);
+        cycle->files = ngx_calloc(sizeof(ngx_connection_t *) * cycle->files_n, cycle->log);
         if (cycle->files == NULL) {
             return NGX_ERROR;
         }
@@ -713,24 +716,20 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 #else
 
     if (ngx_timer_resolution && !(ngx_event_flags & NGX_USE_TIMER_EVENT)) {
-        ngx_log_error(NGX_LOG_WARN, cycle->log, 0,
-                      "the \"timer_resolution\" directive is not supported "
-                      "with the configured event method, ignored");
+        ngx_log_error(NGX_LOG_WARN, cycle->log, 0, "the \"timer_resolution\" directive is not supported " "with the configured event method, ignored");
         ngx_timer_resolution = 0;
     }
 
 #endif
 
-    cycle->connections =
-        ngx_alloc(sizeof(ngx_connection_t) * cycle->connection_n, cycle->log);
+    cycle->connections = ngx_alloc(sizeof(ngx_connection_t) * cycle->connection_n, cycle->log);
     if (cycle->connections == NULL) {
         return NGX_ERROR;
     }
 
     c = cycle->connections;
 
-    cycle->read_events = ngx_alloc(sizeof(ngx_event_t) * cycle->connection_n,
-                                   cycle->log);
+    cycle->read_events = ngx_alloc(sizeof(ngx_event_t) * cycle->connection_n, cycle->log);
     if (cycle->read_events == NULL) {
         return NGX_ERROR;
     }
@@ -741,8 +740,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
         rev[i].instance = 1;
     }
 
-    cycle->write_events = ngx_alloc(sizeof(ngx_event_t) * cycle->connection_n,
-                                    cycle->log);
+    cycle->write_events = ngx_alloc(sizeof(ngx_event_t) * cycle->connection_n, cycle->log);
     if (cycle->write_events == NULL) {
         return NGX_ERROR;
     }
@@ -1086,7 +1084,7 @@ ngx_event_use(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
                 ecf->use = cf->cycle->modules[m]->ctx_index;
                 ecf->name = module->name->data;
 
-                if (ngx_process == NGX_PROCESS_SINGLE && old_ecf && old_ecf->use != ecf->use) {
+                if (ngx_process == NGX_PROCESS_SINGLE && old_ecf && old_ecf->use != ecf->use) {	//XXX: 为什么单进程模式下不能改变？？？
                     ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                "when the server runs without a master process "
                                "the \"%V\" event type must be the same as "

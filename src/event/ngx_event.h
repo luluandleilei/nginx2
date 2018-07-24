@@ -28,7 +28,7 @@ typedef struct {
 
 
 struct ngx_event_s {
-    void            *data;		//事件相关的对象。通常data都是指向ngx_connection_t连接对象。开启文件异步I/O时，它可能会指向ngx_event_aio_t结构体 //指向该event所属的connection
+    void            *data;		//Arbitrary event context used in event handlers, usually as pointer to a connection related to the event.//事件相关的对象。通常data都是指向ngx_connection_t连接对象。开启文件异步I/O时，它可能会指向ngx_event_aio_t结构体 //指向该event所属的connection
 
     unsigned         write:1;	//Flag indicating a write event. Absence of the flag indicates a read event.
 
