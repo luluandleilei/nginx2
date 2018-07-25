@@ -446,23 +446,15 @@ ngx_open_listening_sockets(ngx_cycle_t *cycle)
             s = ngx_socket(ls[i].sockaddr->sa_family, ls[i].type, 0);
 
             if (s == (ngx_socket_t) -1) {
-                ngx_log_error(NGX_LOG_EMERG, log, ngx_socket_errno,
-                              ngx_socket_n " %V failed", &ls[i].addr_text);
+                ngx_log_error(NGX_LOG_EMERG, log, ngx_socket_errno, ngx_socket_n " %V failed", &ls[i].addr_text);
                 return NGX_ERROR;
             }
 
-            if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR,
-                           (const void *) &reuseaddr, sizeof(int))
-                == -1)
-            {
-                ngx_log_error(NGX_LOG_EMERG, log, ngx_socket_errno,
-                              "setsockopt(SO_REUSEADDR) %V failed",
-                              &ls[i].addr_text);
+            if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (const void *) &reuseaddr, sizeof(int)) == -1) {
+                ngx_log_error(NGX_LOG_EMERG, log, ngx_socket_errno, "setsockopt(SO_REUSEADDR) %V failed", &ls[i].addr_text);
 
                 if (ngx_close_socket(s) == -1) {
-                    ngx_log_error(NGX_LOG_EMERG, log, ngx_socket_errno,
-                                  ngx_close_socket_n " %V failed",
-                                  &ls[i].addr_text);
+                    ngx_log_error(NGX_LOG_EMERG, log, ngx_socket_errno, ngx_close_socket_n " %V failed", &ls[i].addr_text);
                 }
 
                 return NGX_ERROR;
@@ -477,10 +469,7 @@ ngx_open_listening_sockets(ngx_cycle_t *cycle)
 
 #ifdef SO_REUSEPORT_LB
 
-                if (setsockopt(s, SOL_SOCKET, SO_REUSEPORT_LB,
-                               (const void *) &reuseport, sizeof(int))
-                    == -1)
-                {
+                if (setsockopt(s, SOL_SOCKET, SO_REUSEPORT_LB, (const void *) &reuseport, sizeof(int)) == -1) {
                     ngx_log_error(NGX_LOG_EMERG, log, ngx_socket_errno,
                                   "setsockopt(SO_REUSEPORT_LB) %V failed",
                                   &ls[i].addr_text);
@@ -650,8 +639,7 @@ ngx_open_listening_sockets(ngx_cycle_t *cycle)
 
         /* TODO: delay configurable */
 
-        ngx_log_error(NGX_LOG_NOTICE, log, 0,
-                      "try again to bind() after 500ms");
+        ngx_log_error(NGX_LOG_NOTICE, log, 0, "try again to bind() after 500ms");
 
         ngx_msleep(500);
     }
@@ -1068,14 +1056,13 @@ ngx_get_connection(ngx_socket_t s, ngx_log_t *log)
 
     c = ngx_cycle->free_connections;
 
-    if (c == NULL) {
-        ngx_drain_connections((ngx_cycle_t *) ngx_cycle);
+    if (c == NULL) {	// 此时连接池已用尽
+        ngx_drain_connections((ngx_cycle_t *) ngx_cycle);	// 将一些keepalive连接给释放掉
         c = ngx_cycle->free_connections;
     }
 
     if (c == NULL) {
         ngx_log_error(NGX_LOG_ALERT, log, 0, "%ui worker_connections are not enough", ngx_cycle->connection_n);
-
         return NULL;
     }
 
@@ -1177,7 +1164,7 @@ ngx_close_connection(ngx_connection_t *c)
     c->read->closed = 1;
     c->write->closed = 1;
 
-    ngx_reusable_connection(c, 0);
+    ngx_reusable_connection(c, 0);	//XXX：如果connection在cycle.reusable_connections_queue中时，将其从该队列中移除
 
     log_error = c->log_error;
 
@@ -1222,8 +1209,7 @@ ngx_close_connection(ngx_connection_t *c)
 void
 ngx_reusable_connection(ngx_connection_t *c, ngx_uint_t reusable)
 {
-    ngx_log_debug1(NGX_LOG_DEBUG_CORE, c->log, 0,
-                   "reusable connection: %ui", reusable);
+    ngx_log_debug1(NGX_LOG_DEBUG_CORE, c->log, 0, "reusable connection: %ui", reusable);
 
     if (c->reusable) {
         ngx_queue_remove(&c->queue);
@@ -1239,8 +1225,7 @@ ngx_reusable_connection(ngx_connection_t *c, ngx_uint_t reusable)
     if (reusable) {
         /* need cast as ngx_cycle is volatile */
 
-        ngx_queue_insert_head(
-            (ngx_queue_t *) &ngx_cycle->reusable_connections_queue, &c->queue);
+        ngx_queue_insert_head( (ngx_queue_t *) &ngx_cycle->reusable_connections_queue, &c->queue);
         ngx_cycle->reusable_connections_n++;
 
 #if (NGX_STAT_STUB)
@@ -1264,12 +1249,16 @@ ngx_drain_connections(ngx_cycle_t *cycle)
             break;
         }
 
+		//reusable连接队列是从头插入的，意味着越靠近队列尾部的连接，
+		//空闲未被使用的时间就越长，这种情况下，优先回收它，类似LRU
         q = ngx_queue_last(&cycle->reusable_connections_queue);
         c = ngx_queue_data(q, ngx_connection_t, queue);
 
-        ngx_log_debug0(NGX_LOG_DEBUG_CORE, c->log, 0,
-                       "reusing connection");
+        ngx_log_debug0(NGX_LOG_DEBUG_CORE, c->log, 0, "reusing connection");
 
+		//这里的handler是ngx_http_keepalive_handler，这函数里，由于close被置1，
+        //所以会执行ngx_http_close_connection来释放连接，这样也就发生了keepalive
+        //连接被强制断掉的现象了
         c->close = 1;
         c->read->handler(c->read);
     }

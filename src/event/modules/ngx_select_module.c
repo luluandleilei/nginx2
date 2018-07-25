@@ -323,16 +323,14 @@ ngx_select_process_events(ngx_cycle_t *cycle, ngx_msec_t timer,
         } else {
             if (FD_ISSET(c->fd, &work_read_fd_set)) {
                 found = 1;
-                ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
-                               "select read %d", c->fd);
+                ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0, "select read %d", c->fd);
             }
         }
 
         if (found) {
             ev->ready = 1;
 
-            queue = ev->accept ? &ngx_posted_accept_events
-                               : &ngx_posted_events;
+            queue = ev->accept ? &ngx_posted_accept_events : &ngx_posted_events;
 
             ngx_post_event(ev, queue);
 

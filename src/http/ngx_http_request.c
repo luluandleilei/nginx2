@@ -2252,9 +2252,7 @@ ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
 
     c = r->connection;
 
-    ngx_log_debug5(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "http finalize request: %i, \"%V?%V\" a:%d, c:%d",
-                   rc, &r->uri, &r->args, r == c->data, r->main->count);
+    ngx_log_debug5(NGX_LOG_DEBUG_HTTP, c->log, 0, "http finalize request: %i, \"%V?%V\" a:%d, c:%d", rc, &r->uri, &r->args, r == c->data, r->main->count);
 
     if (rc == NGX_DONE) {
         ngx_http_finalize_connection(r);
@@ -2289,10 +2287,7 @@ ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
         return;
     }
 
-    if (rc >= NGX_HTTP_SPECIAL_RESPONSE
-        || rc == NGX_HTTP_CREATED
-        || rc == NGX_HTTP_NO_CONTENT)
-    {
+    if (rc >= NGX_HTTP_SPECIAL_RESPONSE || rc == NGX_HTTP_CREATED || rc == NGX_HTTP_NO_CONTENT) {
         if (rc == NGX_HTTP_CLOSE) {
             ngx_http_terminate_request(r, rc);
             return;
@@ -2327,9 +2322,7 @@ ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
                 r->logged = 1;
 
             } else {
-                ngx_log_error(NGX_LOG_ALERT, c->log, 0,
-                              "subrequest: \"%V?%V\" logged again",
-                              &r->uri, &r->args);
+                ngx_log_error(NGX_LOG_ALERT, c->log, 0, "subrequest: \"%V?%V\" logged again", &r->uri, &r->args);
             }
 
             r->done = 1;
@@ -3033,7 +3026,7 @@ ngx_http_set_keepalive(ngx_http_request_t *r)
 #endif
 
     c->idle = 1;
-    ngx_reusable_connection(c, 1);
+    ngx_reusable_connection(c, 1);	//将该connection对象添加到cycle.reusable_connections_queue中
 
     ngx_add_timer(rev, clcf->keepalive_timeout);
 

@@ -475,7 +475,7 @@ ngx_http_upstream_create(ngx_http_request_t *r)
 
     u = r->upstream;
 
-    if (u && u->cleanup) {
+    if (u && u->cleanup) {	//XXX:什么情况下upstream对象会已经存在？
         r->main->count++;
         ngx_http_upstream_cleanup(r);
     }
@@ -508,8 +508,7 @@ ngx_http_upstream_init(ngx_http_request_t *r)
 
     c = r->connection;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "http init upstream, client timer: %d", c->read->timer_set);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0, "http init upstream, client timer: %d", c->read->timer_set);
 
 #if (NGX_HTTP_V2)
     if (r->stream) {
@@ -525,9 +524,7 @@ ngx_http_upstream_init(ngx_http_request_t *r)
     if (ngx_event_flags & NGX_USE_CLEAR_EVENT) {
 
         if (!c->write->active) {
-            if (ngx_add_event(c->write, NGX_WRITE_EVENT, NGX_CLEAR_EVENT)
-                == NGX_ERROR)
-            {
+            if (ngx_add_event(c->write, NGX_WRITE_EVENT, NGX_CLEAR_EVENT) == NGX_ERROR) {
                 ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
                 return;
             }
@@ -1288,8 +1285,7 @@ ngx_http_upstream_wr_check_broken_connection(ngx_http_request_t *r)
 
 
 static void
-ngx_http_upstream_check_broken_connection(ngx_http_request_t *r,
-    ngx_event_t *ev)
+ngx_http_upstream_check_broken_connection(ngx_http_request_t *r, ngx_event_t *ev)
 {
     int                  n;
     char                 buf[1];
@@ -1298,9 +1294,7 @@ ngx_http_upstream_check_broken_connection(ngx_http_request_t *r,
     ngx_connection_t     *c;
     ngx_http_upstream_t  *u;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, ev->log, 0,
-                   "http upstream check client, write event:%d, \"%V\"",
-                   ev->write, &r->uri);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, ev->log, 0, "http upstream check client, write event:%d, \"%V\"", ev->write, &r->uri);
 
     c = r->connection;
     u = r->upstream;
@@ -1311,15 +1305,13 @@ ngx_http_upstream_check_broken_connection(ngx_http_request_t *r,
             event = ev->write ? NGX_WRITE_EVENT : NGX_READ_EVENT;
 
             if (ngx_del_event(ev, event, 0) != NGX_OK) {
-                ngx_http_upstream_finalize_request(r, u,
-                                               NGX_HTTP_INTERNAL_SERVER_ERROR);
+                ngx_http_upstream_finalize_request(r, u, NGX_HTTP_INTERNAL_SERVER_ERROR);
                 return;
             }
         }
 
         if (!u->cacheable) {
-            ngx_http_upstream_finalize_request(r, u,
-                                               NGX_HTTP_CLIENT_CLOSED_REQUEST);
+            ngx_http_upstream_finalize_request(r, u, NGX_HTTP_CLIENT_CLOSED_REQUEST);
         }
 
         return;
@@ -1426,8 +1418,7 @@ ngx_http_upstream_check_broken_connection(ngx_http_request_t *r,
 
     err = ngx_socket_errno;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ev->log, err,
-                   "http upstream recv(): %d", n);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ev->log, err, "http upstream recv(): %d", n);
 
     if (ev->write && (n >= 0 || err == NGX_EAGAIN)) {
         return;
@@ -1438,8 +1429,7 @@ ngx_http_upstream_check_broken_connection(ngx_http_request_t *r,
         event = ev->write ? NGX_WRITE_EVENT : NGX_READ_EVENT;
 
         if (ngx_del_event(ev, event, 0) != NGX_OK) {
-            ngx_http_upstream_finalize_request(r, u,
-                                               NGX_HTTP_INTERNAL_SERVER_ERROR);
+            ngx_http_upstream_finalize_request(r, u, NGX_HTTP_INTERNAL_SERVER_ERROR);
             return;
         }
     }
@@ -1471,12 +1461,10 @@ ngx_http_upstream_check_broken_connection(ngx_http_request_t *r,
         return;
     }
 
-    ngx_log_error(NGX_LOG_INFO, ev->log, err,
-                  "client prematurely closed connection");
+    ngx_log_error(NGX_LOG_INFO, ev->log, err, "client prematurely closed connection");
 
     if (u->peer.connection == NULL) {
-        ngx_http_upstream_finalize_request(r, u,
-                                           NGX_HTTP_CLIENT_CLOSED_REQUEST);
+        ngx_http_upstream_finalize_request(r, u, NGX_HTTP_CLIENT_CLOSED_REQUEST);
     }
 }
 
@@ -4153,8 +4141,7 @@ ngx_http_upstream_next(ngx_http_request_t *r, ngx_http_upstream_t *u,
     }
 
     if (r->connection->error) {
-        ngx_http_upstream_finalize_request(r, u,
-                                           NGX_HTTP_CLIENT_CLOSED_REQUEST);
+        ngx_http_upstream_finalize_request(r, u, NGX_HTTP_CLIENT_CLOSED_REQUEST);
         return;
     }
 
@@ -4238,21 +4225,18 @@ ngx_http_upstream_cleanup(void *data)
 {
     ngx_http_request_t *r = data;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "cleanup http upstream request: \"%V\"", &r->uri);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "cleanup http upstream request: \"%V\"", &r->uri);
 
     ngx_http_upstream_finalize_request(r, r->upstream, NGX_DONE);
 }
 
 
 static void
-ngx_http_upstream_finalize_request(ngx_http_request_t *r,
-    ngx_http_upstream_t *u, ngx_int_t rc)
+ngx_http_upstream_finalize_request(ngx_http_request_t *r, ngx_http_upstream_t *u, ngx_int_t rc)
 {
     ngx_uint_t  flush;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "finalize http upstream request: %i", rc);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "finalize http upstream request: %i", rc);
 
     if (u->cleanup == NULL) {
         /* the request was already finalized */
@@ -4272,9 +4256,8 @@ ngx_http_upstream_finalize_request(ngx_http_request_t *r,
         u->state->response_time = ngx_current_msec - u->state->response_time;
 
         if (u->pipe && u->pipe->read_length) {
-            u->state->bytes_received += u->pipe->read_length
-                                        - u->pipe->preread_size;
-            u->state->response_length = u->pipe->read_length;
+            u->state->bytes_received += u->pipe->read_length - u->pipe->preread_size;
+			u->state->response_length = u->pipe->read_length;
         }
     }
 
@@ -4305,9 +4288,7 @@ ngx_http_upstream_finalize_request(ngx_http_request_t *r,
         }
 #endif
 
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "close http upstream connection: %d",
-                       u->peer.connection->fd);
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "close http upstream connection: %d", u->peer.connection->fd);
 
         if (u->peer.connection->pool) {
             ngx_destroy_pool(u->peer.connection->pool);
@@ -4319,20 +4300,12 @@ ngx_http_upstream_finalize_request(ngx_http_request_t *r,
     u->peer.connection = NULL;
 
     if (u->pipe && u->pipe->temp_file) {
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "http upstream temp fd: %d",
-                       u->pipe->temp_file->file.fd);
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http upstream temp fd: %d", u->pipe->temp_file->file.fd);
     }
 
-    if (u->store && u->pipe && u->pipe->temp_file
-        && u->pipe->temp_file->file.fd != NGX_INVALID_FILE)
-    {
-        if (ngx_delete_file(u->pipe->temp_file->file.name.data)
-            == NGX_FILE_ERROR)
-        {
-            ngx_log_error(NGX_LOG_CRIT, r->connection->log, ngx_errno,
-                          ngx_delete_file_n " \"%s\" failed",
-                          u->pipe->temp_file->file.name.data);
+    if (u->store && u->pipe && u->pipe->temp_file && u->pipe->temp_file->file.fd != NGX_INVALID_FILE) {
+        if (ngx_delete_file(u->pipe->temp_file->file.name.data) == NGX_FILE_ERROR) {
+            ngx_log_error(NGX_LOG_CRIT, r->connection->log, ngx_errno, ngx_delete_file_n " \"%s\" failed", u->pipe->temp_file->file.name.data);
         }
     }
 
@@ -4367,10 +4340,7 @@ ngx_http_upstream_finalize_request(ngx_http_request_t *r,
 
     r->connection->log->action = "sending to client";
 
-    if (!u->header_sent
-        || rc == NGX_HTTP_REQUEST_TIME_OUT
-        || rc == NGX_HTTP_CLIENT_CLOSED_REQUEST)
-    {
+    if (!u->header_sent || rc == NGX_HTTP_REQUEST_TIME_OUT || rc == NGX_HTTP_CLIENT_CLOSED_REQUEST) {
         ngx_http_finalize_request(r, rc);
         return;
     }
@@ -4382,9 +4352,7 @@ ngx_http_upstream_finalize_request(ngx_http_request_t *r,
         flush = 1;
     }
 
-    if (r->header_only
-        || (u->pipe && u->pipe->downstream_error))
-    {
+    if (r->header_only || (u->pipe && u->pipe->downstream_error)) {
         ngx_http_finalize_request(r, rc);
         return;
     }
@@ -5919,8 +5887,7 @@ ngx_http_upstream_add(ngx_conf_t *cf, ngx_url_t *u, ngx_uint_t flags)
 
         if (ngx_parse_url(cf->pool, u) != NGX_OK) {
             if (u->err) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "%s in upstream \"%V\"", u->err, &u->url);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "%s in upstream \"%V\"", u->err, &u->url);
             }
 
             return NULL;

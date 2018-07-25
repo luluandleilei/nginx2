@@ -46,7 +46,7 @@ static ngx_atomic_t   connection_counter = 1;
 ngx_atomic_t         *ngx_connection_counter = &connection_counter;
 
 
-ngx_atomic_t         *ngx_accept_mutex_ptr;		
+ngx_atomic_t         *ngx_accept_mutex_ptr;		//XXX：指向负载均衡锁使用的原子变量， 用于标识是否初始化了负载均衡锁
 ngx_shmtx_t           ngx_accept_mutex;			//负载均衡锁
 ngx_uint_t            ngx_use_accept_mutex;	 	//表示是否使用accept_mutex负载均衡锁
 ngx_uint_t            ngx_accept_events;
@@ -484,13 +484,13 @@ ngx_event_module_init(ngx_cycle_t *cycle)
     ngx_event_conf_t    *ecf;
 
     cf = ngx_get_conf(cycle->conf_ctx, ngx_events_module);
-    ecf = (*cf)[ngx_event_core_module.ctx_index];
+    ecf = (*cf)[ngx_event_core_module.ctx_index];			//取得ngx_event_core_module模块的配置结构
 
     if (!ngx_test_config && ngx_process <= NGX_PROCESS_MASTER) {
         ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0, "using the \"%s\" event method", ecf->name);
     }
 
-    ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
+    ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);	//取得ngx_core_module模块的配置结构
 
     ngx_timer_resolution = ccf->timer_resolution;
 
@@ -516,11 +516,13 @@ ngx_event_module_init(ngx_cycle_t *cycle)
 #endif /* !(NGX_WIN32) */
 
 
-    if (ccf->master == 0) {
+    if (ccf->master == 0) {	//以single进程工作时，不需要创建负载均衡锁，直接返回
         return NGX_OK;
     }
-
-    if (ngx_accept_mutex_ptr) {	//表明已经被初始化过了(reconfigre时会发生)
+	
+	/*初始化负载均衡锁*/
+	
+    if (ngx_accept_mutex_ptr) {	//XXX:表明负载均衡锁已经被初始化过了(reconfigre时会发生)
         return NGX_OK;
     }
 
@@ -563,7 +565,7 @@ ngx_event_module_init(ngx_cycle_t *cycle)
     shared = shm.addr;
 
     ngx_accept_mutex_ptr = (ngx_atomic_t *) shared;
-    ngx_accept_mutex.spin = (ngx_uint_t) -1;
+    ngx_accept_mutex.spin = (ngx_uint_t) -1;	//将spin值设为-1，表示不使用信号量。
 
     if (ngx_shmtx_create(&ngx_accept_mutex, (ngx_shmtx_sh_t *) shared, cycle->lock_file.data) != NGX_OK) {
         return NGX_ERROR;
@@ -626,6 +628,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
     ecf = ngx_event_get_conf(cycle->conf_ctx, ngx_event_core_module);
 
+	/*XXX:master进程打开，worker进程数大于1，配置了accetp_mutex时才使用负载均衡锁*/
     if (ccf->master && ccf->worker_processes > 1 && ecf->accept_mutex) {
         ngx_use_accept_mutex = 1;
         ngx_accept_mutex_held = 0;
@@ -649,11 +652,12 @@ ngx_event_process_init(ngx_cycle_t *cycle)
     ngx_queue_init(&ngx_posted_accept_events);
     ngx_queue_init(&ngx_posted_events);
 
+	/*初始化定时器，此处将会创建起一颗红黑色，来维护定时器*/
     if (ngx_event_timer_init(cycle->log) == NGX_ERROR) {
         return NGX_ERROR;
     }
 
-	/*调用使用的事件驱动模块的初始化函数*/
+	/*调用使用的事件驱动模块的init函数*/
     for (m = 0; cycle->modules[m]; m++) {
         if (cycle->modules[m]->type != NGX_EVENT_MODULE) {
             continue;
@@ -723,13 +727,15 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
 #endif
 
-    cycle->connections = ngx_alloc(sizeof(ngx_connection_t) * cycle->connection_n, cycle->log);
+	/*创建一个connection数组，维护所有的connection*/
+    cycle->connections = ngx_alloc(sizeof(ngx_connection_t) * cycle->connection_n, cycle->log); //XXX:为什么不是从cycle->pool中分配??
     if (cycle->connections == NULL) {
         return NGX_ERROR;
     }
 
     c = cycle->connections;
 
+	/*创建一个读事件数组*/
     cycle->read_events = ngx_alloc(sizeof(ngx_event_t) * cycle->connection_n, cycle->log);
     if (cycle->read_events == NULL) {
         return NGX_ERROR;
@@ -741,6 +747,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
         rev[i].instance = 1;
     }
 
+	/*创建一个写事件数组*/
     cycle->write_events = ngx_alloc(sizeof(ngx_event_t) * cycle->connection_n, cycle->log);
     if (cycle->write_events == NULL) {
         return NGX_ERROR;
@@ -748,7 +755,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
     wev = cycle->write_events;
     for (i = 0; i < cycle->connection_n; i++) {
-        wev[i].closed = 1;
+        wev[i].closed = 1;	//XXX：为什么不设置 wev[i].instance = 1;
     }
 
     i = cycle->connection_n;
@@ -780,7 +787,6 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 #endif
 
         c = ngx_get_connection(ls[i].fd, cycle->log);
-
         if (c == NULL) {
             return NGX_ERROR;
         }
@@ -810,9 +816,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
                 old = ls[i].previous->connection;
 
-                if (ngx_del_event(old->read, NGX_READ_EVENT, NGX_CLOSE_EVENT)
-                    == NGX_ERROR)
-                {
+                if (ngx_del_event(old->read, NGX_READ_EVENT, NGX_CLOSE_EVENT) == NGX_ERROR) {
                     return NGX_ERROR;
                 }
 
@@ -878,12 +882,8 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
 #if (NGX_HAVE_EPOLLEXCLUSIVE)
 
-        if ((ngx_event_flags & NGX_USE_EPOLL_EVENT)
-            && ccf->worker_processes > 1)
-        {
-            if (ngx_add_event(rev, NGX_READ_EVENT, NGX_EXCLUSIVE_EVENT)
-                == NGX_ERROR)
-            {
+        if ((ngx_event_flags & NGX_USE_EPOLL_EVENT) && ccf->worker_processes > 1) {
+            if (ngx_add_event(rev, NGX_READ_EVENT, NGX_EXCLUSIVE_EVENT) == NGX_ERROR) {
                 return NGX_ERROR;
             }
 

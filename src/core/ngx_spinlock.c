@@ -25,10 +25,10 @@ ngx_spinlock(ngx_atomic_t *lock, ngx_atomic_int_t value, ngx_uint_t spin)
 
         if (ngx_ncpu > 1) {
 
-            for (n = 1; n < spin; n <<= 1) {
+            for (n = 1; n < spin; n <<= 1) {	//指数避让
 
                 for (i = 0; i < n; i++) {
-                    ngx_cpu_pause();
+                    ngx_cpu_pause();		
                 }
 
                 if (*lock == 0 && ngx_atomic_cmp_set(lock, 0, value)) {
@@ -37,7 +37,7 @@ ngx_spinlock(ngx_atomic_t *lock, ngx_atomic_int_t value, ngx_uint_t spin)
             }
         }
 
-        ngx_sched_yield();
+        ngx_sched_yield();	//让出CPU，等待下次重新被调度执行
     }
 
 #else

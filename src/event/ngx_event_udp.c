@@ -230,8 +230,7 @@ ngx_event_recvmsg(ngx_event_t *ev)
 
 #endif
 
-        c = ngx_lookup_udp_connection(ls, sockaddr, socklen, local_sockaddr,
-                                      local_socklen);
+        c = ngx_lookup_udp_connection(ls, sockaddr, socklen, local_sockaddr, local_socklen);
 
         if (c) {
 
@@ -271,8 +270,7 @@ ngx_event_recvmsg(ngx_event_t *ev)
         (void) ngx_atomic_fetch_add(ngx_stat_accepted, 1);
 #endif
 
-        ngx_accept_disabled = ngx_cycle->connection_n / 8
-                              - ngx_cycle->free_connection_n;
+        ngx_accept_disabled = ngx_cycle->connection_n / 8 - ngx_cycle->free_connection_n;
 
         c = ngx_get_connection(lc->fd, ev->log);
         if (c == NULL) {
@@ -617,12 +615,10 @@ ngx_lookup_udp_connection(ngx_listening_t *ls, struct sockaddr *sockaddr,
 
         c = udp->connection;
 
-        rc = ngx_cmp_sockaddr(sockaddr, socklen,
-                              c->sockaddr, c->socklen, 1);
+        rc = ngx_cmp_sockaddr(sockaddr, socklen, c->sockaddr, c->socklen, 1);
 
         if (rc == 0 && ls->wildcard) {
-            rc = ngx_cmp_sockaddr(local_sockaddr, local_socklen,
-                                  c->local_sockaddr, c->local_socklen, 1);
+            rc = ngx_cmp_sockaddr(local_sockaddr, local_socklen, c->local_sockaddr, c->local_socklen, 1);
         }
 
         if (rc == 0) {

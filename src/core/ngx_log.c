@@ -249,8 +249,7 @@ ngx_log_abort(ngx_err_t err, const char *fmt, ...)
     p = ngx_vsnprintf(errstr, sizeof(errstr) - 1, fmt, args);
     va_end(args);
 
-    ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, err,
-                  "%*s", p - errstr, errstr);
+    ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, err, "%*s", p - errstr, errstr);
 }
 
 //输出日志到标准错误

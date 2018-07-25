@@ -35,6 +35,7 @@ ngx_os_specific_init(ngx_log_t *log)
 {
     struct utsname  u;
 
+	//获取系统内核类型和内核版本
     if (uname(&u) == -1) {
         ngx_log_error(NGX_LOG_ALERT, log, ngx_errno, "uname() failed");
         return NGX_ERROR;
@@ -44,6 +45,7 @@ ngx_os_specific_init(ngx_log_t *log)
 
     (void) ngx_cpystrn(ngx_linux_kern_osrelease, (u_char *) u.release, sizeof(ngx_linux_kern_osrelease));
 
+	//设置系统IO接口函数
     ngx_os_io = ngx_linux_io;
 
     return NGX_OK;

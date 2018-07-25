@@ -746,9 +746,10 @@ ngx_trylock_fd(ngx_fd_t fd)
     struct flock  fl;
 
     ngx_memzero(&fl, sizeof(struct flock));
-    fl.l_type = F_WRLCK;
+    fl.l_type = F_WRLCK;	//设置文件锁的类型为写锁，即互斥锁
     fl.l_whence = SEEK_SET;
 
+	//设置操作为F_SETLK，表示获取不到文件锁时直接返回，而不会阻塞进程
     if (fcntl(fd, F_SETLK, &fl) == -1) {
         return ngx_errno;
     }
@@ -763,9 +764,10 @@ ngx_lock_fd(ngx_fd_t fd)
     struct flock  fl;
 
     ngx_memzero(&fl, sizeof(struct flock));
-    fl.l_type = F_WRLCK;
+    fl.l_type = F_WRLCK;	//设置文件锁的类型为写锁，即互斥锁
     fl.l_whence = SEEK_SET;
 
+	//设置操作为F_SETLKW，表示获取不到文件锁时，会阻塞直到可以获取
     if (fcntl(fd, F_SETLKW, &fl) == -1) {
         return ngx_errno;
     }
@@ -780,7 +782,7 @@ ngx_unlock_fd(ngx_fd_t fd)
     struct flock  fl;
 
     ngx_memzero(&fl, sizeof(struct flock));
-    fl.l_type = F_UNLCK;
+    fl.l_type = F_UNLCK;	//锁的类型为 F_UNLCK, 表示释放锁
     fl.l_whence = SEEK_SET;
 
     if (fcntl(fd, F_SETLK, &fl) == -1) {

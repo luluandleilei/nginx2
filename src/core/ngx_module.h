@@ -235,13 +235,13 @@ struct ngx_module_s {
     ngx_command_t        *commands;     //模块支持的command
     ngx_uint_t            type;         //模块类型module type
 
-    ngx_int_t           (*init_master)(ngx_log_t *log);	//未使用
+    ngx_int_t           (*init_master)(ngx_log_t *log);		//未使用
 
     ngx_int_t           (*init_module)(ngx_cycle_t *cycle);
 
     ngx_int_t           (*init_process)(ngx_cycle_t *cycle);
-    ngx_int_t           (*init_thread)(ngx_cycle_t *cycle);
-    void                (*exit_thread)(ngx_cycle_t *cycle);
+    ngx_int_t           (*init_thread)(ngx_cycle_t *cycle); //未使用
+    void                (*exit_thread)(ngx_cycle_t *cycle);	//未使用
     void                (*exit_process)(ngx_cycle_t *cycle);
 
     void                (*exit_master)(ngx_cycle_t *cycle);
@@ -270,8 +270,7 @@ ngx_int_t ngx_init_modules(ngx_cycle_t *cycle);
 ngx_int_t ngx_count_modules(ngx_cycle_t *cycle, ngx_uint_t type);
 
 
-ngx_int_t ngx_add_module(ngx_conf_t *cf, ngx_str_t *file,
-    ngx_module_t *module, char **order);
+ngx_int_t ngx_add_module(ngx_conf_t *cf, ngx_str_t *file, ngx_module_t *module, char **order);
 
 
 extern ngx_module_t  *ngx_modules[];

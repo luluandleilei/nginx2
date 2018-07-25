@@ -19,44 +19,44 @@
  *    TT        command type, i.e. HTTP "location" or "server" command
  */
 
-#define NGX_CONF_NOARGS      0x00000001	//不能有参数
-#define NGX_CONF_TAKE1       0x00000002	//仅一个参数
-#define NGX_CONF_TAKE2       0x00000004	//仅两个参数
-#define NGX_CONF_TAKE3       0x00000008	//仅三个参数
-#define NGX_CONF_TAKE4       0x00000010	//仅四个参数
-#define NGX_CONF_TAKE5       0x00000020	//仅五个参数
-#define NGX_CONF_TAKE6       0x00000040	//仅六个参数
-#define NGX_CONF_TAKE7       0x00000080	//仅七个参数
+#define NGX_CONF_NOARGS      0x00000001	//配置指令不接受任何参数
+#define NGX_CONF_TAKE1       0x00000002	//配置指令接受1个参数
+#define NGX_CONF_TAKE2       0x00000004	//配置指令接受2个参数
+#define NGX_CONF_TAKE3       0x00000008	//配置指令接受3个参数
+#define NGX_CONF_TAKE4       0x00000010	//配置指令接受4个参数
+#define NGX_CONF_TAKE5       0x00000020	//配置指令接受5个参数
+#define NGX_CONF_TAKE6       0x00000040	//配置指令接受6个参数
+#define NGX_CONF_TAKE7       0x00000080	//配置指令接受7个参数
 
-#define NGX_CONF_MAX_ARGS    8	//最大参数个数
+#define NGX_CONF_MAX_ARGS    8	//配置指令最多参数个数
 
-#define NGX_CONF_TAKE12      (NGX_CONF_TAKE1|NGX_CONF_TAKE2)
-#define NGX_CONF_TAKE13      (NGX_CONF_TAKE1|NGX_CONF_TAKE3)
+#define NGX_CONF_TAKE12      (NGX_CONF_TAKE1|NGX_CONF_TAKE2)	//配置指令接受1个或者2个参数
+#define NGX_CONF_TAKE13      (NGX_CONF_TAKE1|NGX_CONF_TAKE3)	//配置指令接受1个或者3个参数
 
-#define NGX_CONF_TAKE23      (NGX_CONF_TAKE2|NGX_CONF_TAKE3)
+#define NGX_CONF_TAKE23      (NGX_CONF_TAKE2|NGX_CONF_TAKE3)	//配置指令接受2个或者3个参数
 
-#define NGX_CONF_TAKE123     (NGX_CONF_TAKE1|NGX_CONF_TAKE2|NGX_CONF_TAKE3)
-#define NGX_CONF_TAKE1234    (NGX_CONF_TAKE1|NGX_CONF_TAKE2|NGX_CONF_TAKE3|NGX_CONF_TAKE4)
+#define NGX_CONF_TAKE123     (NGX_CONF_TAKE1|NGX_CONF_TAKE2|NGX_CONF_TAKE3)	//配置指令接受1个或者2个或者3参数
+#define NGX_CONF_TAKE1234    (NGX_CONF_TAKE1|NGX_CONF_TAKE2|NGX_CONF_TAKE3|NGX_CONF_TAKE4)	//配置指令接受1个或者2个或者3个或者4个参数
 
 #define NGX_CONF_ARGS_NUMBER 0x000000ff
-#define NGX_CONF_BLOCK       0x00000100
-#define NGX_CONF_FLAG        0x00000200	//一个标志参数
-#define NGX_CONF_ANY         0x00000400	//任意多个参数
-#define NGX_CONF_1MORE       0x00000800	//至少一个参数
-#define NGX_CONF_2MORE       0x00001000	//至少两个参数
+#define NGX_CONF_BLOCK       0x00000100	//配置指令可以接受的值是一个配置信息块。也就是一对大括号括起来的内容。里面可以再包括很多的配置指令。比如常见的server指令就是这个属性的
+#define NGX_CONF_FLAG        0x00000200	//配置指令可以接受的值是”on”或者”off”，最终会被转成bool值
+#define NGX_CONF_ANY         0x00000400	//配置指令可以接受的任意的参数值。一个或者多个，或者”on”或者”off”，或者是配置块
+#define NGX_CONF_1MORE       0x00000800	//配置指令接受至少一个参数
+#define NGX_CONF_2MORE       0x00001000	//配置指令接受至少两个参数
 
-#define NGX_DIRECT_CONF      0x00010000
+#define NGX_DIRECT_CONF      0x00010000	//可以出现在配置文件中最外层。例如已经提供的配置指令daemon，master_process等
 
-#define NGX_MAIN_CONF        0x01000000
-#define NGX_ANY_CONF         0x1F000000
+#define NGX_MAIN_CONF        0x01000000	//http、mail、events、error_log等
+#define NGX_ANY_CONF         0x1F000000	//该配置指令可以出现在任意配置级别上
 
 
 
-#define NGX_CONF_UNSET       -1
-#define NGX_CONF_UNSET_UINT  (ngx_uint_t) -1
-#define NGX_CONF_UNSET_PTR   (void *) -1
-#define NGX_CONF_UNSET_SIZE  (size_t) -1
-#define NGX_CONF_UNSET_MSEC  (ngx_msec_t) -1
+#define NGX_CONF_UNSET       -1					//ngx_flag_t, ngx_int_t 类型的配置的未初始化值
+#define NGX_CONF_UNSET_UINT  (ngx_uint_t) -1	//ngx_uint_t 类型的配置的未初始化值
+#define NGX_CONF_UNSET_PTR   (void *) -1		//指针类型的配置的未初始化值
+#define NGX_CONF_UNSET_SIZE  (size_t) -1		//size_t 类型的配置的未初始化值
+#define NGX_CONF_UNSET_MSEC  (ngx_msec_t) -1	//ngx_msec_t 类型的配置的未初始化值
 
 
 #define NGX_CONF_OK          NULL
@@ -76,10 +76,10 @@
 struct ngx_command_s {
     ngx_str_t             name;	//配置指令的名称
     ngx_uint_t            type;	//配置指令类型，指定配置指令可以出现的位置(例如出现在server{}或location{}中)以及它可以携带的参数个数
-    char               *(*set)(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);	//配置指令处理回调函数
+    char               *(*set)(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);	//配置指令处理回调函数，处理成功时，返回NGX_CONF_OK，否则返回NGX_CONF_ERROR或者是一个自定义的错误信息的字符串
     ngx_uint_t            conf;		//存放的值在上下文中的偏移量
     ngx_uint_t            offset;	//存放的值在结构体中的偏移量
-    void                 *post;		//配置指令读取后的处理方法，必须是ngx_conf_post_t结构体的指针
+    void                 *post;		//可以指向任何一个在读取配置过程中需要的数据，以便于进行配置读取的处理
 };
 
 #define ngx_null_command  { ngx_null_string, 0, NULL, 0, 0, NULL }

@@ -640,18 +640,11 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
                 continue;
             }
 
-            if (ngx_strncmp(oshm_zone[i].shm.name.data,
-                            shm_zone[n].shm.name.data,
-                            oshm_zone[i].shm.name.len)
-                != 0)
-            {
+            if (ngx_strncmp(oshm_zone[i].shm.name.data, shm_zone[n].shm.name.data, oshm_zone[i].shm.name.len) != 0) {
                 continue;
             }
 
-            if (oshm_zone[i].tag == shm_zone[n].tag
-                && oshm_zone[i].shm.size == shm_zone[n].shm.size
-                && !oshm_zone[i].noreuse)
-            {
+            if (oshm_zone[i].tag == shm_zone[n].tag && oshm_zone[i].shm.size == shm_zone[n].shm.size && !oshm_zone[i].noreuse) {
                 goto live_shm_zone;
             }
 
@@ -1324,17 +1317,11 @@ ngx_shutdown_timer_handler(ngx_event_t *ev)
 
     for (i = 0; i < cycle->connection_n; i++) {
 
-        if (c[i].fd == (ngx_socket_t) -1
-            || c[i].read == NULL
-            || c[i].read->accept
-            || c[i].read->channel
-            || c[i].read->resolver)
-        {
+        if (c[i].fd == (ngx_socket_t) -1 || c[i].read == NULL || c[i].read->accept || c[i].read->channel || c[i].read->resolver) {
             continue;
         }
 
-        ngx_log_debug1(NGX_LOG_DEBUG_CORE, ev->log, 0,
-                       "*%uA shutdown timeout", c[i].number);
+        ngx_log_debug1(NGX_LOG_DEBUG_CORE, ev->log, 0, "*%uA shutdown timeout", c[i].number);
 
         c[i].close = 1;
         c[i].error = 1;

@@ -66,8 +66,7 @@ static ngx_int_t ngx_resolve_name_locked(ngx_resolver_t *r,
     ngx_resolver_ctx_t *ctx, ngx_str_t *name);
 static void ngx_resolver_expire(ngx_resolver_t *r, ngx_rbtree_t *tree,
     ngx_queue_t *queue);
-static ngx_int_t ngx_resolver_send_query(ngx_resolver_t *r,
-    ngx_resolver_node_t *rn);
+static ngx_int_t ngx_resolver_send_query(ngx_resolver_t *r, ngx_resolver_node_t *rn);
 static ngx_int_t ngx_resolver_send_udp_query(ngx_resolver_t *r,
     ngx_resolver_connection_t *rec, u_char *query, u_short qlen);
 static ngx_int_t ngx_resolver_send_tcp_query(ngx_resolver_t *r,
@@ -79,8 +78,7 @@ static ngx_int_t ngx_resolver_create_srv_query(ngx_resolver_t *r,
 static ngx_int_t ngx_resolver_create_addr_query(ngx_resolver_t *r,
     ngx_resolver_node_t *rn, ngx_resolver_addr_t *addr);
 static void ngx_resolver_resend_handler(ngx_event_t *ev);
-static time_t ngx_resolver_resend(ngx_resolver_t *r, ngx_rbtree_t *tree,
-    ngx_queue_t *queue);
+static time_t ngx_resolver_resend(ngx_resolver_t *r, ngx_rbtree_t *tree, ngx_queue_t *queue);
 static ngx_uint_t ngx_resolver_resend_empty(ngx_resolver_t *r);
 static void ngx_resolver_udp_read(ngx_event_t *rev);
 static void ngx_resolver_tcp_write(ngx_event_t *wev);

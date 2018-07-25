@@ -22,9 +22,7 @@ ngx_unix_recv(ngx_connection_t *c, u_char *buf, size_t size)
 #if (NGX_HAVE_KQUEUE)
 
     if (ngx_event_flags & NGX_USE_KQUEUE_EVENT) {
-        ngx_log_debug3(NGX_LOG_DEBUG_EVENT, c->log, 0,
-                       "recv: eof:%d, avail:%d, err:%d",
-                       rev->pending_eof, rev->available, rev->kq_errno);
+        ngx_log_debug3(NGX_LOG_DEBUG_EVENT, c->log, 0, "recv: eof:%d, avail:%d, err:%d", rev->pending_eof, rev->available, rev->kq_errno);
 
         if (rev->available == 0) {
             if (rev->pending_eof) {
@@ -35,8 +33,7 @@ ngx_unix_recv(ngx_connection_t *c, u_char *buf, size_t size)
                     rev->error = 1;
                     ngx_set_socket_errno(rev->kq_errno);
 
-                    return ngx_connection_error(c, rev->kq_errno,
-                               "kevent() reported about an closed connection");
+                    return ngx_connection_error(c, rev->kq_errno, "kevent() reported about an closed connection");
                 }
 
                 return 0;
@@ -53,9 +50,7 @@ ngx_unix_recv(ngx_connection_t *c, u_char *buf, size_t size)
 #if (NGX_HAVE_EPOLLRDHUP)
 
     if (ngx_event_flags & NGX_USE_EPOLL_EVENT) {
-        ngx_log_debug2(NGX_LOG_DEBUG_EVENT, c->log, 0,
-                       "recv: eof:%d, avail:%d",
-                       rev->pending_eof, rev->available);
+        ngx_log_debug2(NGX_LOG_DEBUG_EVENT, c->log, 0, "recv: eof:%d, avail:%d", rev->pending_eof, rev->available);
 
         if (!rev->available && !rev->pending_eof) {
             rev->ready = 0;
@@ -68,8 +63,7 @@ ngx_unix_recv(ngx_connection_t *c, u_char *buf, size_t size)
     do {
         n = recv(c->fd, buf, size, 0);
 
-        ngx_log_debug3(NGX_LOG_DEBUG_EVENT, c->log, 0,
-                       "recv: fd:%d %z of %uz", c->fd, n, size);
+        ngx_log_debug3(NGX_LOG_DEBUG_EVENT, c->log, 0, "recv: fd:%d %z of %uz", c->fd, n, size);
 
         if (n == 0) {
             rev->ready = 0;
@@ -118,9 +112,7 @@ ngx_unix_recv(ngx_connection_t *c, u_char *buf, size_t size)
 
 #if (NGX_HAVE_EPOLLRDHUP)
 
-            if ((ngx_event_flags & NGX_USE_EPOLL_EVENT)
-                && ngx_use_epoll_rdhup)
-            {
+            if ((ngx_event_flags & NGX_USE_EPOLL_EVENT) && ngx_use_epoll_rdhup) {
                 if ((size_t) n < size) {
                     if (!rev->pending_eof) {
                         rev->ready = 0;
@@ -134,20 +126,19 @@ ngx_unix_recv(ngx_connection_t *c, u_char *buf, size_t size)
 
 #endif
 
-            if ((size_t) n < size
-                && !(ngx_event_flags & NGX_USE_GREEDY_EVENT))
-            {
+            if ((size_t) n < size && !(ngx_event_flags & NGX_USE_GREEDY_EVENT)) {
                 rev->ready = 0;
             }
 
             return n;
         }
 
+		/* n < 0 */
+		
         err = ngx_socket_errno;
 
         if (err == NGX_EAGAIN || err == NGX_EINTR) {
-            ngx_log_debug0(NGX_LOG_DEBUG_EVENT, c->log, err,
-                           "recv() not ready");
+            ngx_log_debug0(NGX_LOG_DEBUG_EVENT, c->log, err, "recv() not ready");
             n = NGX_AGAIN;
 
         } else {
