@@ -40,13 +40,15 @@ ngx_atomic_cmp_set(ngx_atomic_t *lock, ngx_atomic_uint_t old,
 {
     u_char  res;
 
-    __asm__ volatile (
+    __asm__ volatile (					//volatile 关键字告诉编译器不要对下面的指令循序进行调整与优化
 
-         NGX_SMP_LOCK
-    "    cmpxchgl  %3, %1;   "
-    "    sete      %0;       "
+         NGX_SMP_LOCK					//这是一个宏，如果是当前是单cpu，则展开为空，如果是多cpu，则展开为lock;，它会锁住内存地址进行排他访问
+    "    cmpxchgl  %3, %1;   "			//进行 cas 操作
+    "    sete      %0;       "			//将操作结果写到 res 变量
 
-    : "=a" (res) : "m" (*lock), "a" (old), "r" (set) : "cc", "memory");
+    : "=a" (res) 						// 输出部分
+    : "m" (*lock), "a" (old), "r" (set) // 输入部分
+    : "cc", "memory");					// 破坏描述部分，表示修改了哪些寄存器和内存，提醒编译器优化时要注意。
 
     return res;
 }

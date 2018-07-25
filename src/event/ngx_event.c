@@ -46,8 +46,8 @@ static ngx_atomic_t   connection_counter = 1;
 ngx_atomic_t         *ngx_connection_counter = &connection_counter;
 
 
-ngx_atomic_t         *ngx_accept_mutex_ptr;
-ngx_shmtx_t           ngx_accept_mutex;
+ngx_atomic_t         *ngx_accept_mutex_ptr;		
+ngx_shmtx_t           ngx_accept_mutex;			//负载均衡锁
 ngx_uint_t            ngx_use_accept_mutex;	 	//表示是否使用accept_mutex负载均衡锁
 ngx_uint_t            ngx_accept_events;
 ngx_uint_t            ngx_accept_mutex_held;
@@ -284,8 +284,10 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
                 return;
             }
 
-            if (ngx_accept_mutex_held) {
-                flags |= NGX_POST_EVENTS;
+            if (ngx_accept_mutex_held) {	
+				//在ngx_process_events() 函数里面只接受而不处理事件，并加入post_events的队列里面。直到ngx_accept_mutex锁去掉以后才去处理具体的事件。
+				//因为ngx_accept_mutex是全局锁，这样做可以尽量减少该进程抢到锁以后，从accept开始到结束的时间，以便其他进程继续接收新的连接，提高吞吐量。
+                flags |= NGX_POST_EVENTS;	
 
             } else {
                 if (timer == NGX_TIMER_INFINITE || timer > ngx_accept_mutex_delay) {
@@ -301,10 +303,9 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
 
     delta = ngx_current_msec - delta;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
-                   "timer delta: %M", delta);
+    ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0, "timer delta: %M", delta);
 
-    ngx_event_process_posted(cycle, &ngx_posted_accept_events);
+    ngx_event_process_posted(cycle, &ngx_posted_accept_events);	//ngx_posted_accept_events是放到ngx_accept_mutex锁里面处理的。该队列里面处理的都是accept事件，它会一口气把内核backlog里等待的连接都accept进来，注册到读写事件里。
 
     if (ngx_accept_mutex_held) {
         ngx_shmtx_unlock(&ngx_accept_mutex);
@@ -515,12 +516,11 @@ ngx_event_module_init(ngx_cycle_t *cycle)
 #endif /* !(NGX_WIN32) */
 
 
-	//XXX:下面代码不明白
     if (ccf->master == 0) {
         return NGX_OK;
     }
 
-    if (ngx_accept_mutex_ptr) {
+    if (ngx_accept_mutex_ptr) {	//表明已经被初始化过了(reconfigre时会发生)
         return NGX_OK;
     }
 
@@ -653,6 +653,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
         return NGX_ERROR;
     }
 
+	/*调用使用的事件驱动模块的初始化函数*/
     for (m = 0; cycle->modules[m]; m++) {
         if (cycle->modules[m]->type != NGX_EVENT_MODULE) {
             continue;
@@ -857,8 +858,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
 #else
 
-        rev->handler = (c->type == SOCK_STREAM) ? ngx_event_accept
-                                                : ngx_event_recvmsg;
+        rev->handler = (c->type == SOCK_STREAM) ? ngx_event_accept : ngx_event_recvmsg;
 
 #if (NGX_HAVE_REUSEPORT)
 

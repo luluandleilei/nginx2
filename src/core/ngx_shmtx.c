@@ -14,17 +14,25 @@
 
 static void ngx_shmtx_wakeup(ngx_shmtx_t *mtx);
 
-
+/*
+ mtx： 要创建的锁
+ addr：创建锁时，内部用到的原子变量
+ name：没有意义，只有上
+*/
 ngx_int_t
 ngx_shmtx_create(ngx_shmtx_t *mtx, ngx_shmtx_sh_t *addr, u_char *name)
 {
+	//保存原子变量的地址，由于锁时多个进程之间共享的，那么原子变量一般在共享内存进行分配
+    // 上面的addr就表示在共享内存中分配的内存地址，至于共享内存的分配下次再说
     mtx->lock = &addr->lock;
 
-    if (mtx->spin == (ngx_uint_t) -1) {	// 如果有指定为-1，则表示关掉自旋等待
+	// 在不支持信号量时，spin只表示锁的自旋次数，那么该值为0或负数表示不进行自旋，直接让出cpu，
+    // 当支持信号量时，它为-1表示，不要使用信号量将进程置于睡眠状态，这对 nginx 的性能至关重要。
+    if (mtx->spin == (ngx_uint_t) -1) {	
         return NGX_OK;
     }
 
-    mtx->spin = 2048;
+    mtx->spin = 2048;	 // 默认自旋次数是2048
 
 #if (NGX_HAVE_POSIX_SEM)
 

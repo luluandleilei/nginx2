@@ -128,7 +128,7 @@ ngx_event_accept(ngx_event_t *ev)
         (void) ngx_atomic_fetch_add(ngx_stat_accepted, 1);
 #endif
 
-        ngx_accept_disabled = ngx_cycle->connection_n / 8 - ngx_cycle->free_connection_n;
+        ngx_accept_disabled = ngx_cycle->connection_n / 8 - ngx_cycle->free_connection_n;	//当前进程的空闲连接数小于总(最大)连接数1/8的话，就会被禁止accept一段时间
 
         c = ngx_get_connection(s, ev->log);
 
@@ -309,8 +309,7 @@ ngx_trylock_accept_mutex(ngx_cycle_t *cycle)
 {
     if (ngx_shmtx_trylock(&ngx_accept_mutex)) {
 
-        ngx_log_debug0(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
-                       "accept mutex locked");
+        ngx_log_debug0(NGX_LOG_DEBUG_EVENT, cycle->log, 0, "accept mutex locked");
 
         if (ngx_accept_mutex_held && ngx_accept_events == 0) {
             return NGX_OK;
@@ -327,8 +326,7 @@ ngx_trylock_accept_mutex(ngx_cycle_t *cycle)
         return NGX_OK;
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
-                   "accept mutex lock failed: %ui", ngx_accept_mutex_held);
+    ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0, "accept mutex lock failed: %ui", ngx_accept_mutex_held);
 
     if (ngx_accept_mutex_held) {
         if (ngx_disable_accept_events(cycle, 0) == NGX_ERROR) {
@@ -396,9 +394,7 @@ ngx_disable_accept_events(ngx_cycle_t *cycle, ngx_uint_t all)
 
 #endif
 
-        if (ngx_del_event(c->read, NGX_READ_EVENT, NGX_DISABLE_EVENT)
-            == NGX_ERROR)
-        {
+        if (ngx_del_event(c->read, NGX_READ_EVENT, NGX_DISABLE_EVENT) == NGX_ERROR) {
             return NGX_ERROR;
         }
     }

@@ -2194,8 +2194,7 @@ ngx_http_file_cache_add(ngx_http_file_cache_t *cache, ngx_http_cache_t *c)
 
     if (fcn == NULL) {
 
-        fcn = ngx_slab_calloc_locked(cache->shpool,
-                                     sizeof(ngx_http_file_cache_node_t));
+        fcn = ngx_slab_calloc_locked(cache->shpool, sizeof(ngx_http_file_cache_node_t));
         if (fcn == NULL) {
             ngx_http_file_cache_set_watermark(cache);
 
