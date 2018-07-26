@@ -92,7 +92,10 @@ static ngx_command_t  ngx_http_rewrite_commands[] = {
 	 Syntax:	if (condition) { ... }
 	 Default:	—
 	 Context:	server, location
-	 The specified condition is evaluated. If true, this module directives specified inside the braces are executed, and the request is assigned the configuration inside the if directive. Configurations inside the if directives are inherited from the previous configuration level.
+	 
+	 The specified condition is evaluated. 
+	 If true, this module directives specified inside the braces are executed, and the request is assigned the configuration inside the if directive. 
+	 Configurations inside the if directives are inherited from the previous configuration level.
 
 	 A condition may be any of the following:
 		a variable name; false if the value of a variable is an empty string or “0”;
@@ -763,7 +766,7 @@ ngx_http_rewrite_if_condition(ngx_conf_t *cf, ngx_http_rewrite_loc_conf_t *lcf)
     len = value[cur].len;
     p = value[cur].data;
 
-    if (len > 1 && p[0] == '$') {
+    if (len > 1 && p[0] == '$') {	//$var, $var = val, $var != val, $var ~ regex, $var !~ regex, $var ~* regex, $var !~* regex
 
         if (cur != last && cur + 2 != last) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid condition \"%V\"", &value[cur]);
@@ -774,7 +777,7 @@ ngx_http_rewrite_if_condition(ngx_conf_t *cf, ngx_http_rewrite_loc_conf_t *lcf)
             return NGX_CONF_ERROR;
         }
 
-        if (cur == last) {
+        if (cur == last) {	//$var
             return NGX_CONF_OK;
         }
 
@@ -783,14 +786,13 @@ ngx_http_rewrite_if_condition(ngx_conf_t *cf, ngx_http_rewrite_loc_conf_t *lcf)
         len = value[cur].len;
         p = value[cur].data;
 
-        if (len == 1 && p[0] == '=') {
+        if (len == 1 && p[0] == '=') {	//$var = val
 
             if (ngx_http_rewrite_value(cf, lcf, &value[last]) != NGX_CONF_OK) {
                 return NGX_CONF_ERROR;
             }
 
-            code = ngx_http_script_start_code(cf->pool, &lcf->codes,
-                                              sizeof(uintptr_t));
+            code = ngx_http_script_start_code(cf->pool, &lcf->codes, sizeof(uintptr_t));
             if (code == NULL) {
                 return NGX_CONF_ERROR;
             }
@@ -854,7 +856,7 @@ ngx_http_rewrite_if_condition(ngx_conf_t *cf, ngx_http_rewrite_loc_conf_t *lcf)
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unexpected \"%V\" in condition", &value[cur]);
         return NGX_CONF_ERROR;
 
-    } else if ((len == 2 && p[0] == '-') || (len == 3 && p[0] == '!' && p[1] == '-')) {
+    } else if ((len == 2 && p[0] == '-') || (len == 3 && p[0] == '!' && p[1] == '-')) {	//-f, !-f, -d, !-d, -e, !-e, -x, !-x 
         if (cur + 1 != last) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid condition \"%V\"", &value[cur]);
             return NGX_CONF_ERROR;
@@ -916,8 +918,7 @@ ngx_http_rewrite_if_condition(ngx_conf_t *cf, ngx_http_rewrite_loc_conf_t *lcf)
             }
         }
 
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid condition \"%V\"", &value[cur]);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid condition \"%V\"", &value[cur]);
         return NGX_CONF_ERROR;
     }
 
@@ -1029,14 +1030,13 @@ ngx_http_rewrite_value(ngx_conf_t *cf, ngx_http_rewrite_loc_conf_t *lcf, ngx_str
 
     n = ngx_http_script_variables_count(value);
 
-    if (n == 0) {
+    if (n == 0) {	//不含变量
         val = ngx_http_script_start_code(cf->pool, &lcf->codes, sizeof(ngx_http_script_value_code_t));
         if (val == NULL) {
             return NGX_CONF_ERROR;
         }
 
         n = ngx_atoi(value->data, value->len);
-
         if (n == NGX_ERROR) {
             n = 0;
         }
@@ -1049,6 +1049,7 @@ ngx_http_rewrite_value(ngx_conf_t *cf, ngx_http_rewrite_loc_conf_t *lcf, ngx_str
         return NGX_CONF_OK;
     }
 
+	//含有变量
     complex = ngx_http_script_start_code(cf->pool, &lcf->codes, sizeof(ngx_http_script_complex_value_code_t));
     if (complex == NULL) {
         return NGX_CONF_ERROR;

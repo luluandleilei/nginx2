@@ -37,29 +37,29 @@ typedef struct {
 
 
 typedef struct {
-    ngx_conf_t                 *cf;
-    ngx_str_t                  *source;
+    ngx_conf_t                 *cf;			//[in]
+    ngx_str_t                  *source;		//[in]
 
     ngx_array_t               **flushes;	//记录需要nocache的变量
-    ngx_array_t               **lengths;	//记录执行对应指令后结果长度会改变多少
-    ngx_array_t               **values;
+    ngx_array_t               **lengths;	//[out]记录执行对应指令后结果长度会改变多少
+    ngx_array_t               **values;		//[out]
 
-    ngx_uint_t                  variables;
-    ngx_uint_t                  ncaptures;
-    ngx_uint_t                  captures_mask;
+    ngx_uint_t                  variables;	//[in]可能的变量个数，用于预估内部空间分配的大小，[out]返回实际的变量个数
+    ngx_uint_t                  ncaptures;	//[out]	
+    ngx_uint_t                  captures_mask;	//[out] XXX:记录正则匹配的索引
     ngx_uint_t                  size;
 
-    void                       *main;
+    void                       *main;		//[out]
 
-    unsigned                    compile_args:1;
+    unsigned                    compile_args:1;		//XXX:表示编译参数，当不编译参数时将当做普通字符对待
     unsigned                    complete_lengths:1;
     unsigned                    complete_values:1;
-    unsigned                    zero:1;				//末尾添加'\0'
+    unsigned                    zero:1;				//[in]末尾添加'\0'
     unsigned                    conf_prefix:1;
     unsigned                    root_prefix:1;
 
-    unsigned                    dup_capture:1;
-    unsigned                    args:1;
+    unsigned                    dup_capture:1;		//[out]XXX:
+    unsigned                    args:1;				//[out]XXX:表示含有参数
 } ngx_http_script_compile_t;
 
 
@@ -106,7 +106,7 @@ typedef struct {
 
 
 typedef struct {
-    ngx_http_script_code_pt     code;
+    ngx_http_script_code_pt     code;	//ngx_http_script_copy_capture_code 
     uintptr_t                   n;
 } ngx_http_script_copy_capture_code_t;
 
@@ -183,9 +183,9 @@ typedef struct {
 
 
 typedef struct {
-    ngx_http_script_code_pt     code;
-    uintptr_t                   next;
-    void                      **loc_conf;
+    ngx_http_script_code_pt     code;		//ngx_http_script_if_code
+    uintptr_t                   next;		//if判断条件为假时，指令指针相对跳转的偏移量
+    void                      **loc_conf;	//if判断条件为真时，更新当前request的loc为此loc_conf
 } ngx_http_script_if_code_t;
 
 

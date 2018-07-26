@@ -341,13 +341,13 @@ ngx_http_script_compile(ngx_http_script_compile_t *sc)
 
         name.len = 0;
 
-        if (sc->source->data[i] == '$') {
+        if (sc->source->data[i] == '$') {	//$var
 
-            if (++i == sc->source->len) {
+            if (++i == sc->source->len) {	//'$'为最后一个字符
                 goto invalid_variable;
             }
 
-            if (sc->source->data[i] >= '1' && sc->source->data[i] <= '9') {
+            if (sc->source->data[i] >= '1' && sc->source->data[i] <= '9') {	//$1 ... $9
 #if (NGX_PCRE)
                 ngx_uint_t  n;
 
@@ -375,15 +375,15 @@ ngx_http_script_compile(ngx_http_script_compile_t *sc)
             if (sc->source->data[i] == '{') {
                 bracket = 1;
 
-                if (++i == sc->source->len) {
+                if (++i == sc->source->len) {		//'${'为最后两个字符
                     goto invalid_variable;
                 }
 
-                name.data = &sc->source->data[i];
+                name.data = &sc->source->data[i];	//记录变量名的起始地址
 
             } else {
                 bracket = 0;
-                name.data = &sc->source->data[i];
+                name.data = &sc->source->data[i];	//记录变量名的起始地址
             }
 
             for ( /* void */ ; i < sc->source->len; i++, name.len++) {
@@ -395,11 +395,7 @@ ngx_http_script_compile(ngx_http_script_compile_t *sc)
                     break;
                 }
 
-                if ((ch >= 'A' && ch <= 'Z')
-                    || (ch >= 'a' && ch <= 'z')
-                    || (ch >= '0' && ch <= '9')
-                    || ch == '_')
-                {
+                if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '_') { //变量名只能是字母，数字，下划线组成
                     continue;
                 }
 
@@ -424,7 +420,7 @@ ngx_http_script_compile(ngx_http_script_compile_t *sc)
             continue;
         }
 
-        if (sc->source->data[i] == '?' && sc->compile_args) {
+        if (sc->source->data[i] == '?' && sc->compile_args) {	//XXX: arg ？？？
             sc->args = 1;
             sc->compile_args = 0;
 
@@ -449,7 +445,7 @@ ngx_http_script_compile(ngx_http_script_compile_t *sc)
 
                 sc->args = 1;
 
-                if (sc->compile_args) {
+                if (sc->compile_args) {	//XXX:当不编译args时，将其当做普通字符处理
                     break;
                 }
             }
@@ -657,7 +653,7 @@ ngx_http_script_add_code(ngx_array_t *codes, size_t size, void *code)
     if (code) {
         if (elts != codes->elts) {	//指令数组(codes)进行了扩容
             p = code;
-            *p += (u_char *) codes->elts - elts;
+            *p += (u_char *) codes->elts - elts; //XXX:累加新旧指令数组偏移量
         }
     }
 
@@ -665,7 +661,7 @@ ngx_http_script_add_code(ngx_array_t *codes, size_t size, void *code)
 }
 
 
-//last -- 标志位，表示是否添加最后的'\0' 
+//last -- 标识value是最后部分的字符串
 static ngx_int_t
 ngx_http_script_add_copy_code(ngx_http_script_compile_t *sc, ngx_str_t *value, ngx_uint_t last)
 {
@@ -673,7 +669,7 @@ ngx_http_script_add_copy_code(ngx_http_script_compile_t *sc, ngx_str_t *value, n
     size_t                        size, len, zero;
     ngx_http_script_copy_code_t  *code;
 
-    zero = (sc->zero && last);
+    zero = (sc->zero && last);	//仅当要求最后添加‘\0’且value是最后部分的字符串时，才在末尾添加‘\0’
     len = value->len + zero;
 
     code = ngx_http_script_add_code(*sc->lengths, sizeof(ngx_http_script_copy_code_t), NULL);
@@ -876,8 +872,7 @@ ngx_http_script_mark_args_code(ngx_http_script_engine_t *e)
 void
 ngx_http_script_start_args_code(ngx_http_script_engine_t *e)
 {
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0,
-                   "http script args");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0, "http script args");
 
     e->is_args = 1;
     e->args = e->pos;
@@ -1153,29 +1148,24 @@ ngx_http_script_add_capture_code(ngx_http_script_compile_t *sc, ngx_uint_t n)
 {
     ngx_http_script_copy_capture_code_t  *code;
 
-    code = ngx_http_script_add_code(*sc->lengths,
-                                    sizeof(ngx_http_script_copy_capture_code_t),
-                                    NULL);
+    code = ngx_http_script_add_code(*sc->lengths, sizeof(ngx_http_script_copy_capture_code_t), NULL);
     if (code == NULL) {
         return NGX_ERROR;
     }
 
-    code->code = (ngx_http_script_code_pt) (void *)
-                                         ngx_http_script_copy_capture_len_code;
-    code->n = 2 * n;
+    code->code = (ngx_http_script_code_pt) (void *) ngx_http_script_copy_capture_len_code;
+    code->n = 2 * n;	//XXX: 为什么要乘2 ？？？
 
 
-    code = ngx_http_script_add_code(*sc->values,
-                                    sizeof(ngx_http_script_copy_capture_code_t),
-                                    &sc->main);
+    code = ngx_http_script_add_code(*sc->values, sizeof(ngx_http_script_copy_capture_code_t), &sc->main);
     if (code == NULL) {
         return NGX_ERROR;
     }
 
     code->code = ngx_http_script_copy_capture_code;
-    code->n = 2 * n;
+    code->n = 2 * n;	//XXX: 为什么要乘2 ？？？
 
-    if (sc->ncaptures < n) {
+    if (sc->ncaptures < n) {	//XXX: ??? 
         sc->ncaptures = n;
     }
 
@@ -1204,14 +1194,10 @@ ngx_http_script_copy_capture_len_code(ngx_http_script_engine_t *e)
 
         cap = r->captures;
 
-        if ((e->is_args || e->quote)
-            && (e->request->quoted_uri || e->request->plus_in_uri))
-        {
+        if ((e->is_args || e->quote) && (e->request->quoted_uri || e->request->plus_in_uri)) {
             p = r->captures_data;
 
-            return cap[n + 1] - cap[n]
-                   + 2 * ngx_escape_uri(NULL, &p[cap[n]], cap[n + 1] - cap[n],
-                                        NGX_ESCAPE_ARGS);
+            return cap[n + 1] - cap[n] + 2 * ngx_escape_uri(NULL, &p[cap[n]], cap[n + 1] - cap[n], NGX_ESCAPE_ARGS);
         } else {
             return cap[n + 1] - cap[n];
         }
@@ -1370,7 +1356,7 @@ ngx_http_script_if_code(ngx_http_script_engine_t *e)
 
     e->sp--;
 
-    if (e->sp->len && (e->sp->len != 1 || e->sp->data[0] != '0')) {
+    if (e->sp->len && (e->sp->len != 1 || e->sp->data[0] != '0')) {	//条件为真
         if (code->loc_conf) {
             e->request->loc_conf = code->loc_conf;
             ngx_http_update_location_config(e->request);
@@ -1391,8 +1377,7 @@ ngx_http_script_equal_code(ngx_http_script_engine_t *e)
 {
     ngx_http_variable_value_t  *val, *res;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0,
-                   "http script equal");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0, "http script equal");
 
     e->sp--;
     val = e->sp;
@@ -1400,15 +1385,12 @@ ngx_http_script_equal_code(ngx_http_script_engine_t *e)
 
     e->ip += sizeof(uintptr_t);
 
-    if (val->len == res->len
-        && ngx_strncmp(val->data, res->data, res->len) == 0)
-    {
+    if (val->len == res->len && ngx_strncmp(val->data, res->data, res->len) == 0) {
         *res = ngx_http_variable_true_value;
         return;
     }
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0,
-                   "http script equal: no");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0, "http script equal: no");
 
     *res = ngx_http_variable_null_value;
 }

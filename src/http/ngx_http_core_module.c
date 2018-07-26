@@ -875,6 +875,7 @@ static ngx_command_t  ngx_http_core_commands[] = {
 	 Syntax:	client_body_in_single_buffer on | off;
 	 Default: 	client_body_in_single_buffer off;
 	 Context:	http, server, location
+	 
 	 Determines whether nginx should save the entire client request body in a single buffer. 
 	 The directive is recommended when using the $request_body variable, to save the number of copy operations involved. //XXX: ???
 	*/
@@ -889,6 +890,7 @@ static ngx_command_t  ngx_http_core_commands[] = {
 	 Syntax:	sendfile on | off;
 	 Default: 	sendfile off;
 	 Context:	http, server, location, if in location
+	 
 	 Enables or disables the use of sendfile().
 
 	 Starting from nginx 0.8.12 and FreeBSD 5.2.1, aio can be used to pre-load data for sendfile():
@@ -2111,8 +2113,7 @@ ngx_http_update_location_config(ngx_http_request_t *r)
     if (clcf->client_body_in_file_only) {
         r->request_body_in_file_only = 1;
         r->request_body_in_persistent_file = 1;
-        r->request_body_in_clean_file =
-            clcf->client_body_in_file_only == NGX_HTTP_REQUEST_BODY_FILE_CLEAN;
+        r->request_body_in_clean_file = clcf->client_body_in_file_only == NGX_HTTP_REQUEST_BODY_FILE_CLEAN;
         r->request_body_file_log_level = NGX_LOG_NOTICE;
 
     } else {
@@ -2128,21 +2129,14 @@ ngx_http_update_location_config(ngx_http_request_t *r)
         } else if (r->connection->requests >= clcf->keepalive_requests) {
             r->keepalive = 0;
 
-        } else if (r->headers_in.msie6
-                   && r->method == NGX_HTTP_POST
-                   && (clcf->keepalive_disable
-                       & NGX_HTTP_KEEPALIVE_DISABLE_MSIE6))
-        {
+        } else if (r->headers_in.msie6 && r->method == NGX_HTTP_POST && (clcf->keepalive_disable & NGX_HTTP_KEEPALIVE_DISABLE_MSIE6)) {
             /*
              * MSIE may wait for some time if an response for
              * a POST request was sent over a keepalive connection
              */
             r->keepalive = 0;
 
-        } else if (r->headers_in.safari
-                   && (clcf->keepalive_disable
-                       & NGX_HTTP_KEEPALIVE_DISABLE_SAFARI))
-        {
+        } else if (r->headers_in.safari && (clcf->keepalive_disable & NGX_HTTP_KEEPALIVE_DISABLE_SAFARI)) {
             /*
              * Safari may send a POST request to a closed keepalive
              * connection and may stall for some time, see

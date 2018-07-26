@@ -122,25 +122,34 @@ typedef struct {
 } ngx_http_listen_opt_t;
 
 
+/*
+为了控制对客户端请求的处理过程，nginx把这个处理过程划分成了11个阶段
+有几个阶段是特例，它不调用挂载的任何的handler，也就是你就不用挂载到这几个阶段了：
+NGX_HTTP_FIND_CONFIG_PHASE
+NGX_HTTP_POST_ACCESS_PHASE
+NGX_HTTP_POST_REWRITE_PHASE
+NGX_HTTP_TRY_FILES_PHASE
+所以其实真正是有7个phase你可以去挂载handler
+*/
 typedef enum {
-    NGX_HTTP_POST_READ_PHASE = 0,
+    NGX_HTTP_POST_READ_PHASE = 0,	//读取请求内容阶段 请求头读取完成之后的阶段
 
-    NGX_HTTP_SERVER_REWRITE_PHASE,
+    NGX_HTTP_SERVER_REWRITE_PHASE,	//Server请求地址重写阶段 Server内请求地址重写阶段
 
-    NGX_HTTP_FIND_CONFIG_PHASE,
-    NGX_HTTP_REWRITE_PHASE,
-    NGX_HTTP_POST_REWRITE_PHASE,
+    NGX_HTTP_FIND_CONFIG_PHASE,		//配置查找阶段
+    NGX_HTTP_REWRITE_PHASE,			//Location请求地址重写阶段 Location内请求地址重写阶段
+    NGX_HTTP_POST_REWRITE_PHASE,	//请求地址重写提交阶段	请求地址重写完成之后的阶段  
 
-    NGX_HTTP_PREACCESS_PHASE,
+    NGX_HTTP_PREACCESS_PHASE,		//访问权限检查准备阶段
 
-    NGX_HTTP_ACCESS_PHASE,
-    NGX_HTTP_POST_ACCESS_PHASE,
+    NGX_HTTP_ACCESS_PHASE,			//访问权限检查阶段
+    NGX_HTTP_POST_ACCESS_PHASE,		//访问权限检查提交阶段	访问权限检查完成之后的阶段
 
-    NGX_HTTP_PRECONTENT_PHASE,
+    NGX_HTTP_PRECONTENT_PHASE,		//配置项try_files处理阶段
 
-    NGX_HTTP_CONTENT_PHASE,
+    NGX_HTTP_CONTENT_PHASE,			//内容产生阶段
 
-    NGX_HTTP_LOG_PHASE
+    NGX_HTTP_LOG_PHASE				//日志模块处理阶段
 } ngx_http_phases;
 
 typedef struct ngx_http_phase_handler_s  ngx_http_phase_handler_t;
