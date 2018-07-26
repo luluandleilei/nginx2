@@ -119,8 +119,7 @@ ngx_http_auth_request_handler(ngx_http_request_t *r)
         return NGX_DECLINED;
     }
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "auth request handler");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "auth request handler");
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_auth_request_module);
 
@@ -189,10 +188,7 @@ ngx_http_auth_request_handler(ngx_http_request_t *r)
     ps->handler = ngx_http_auth_request_done;
     ps->data = ctx;
 
-    if (ngx_http_subrequest(r, &arcf->uri, NULL, &sr, ps,
-                            NGX_HTTP_SUBREQUEST_WAITED)
-        != NGX_OK)
-    {
+    if (ngx_http_subrequest(r, &arcf->uri, NULL, &sr, ps, NGX_HTTP_SUBREQUEST_WAITED) != NGX_OK) {
         return NGX_ERROR;
     }
 

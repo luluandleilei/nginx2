@@ -142,6 +142,9 @@ static ngx_http_module_t  ngx_http_headers_filter_module_ctx = {
 };
 
 
+/*
+始终打开，可以设置expire和Cache-control头，可以添加任意名称的头
+*/
 ngx_module_t  ngx_http_headers_filter_module = {
     NGX_MODULE_V1,
     &ngx_http_headers_filter_module_ctx,   /* module context */

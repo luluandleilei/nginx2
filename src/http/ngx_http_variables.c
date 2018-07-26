@@ -504,6 +504,10 @@ ngx_http_get_variable_index(ngx_conf_t *cf, ngx_str_t *name)
 }
 
 
+/*
+Obtain the value of a variable.
+The difference between functions is that the ngx_http_get_indexed_variable() returns a cached value and ngx_http_get_flushed_variable() flushes the cache for non-cacheable variables.
+*/
 ngx_http_variable_value_t *
 ngx_http_get_indexed_variable(ngx_http_request_t *r, ngx_uint_t index)
 {
@@ -552,6 +556,10 @@ ngx_http_get_indexed_variable(ngx_http_request_t *r, ngx_uint_t index)
 }
 
 
+/*
+Obtain the value of a variable.
+The difference between functions is that the ngx_http_get_indexed_variable() returns a cached value and ngx_http_get_flushed_variable() flushes the cache for non-cacheable variables.
+*/
 ngx_http_variable_value_t *
 ngx_http_get_flushed_variable(ngx_http_request_t *r, ngx_uint_t index)
 {
@@ -573,6 +581,11 @@ ngx_http_get_flushed_variable(ngx_http_request_t *r, ngx_uint_t index)
 
 
 /*
+Some modules, such as SSI and Perl, need to deal with variables for which the name is not known at configuration time. 
+An index therefore cannot be used to access them, but the ngx_http_get_variable(r, name, key) function is available. 
+It searches for a variable with a given name and its hash key derived from the name.
+
+
 返回值：
 	NULL -- 表示查找错误
 	not_found -- 表示没有找到该变量

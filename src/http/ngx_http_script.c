@@ -54,9 +54,14 @@ ngx_http_script_flush_complex_value(ngx_http_request_t *r, ngx_http_complex_valu
 //将带变量的配置项求值，常在运行阶段调用
 //r,val为入参，val通过ngx_http_compile_complex_value()获得
 //value为出参，即求值后的具体值
+/*
+ Calculate a complex value, at runtime
+ r:		request
+ cv:	previously compiled value
+ value:	[out]writes the result to this
+*/
 ngx_int_t
-ngx_http_complex_value(ngx_http_request_t *r, ngx_http_complex_value_t *val,
-    ngx_str_t *value)
+ngx_http_complex_value(ngx_http_request_t *r, ngx_http_complex_value_t *val, ngx_str_t *value)
 {
     size_t                        len;
     ngx_http_script_code_pt       code;
@@ -131,7 +136,7 @@ ngx_http_compile_complex_value(ngx_http_compile_complex_value_t *ccv)
         }
     }
 
-    if ((v->len == 0 || v->data[0] != '$') && (ccv->conf_prefix || ccv->root_prefix)) {
+    if ((v->len == 0 || v->data[0] != '$') && (ccv->conf_prefix || ccv->root_prefix)) {	//XXX:开头部分不是变量，直接处理添加前缀
         if (ngx_conf_full_name(ccv->cf->cycle, v, ccv->conf_prefix) != NGX_OK) {
             return NGX_ERROR;
         }
@@ -205,6 +210,9 @@ ngx_http_compile_complex_value(ngx_http_compile_complex_value_t *ccv)
 }
 
 
+/*
+ A convenient function used to initialize a complex value completely in the directive declaration itself.
+*/
 char *
 ngx_http_set_complex_value_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -326,6 +334,9 @@ ngx_http_script_variables_count(ngx_str_t *value)
 }
 
 
+/*
+XXX: ngx_http_script_compile和 ngx_http_compile_complex_value 使用场景有什么不同?
+*/
 ngx_int_t
 ngx_http_script_compile(ngx_http_script_compile_t *sc)
 {
@@ -472,8 +483,7 @@ invalid_variable:
 
 
 u_char *
-ngx_http_script_run(ngx_http_request_t *r, ngx_str_t *value,
-    void *code_lengths, size_t len, void *code_values)
+ngx_http_script_run(ngx_http_request_t *r, ngx_str_t *value, void *code_lengths, size_t len, void *code_values)
 {
     ngx_uint_t                    i;
     ngx_http_script_code_pt       code;

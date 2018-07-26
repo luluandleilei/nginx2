@@ -171,6 +171,10 @@ static ngx_http_module_t  ngx_http_userid_filter_module_ctx = {
 };
 
 
+/*
+默认关闭，可以添加统计用的识别用户的cookie。
+
+*/
 ngx_module_t  ngx_http_userid_filter_module = {
     NGX_MODULE_V1,
     &ngx_http_userid_filter_module_ctx,    /* module context */

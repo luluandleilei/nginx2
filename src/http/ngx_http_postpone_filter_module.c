@@ -32,6 +32,10 @@ static ngx_http_module_t  ngx_http_postpone_filter_module_ctx = {
 };
 
 
+/*
+始终打开，用来将子请求和主请求的输出链合并
+
+*/
 ngx_module_t  ngx_http_postpone_filter_module = {
     NGX_MODULE_V1,
     &ngx_http_postpone_filter_module_ctx,  /* module context */
@@ -59,8 +63,7 @@ ngx_http_postpone_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     c = r->connection;
 
-    ngx_log_debug3(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "http postpone filter \"%V?%V\" %p", &r->uri, &r->args, in);
+    ngx_log_debug3(NGX_LOG_DEBUG_HTTP, c->log, 0, "http postpone filter \"%V?%V\" %p", &r->uri, &r->args, in);
 
     if (r->subrequest_in_memory) {
         return ngx_http_postpone_filter_in_memory(r, in);
@@ -78,8 +81,7 @@ ngx_http_postpone_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
 #if 0
         /* TODO: SSI may pass NULL */
-        ngx_log_error(NGX_LOG_ALERT, c->log, 0,
-                      "http postpone filter NULL inactive request");
+        ngx_log_error(NGX_LOG_ALERT, c->log, 0, "http postpone filter NULL inactive request");
 #endif
 
         return NGX_OK;

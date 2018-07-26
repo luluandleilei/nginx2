@@ -56,7 +56,17 @@ static ngx_int_t ngx_http_realip_remote_port_variable(ngx_http_request_t *r,
 
 
 static ngx_command_t  ngx_http_realip_commands[] = {
+	/*
+	 Syntax:	set_real_ip_from address | CIDR | unix:;
+	 Default:	—
+	 Context:	http, server, location
+	 
+	 Defines trusted addresses that are known to send correct replacement addresses. 
+	 If the special value unix: is specified, all UNIX-domain sockets will be trusted. 
+	 Trusted addresses may also be specified using a hostname (1.13.1).
 
+	 	IPv6 addresses are supported starting from versions 1.3.0 and 1.2.1.
+	*/
     { ngx_string("set_real_ip_from"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_http_realip_from,
@@ -97,7 +107,9 @@ static ngx_http_module_t  ngx_http_realip_module_ctx = {
     ngx_http_realip_merge_loc_conf         /* merge location configuration */
 };
 
-
+/*
+The ngx_http_realip_module module is used to change the client address and optional port to those sent in the specified header field.
+*/
 ngx_module_t  ngx_http_realip_module = {
     NGX_MODULE_V1,
     &ngx_http_realip_module_ctx,           /* module context */

@@ -29,6 +29,9 @@ static ngx_http_module_t  ngx_http_static_module_ctx = {
 };
 
 
+/*
+
+*/
 ngx_module_t  ngx_http_static_module = {
     NGX_MODULE_V1,
     &ngx_http_static_module_ctx,           /* module context */
@@ -81,8 +84,7 @@ ngx_http_static_handler(ngx_http_request_t *r)
 
     path.len = last - path.data;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0,
-                   "http filename: \"%s\"", path.data);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "http filename: \"%s\"", path.data);
 
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
@@ -99,9 +101,7 @@ ngx_http_static_handler(ngx_http_request_t *r)
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    if (ngx_open_cached_file(clcf->open_file_cache, &path, &of, r->pool)
-        != NGX_OK)
-    {
+    if (ngx_open_cached_file(clcf->open_file_cache, &path, &of, r->pool) != NGX_OK) {
         switch (of.err) {
 
         case 0:
@@ -133,8 +133,7 @@ ngx_http_static_handler(ngx_http_request_t *r)
         }
 
         if (rc != NGX_HTTP_NOT_FOUND || clcf->log_not_found) {
-            ngx_log_error(level, log, of.err,
-                          "%s \"%s\" failed", of.failed, path.data);
+            ngx_log_error(level, log, of.err, "%s \"%s\" failed", of.failed, path.data);
         }
 
         return rc;

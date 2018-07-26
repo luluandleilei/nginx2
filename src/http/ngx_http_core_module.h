@@ -130,6 +130,7 @@ NGX_HTTP_POST_ACCESS_PHASE
 NGX_HTTP_POST_REWRITE_PHASE
 NGX_HTTP_TRY_FILES_PHASE
 所以其实真正是有7个phase你可以去挂载handler
+挂载的动作一般是在模块上下文调用的postconfiguration函数中。
 */
 typedef enum {
     NGX_HTTP_POST_READ_PHASE = 0,	//读取请求内容阶段 请求头读取完成之后的阶段
@@ -154,8 +155,7 @@ typedef enum {
 
 typedef struct ngx_http_phase_handler_s  ngx_http_phase_handler_t;
 
-typedef ngx_int_t (*ngx_http_phase_handler_pt)(ngx_http_request_t *r,
-    ngx_http_phase_handler_t *ph);
+typedef ngx_int_t (*ngx_http_phase_handler_pt)(ngx_http_request_t *r, ngx_http_phase_handler_t *ph);
 
 struct ngx_http_phase_handler_s {
     ngx_http_phase_handler_pt  checker;
@@ -538,8 +538,7 @@ typedef ngx_int_t (*ngx_http_request_body_filter_pt) (ngx_http_request_t *r, ngx
 
 ngx_int_t ngx_http_output_filter(ngx_http_request_t *r, ngx_chain_t *chain);
 ngx_int_t ngx_http_write_filter(ngx_http_request_t *r, ngx_chain_t *chain);
-ngx_int_t ngx_http_request_body_save_filter(ngx_http_request_t *r,
-    ngx_chain_t *chain);
+ngx_int_t ngx_http_request_body_save_filter(ngx_http_request_t *r, ngx_chain_t *chain);
 
 
 ngx_int_t ngx_http_set_disable_symlinks(ngx_http_request_t *r,

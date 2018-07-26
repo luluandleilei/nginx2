@@ -2243,6 +2243,13 @@ ngx_http_post_request(ngx_http_request_t *r, ngx_http_posted_request_t *pr)
 }
 
 
+/*
+rc:
+	NGX_DONE - Fast finalization. Decrement the request count and destroy the request if it reaches zero. The client connection can be used for more requests after the current request is destroyed.
+	NGX_ERROR, NGX_HTTP_REQUEST_TIME_OUT (408), NGX_HTTP_CLIENT_CLOSED_REQUEST (499) - Error finalization. Terminate the request as soon as possible and close the client connection.
+	NGX_HTTP_CREATED (201), NGX_HTTP_NO_CONTENT (204), codes greater than or equal to NGX_HTTP_SPECIAL_RESPONSE (300) - Special response finalization. For these values nginx either sends to the client a default response page for the code or performs the internal redirect to an error_page location if that is configured for the code.
+	Other codes are considered successful finalization codes and might activate the request writer to finish sending the response body. Once the body is completely sent, the request count is decremented. If it reaches zero, the request is destroyed, but the client connection can still be used for other requests. If count is positive, there are unfinished activities within the request, which will be finalized at a later point.
+*/
 void
 ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
 {

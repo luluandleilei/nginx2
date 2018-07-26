@@ -1338,16 +1338,13 @@ ngx_http_proxy_create_request(ngx_http_request_t *r)
         uri_len = r->unparsed_uri.len;
 
     } else {
-        loc_len = (r->valid_location && ctx->vars.uri.len) ?
-                      plcf->location.len : 0;
+        loc_len = (r->valid_location && ctx->vars.uri.len) ? plcf->location.len : 0;
 
         if (r->quoted_uri || r->space_in_uri || r->internal) {
-            escape = 2 * ngx_escape_uri(NULL, r->uri.data + loc_len,
-                                        r->uri.len - loc_len, NGX_ESCAPE_URI);
+            escape = 2 * ngx_escape_uri(NULL, r->uri.data + loc_len, r->uri.len - loc_len, NGX_ESCAPE_URI);
         }
 
-        uri_len = ctx->vars.uri.len + r->uri.len - loc_len + escape
-                  + sizeof("?") - 1 + r->args.len;
+        uri_len = ctx->vars.uri.len + r->uri.len - loc_len + escape + sizeof("?") - 1 + r->args.len;
     }
 
     if (uri_len == 0) {

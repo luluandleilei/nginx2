@@ -181,7 +181,14 @@ struct ngx_connection_s {
 
     ngx_uint_t          requests;	//处理的请求次数
 
-    unsigned            buffered:8;	//缓存中的业务类型。 任何事件消费模块都可以自定义需要的标志位。这个buffered字段有8位， 最多可以同时表示8个不同的业务。 //第三方模块在自定义buffered标志位时注意不要与可能使用的模块定义的标志位冲突。 //目前openssl模块定义了一个标志位：#define NGX_SSL_BUFFERED 0x01 //HTTP官方模块定义了以下标志位：#define NGX_HTTP_LOWLEVEL_BUFFERED 0xf0 #define NGX_HTTP_WRITE_BUFFERED 0x10 #define NGX_HTTP_GZIP_BUFFERED 0x20 //#define NGX_HTTP_SSI_BUFFERED 0x01 #define NGX_HTTP_SUB_BUFFERED 0x02 #define NGX_HTTP_COPY_BUFFERED 0x04 #define NGX_HTTP_IMAGE_BUFFERED 0x08 //同时，对于HTTP模块而言，buffered的低4位要慎用，在实际发送响应的ngx_http_write_filter_module过滤模块中，低4位标志位为1则意味着Nginx会一直认为有 //HTTP模块还需要处理这个请求， 必须等待HTTP模块将低4位全置为0才会正常结束请求。 检查低4位的宏如下：#define NGX_LOWLEVEL_BUFFERED 0x0f
+	//缓存中的业务类型。 任何事件消费模块都可以自定义需要的标志位。这个buffered字段有8位， 最多可以同时表示8个不同的业务。 
+	//第三方模块在自定义buffered标志位时注意不要与可能使用的模块定义的标志位冲突。 
+	//目前openssl模块定义了一个标志位：#define NGX_SSL_BUFFERED 0x01 
+	//HTTP官方模块定义了以下标志位：#define NGX_HTTP_LOWLEVEL_BUFFERED 0xf0 #define NGX_HTTP_WRITE_BUFFERED 0x10 #define NGX_HTTP_GZIP_BUFFERED 0x20 
+	//#define NGX_HTTP_SSI_BUFFERED 0x01 #define NGX_HTTP_SUB_BUFFERED 0x02 #define NGX_HTTP_COPY_BUFFERED 0x04 #define NGX_HTTP_IMAGE_BUFFERED 0x08 
+	//同时，对于HTTP模块而言，buffered的低4位要慎用，在实际发送响应的ngx_http_write_filter_module过滤模块中，低4位标志位为1则意味着Nginx会一直认为有 
+	//HTTP模块还需要处理这个请求， 必须等待HTTP模块将低4位全置为0才会正常结束请求。 检查低4位的宏如下：#define NGX_LOWLEVEL_BUFFERED 0x0f
+    unsigned            buffered:8;	
 
     unsigned            log_error:3;	/* ngx_connection_log_error_e *///本连接记录日志时的级别, 由ngx_connection_log_error_e枚举表示 
 

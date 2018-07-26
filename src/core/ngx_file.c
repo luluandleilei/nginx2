@@ -25,7 +25,6 @@ ngx_get_full_name(ngx_pool_t *pool, ngx_str_t *prefix, ngx_str_t *name)
     ngx_int_t   rc;
 
     rc = ngx_test_full_name(name);
-
     if (rc == NGX_OK) {
         return rc;
     }

@@ -21,16 +21,16 @@ typedef struct ngx_buf_s  ngx_buf_t;
 //该结构实际上是一种抽象的数据结构，它代表某种具体的数据。这个数据可能是指向内存中的某个缓冲区，也可能
 //指向一个文件的某一部分，也可能是一些纯元数据（元数据的作用在于指示这个链表的读取者对读取的数据进行不同的处理）。
 /*
-For input/output operations, nginx provides the buffer type ngx_buf_t. Normally, it's used to hold 
-data to be written to a destination or read from a source. A buffer can reference data in memory 
-or in a file and it's technically possible for a buffer to reference both at the same time. Memory
-for the buffer is allocated separately and is not related to the buffer structure ngx_buf_t.
+For input/output operations, nginx provides the buffer type ngx_buf_t. 
+Normally, it's used to hold data to be written to a destination or read from a source. 
+A buffer can reference data in memory or in a file and it's technically possible for a buffer to reference both at the same time. 
+Memory for the buffer is allocated separately and is not related to the buffer structure ngx_buf_t.
 */
 struct ngx_buf_s {
-	//The boundaries of the memory buffer; normally a subrange of start .. end.
+	//pos, last — The boundaries of the memory buffer; normally a subrange of start .. end.
     u_char          *pos;		//当buf所指向的数据在内存里的时候，pos指向的是这段数据开始的位置。
     u_char          *last;		//当buf所指向的数据在内存里的时候，last指向的是这段数据结束的位置。
-	//The boundaries of a file buffer, expressed as offsets from the beginning of the file.
+	//file_pos, file_last — The boundaries of a file buffer, expressed as offsets from the beginning of the file.
 	off_t            file_pos;	//当buf所指向的数据是在文件里的时候，file_pos指向的是这段数据的开始位置在文件中的偏移量。
     off_t            file_last;	//当buf所指向的数据是在文件里的时候，file_last指向的是这段数据的结束位置在文件中的偏移量
 
@@ -41,7 +41,10 @@ struct ngx_buf_s {
     ngx_buf_tag_t    tag;		//实际上是一个void*类型的指针，使用者可以关联任意的对象上去，只要对使用者有意义
 	//File object.
 	ngx_file_t      *file;		//当buf所包含的内容在文件中时，file字段指向对应的文件对象
-    ngx_buf_t       *shadow;	//当这个buf完整copy了另外一个buf的所有字段的时候，那么这两个buf指向的实际上是同一块内存，或者是同一个文件的同一部分，此时这两个buf的shadow字段都是指向对方的。那么对于这样的两个buf，在释放的时候，就需要使用者特别小心，具体是由哪里释放，要提前考虑好，如果造成资源的多次释放，可能会造成程序崩溃！
+	//Reference to another ("shadow") buffer related to the current buffer, 
+	//usually in the sense that the buffer uses data from the shadow. 
+	//When the buffer is consumed, the shadow buffer is normally also marked as consumed.
+	ngx_buf_t       *shadow;	//当这个buf完整copy了另外一个buf的所有字段的时候，那么这两个buf指向的实际上是同一块内存，或者是同一个文件的同一部分，此时这两个buf的shadow字段都是指向对方的。那么对于这样的两个buf，在释放的时候，就需要使用者特别小心，具体是由哪里释放，要提前考虑好，如果造成资源的多次释放，可能会造成程序崩溃！
 
 
     /* the buf's content could be changed */
@@ -52,7 +55,7 @@ struct ngx_buf_s {
      * the buf's content is in a memory cache or in a read only memory
      * and must not be changed
      */
-     //Flag indicating that the buffer references read-only memory.
+    //Flag indicating that the buffer references read-only memory.
     unsigned         memory:1;	//为1时表示该buf所包含的内容是在内存中，但是这些内容却不能被进行处理的filter进行变更。
 
     /* the buf's content is mmap()ed and must not be changed */
@@ -64,17 +67,26 @@ struct ngx_buf_s {
 	unsigned         in_file:1;		//为1时表示该buf所包含的内容是在文件中
 	//Flag indicating that all data prior to the buffer need to be flushed.
     unsigned         flush:1;		//遇到有flush字段被设置为1的的buf的chain，则该chain的数据即便不是最后结束的数据（last_buf被设置，标志所有要输出的内容都完了），也会进行输出，不会受postpone_output配置的限制，但是会受到发送速率等其他条件的限制。
-    unsigned         sync:1;		//Flag indicating that the buffer carries no data or special signal like flush or last_buf. By default nginx considers such buffers an error condition, but this flag tells nginx to skip the error check
+	//Flag indicating that the buffer carries no data or special signal like flush or last_buf. By default nginx considers such buffers an error condition, but this flag tells nginx to skip the error check
+	unsigned         sync:1;
+	//Flag indicating that the buffer is the last in output.
     unsigned         last_buf:1;		//数据被以多个chain传递给了过滤器，此字段为1表明这是最后一个buf
-    unsigned         last_in_chain:1;	//在当前的chain里面，此buf是最后一个。特别要注意的是last_in_chain的buf不一定是last_buf，但是last_buf的buf一定是last_in_chain的。这是因为数据会被以多个chain传递给某个filter模块
+	//Flag indicating that there are no more data buffers in a request or subrequest.
+	unsigned         last_in_chain:1;	//在当前的chain里面，此buf是最后一个。特别要注意的是last_in_chain的buf不一定是last_buf，但是last_buf的buf一定是last_in_chain的。这是因为数据会被以多个chain传递给某个filter模块
 
+	//Flag indicating that the buffer is the last one that references a particular shadow buffer.
     unsigned         last_shadow:1;		//在创建一个buf的shadow的时候，通常将新创建的一个buf的last_shadow置为1。
-    unsigned         temp_file:1;		//由于受到内存使用的限制，有时候一些buf的内容需要被写到磁盘上的临时文件中去，那么这时，就设置此标志 
+	//Flag indicating that the buffer is in a temporary file.
+	unsigned         temp_file:1;		//由于受到内存使用的限制，有时候一些buf的内容需要被写到磁盘上的临时文件中去，那么这时，就设置此标志 
 
-    /* STUB */ int   num;
+    /* STUB */ int   num;	//统计用，表示使用次数 
 };
 
 
+/*
+For input and output operations buffers are linked in chains. 
+A chain is a sequence of chain links of type ngx_chain_t
+*/
 struct ngx_chain_s {
     ngx_buf_t    *buf;	//指向实际的数据
     ngx_chain_t  *next;	//指向这个链表的下个节点
@@ -175,11 +187,9 @@ ngx_chain_t *ngx_alloc_chain_link(ngx_pool_t *pool);
 ngx_int_t ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in);
 ngx_int_t ngx_chain_writer(void *ctx, ngx_chain_t *in);
 
-ngx_int_t ngx_chain_add_copy(ngx_pool_t *pool, ngx_chain_t **chain,
-    ngx_chain_t *in);
+ngx_int_t ngx_chain_add_copy(ngx_pool_t *pool, ngx_chain_t **chain, ngx_chain_t *in);
 ngx_chain_t *ngx_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free);
-void ngx_chain_update_chains(ngx_pool_t *p, ngx_chain_t **free,
-    ngx_chain_t **busy, ngx_chain_t **out, ngx_buf_tag_t tag);
+void ngx_chain_update_chains(ngx_pool_t *p, ngx_chain_t **free, ngx_chain_t **busy, ngx_chain_t **out, ngx_buf_tag_t tag);
 
 off_t ngx_chain_coalesce_file(ngx_chain_t **in, off_t limit);
 

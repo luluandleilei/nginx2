@@ -63,6 +63,10 @@ static ngx_http_module_t  ngx_http_copy_filter_module_ctx = {
 };
 
 
+/*
+始终打开，只是响应体过滤函数， 主要工作是把文件中内容读到内存中，以便进行处理。
+
+*/
 ngx_module_t  ngx_http_copy_filter_module = {
     NGX_MODULE_V1,
     &ngx_http_copy_filter_module_ctx,      /* module context */

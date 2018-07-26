@@ -141,8 +141,7 @@ ngx_open_file_cache_cleanup(void *data)
 
 
 ngx_int_t
-ngx_open_cached_file(ngx_open_file_cache_t *cache, ngx_str_t *name,
-    ngx_open_file_info_t *of, ngx_pool_t *pool)
+ngx_open_cached_file(ngx_open_file_cache_t *cache, ngx_str_t *name, ngx_open_file_info_t *of, ngx_pool_t *pool)
 {
     time_t                          now;
     uint32_t                        hash;
@@ -160,9 +159,7 @@ ngx_open_cached_file(ngx_open_file_cache_t *cache, ngx_str_t *name,
 
         if (of->test_only) {
 
-            if (ngx_file_info_wrapper(name, of, &fi, pool->log)
-                == NGX_FILE_ERROR)
-            {
+            if (ngx_file_info_wrapper(name, of, &fi, pool->log) == NGX_FILE_ERROR) {
                 return NGX_ERROR;
             }
 
@@ -258,8 +255,7 @@ ngx_open_cached_file(ngx_open_file_cache_t *cache, ngx_str_t *name,
             } else {
                 of->err = file->err;
 #if (NGX_HAVE_OPENAT)
-                of->failed = file->disable_symlinks ? ngx_openat_file_n
-                                                    : ngx_open_file_n;
+                of->failed = file->disable_symlinks ? ngx_openat_file_n : ngx_open_file_n;
 #else
                 of->failed = ngx_open_file_n;
 #endif
@@ -268,9 +264,7 @@ ngx_open_cached_file(ngx_open_file_cache_t *cache, ngx_str_t *name,
             goto found;
         }
 
-        ngx_log_debug4(NGX_LOG_DEBUG_CORE, pool->log, 0,
-                       "retest open file: %s, fd:%d, c:%d, e:%d",
-                       file->name, file->fd, file->count, file->err);
+        ngx_log_debug4(NGX_LOG_DEBUG_CORE, pool->log, 0, "retest open file: %s, fd:%d, c:%d, e:%d", file->name, file->fd, file->count, file->err);
 
         if (file->is_dir) {
 
@@ -333,8 +327,7 @@ ngx_open_cached_file(ngx_open_file_cache_t *cache, ngx_str_t *name,
             ngx_open_file_del_event(file);
 
             if (ngx_close_file(file->fd) == NGX_FILE_ERROR) {
-                ngx_log_error(NGX_LOG_ALERT, pool->log, ngx_errno,
-                              ngx_close_file_n " \"%V\" failed", name);
+                ngx_log_error(NGX_LOG_ALERT, pool->log, ngx_errno, ngx_close_file_n " \"%V\" failed", name);
             }
 
             goto add_event;

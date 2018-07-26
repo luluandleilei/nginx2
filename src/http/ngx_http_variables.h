@@ -24,21 +24,21 @@ typedef void (*ngx_http_set_variable_pt) (ngx_http_request_t *r, ngx_http_variab
 typedef ngx_int_t (*ngx_http_get_variable_pt) (ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
 
 
-#define NGX_HTTP_VAR_CHANGEABLE   1		//表示这个变量是可变的. //XXX: ???
-#define NGX_HTTP_VAR_NOCACHEABLE  2		//表示这个变量每次都要去取值，而不是直接返回上次cache的值(配合对应的接口)
-#define NGX_HTTP_VAR_INDEXED      4		//表示这个变量是用索引读取的. //表示这个变量可以用索引进行读取
+#define NGX_HTTP_VAR_CHANGEABLE   1		//Enables redefinition of the variable: there is no conflict if another module defines a variable with the same name. This allows the 'set' directive to override variables.
+#define NGX_HTTP_VAR_NOCACHEABLE  2		//Disables caching, which is useful for variables such as $time_local. //表示这个变量每次都要去取值，而不是直接返回上次cache的值(配合对应的接口)
+#define NGX_HTTP_VAR_INDEXED      4		//Indicates that this variable is only accessible by index, not by name. This is a small optimization for use when it is known that the variable is not needed in modules like SSI or Perl.//表示这个变量是用索引读取的. //表示这个变量可以用索引进行读取
 #define NGX_HTTP_VAR_NOHASH       8		//表示这个变量不需要被hash.
 #define NGX_HTTP_VAR_WEAK         16
-#define NGX_HTTP_VAR_PREFIX       32
+#define NGX_HTTP_VAR_PREFIX       32	//The name of the variable is a prefix. In this case, a handler must implement additional logic to obtain the value of a specific variable. For example, all “arg_” variables are processed by the same handler, which performs lookup in request arguments and returns the value of a specific argument.
 
 
 struct ngx_http_variable_s {
     ngx_str_t                     name;   /* must be first to build the hash */	//对应的变量名字
-    ngx_http_set_variable_pt      set_handler;	//设置变量值的函数
-    ngx_http_get_variable_pt      get_handler;	//读取变量值的函数
-    uintptr_t                     data;			//传递给set_handler和get_handler的参数
+    ngx_http_set_variable_pt      set_handler;	//The get handler is responsible for evaluating a variable in the context of a specific request,设置变量值的函数
+    ngx_http_get_variable_pt      get_handler;	//The set handler allows setting the property referenced by the variable. 读取变量值的函数
+    uintptr_t                     data;			//data is passed to variable handlers //传递给set_handler和get_handler的参数
     ngx_uint_t                    flags;		//变量的属性NGX_HTTP_VAR_*
-    ngx_uint_t                    index;		//XXX：该变量在 ngx_http_core_main_conf_t.variables 数组中的索引，从而可以迅速定位到对应的变量。
+    ngx_uint_t                    index;		//index holds assigned variable index used to reference the variable. //XXX：该变量在 ngx_http_core_main_conf_t.variables 数组中的索引，从而可以迅速定位到对应的变量。
 };
 
 #define ngx_http_null_variable  { ngx_null_string, NULL, NULL, 0, 0, 0 }
@@ -46,10 +46,8 @@ struct ngx_http_variable_s {
 
 ngx_http_variable_t *ngx_http_add_variable(ngx_conf_t *cf, ngx_str_t *name, ngx_uint_t flags);
 ngx_int_t ngx_http_get_variable_index(ngx_conf_t *cf, ngx_str_t *name);
-ngx_http_variable_value_t *ngx_http_get_indexed_variable(ngx_http_request_t *r,
-    ngx_uint_t index);
-ngx_http_variable_value_t *ngx_http_get_flushed_variable(ngx_http_request_t *r,
-    ngx_uint_t index);
+ngx_http_variable_value_t *ngx_http_get_indexed_variable(ngx_http_request_t *r, ngx_uint_t index);
+ngx_http_variable_value_t *ngx_http_get_flushed_variable(ngx_http_request_t *r, ngx_uint_t index);
 
 ngx_http_variable_value_t *ngx_http_get_variable(ngx_http_request_t *r, ngx_str_t *name, ngx_uint_t key);
 

@@ -92,6 +92,10 @@ static ngx_http_module_t  ngx_http_range_header_filter_module_ctx = {
 };
 
 
+/*
+默认打开，只是响应头过滤函数，用来解析range头，并产生range响应的头。
+
+*/
 ngx_module_t  ngx_http_range_header_filter_module = {
     NGX_MODULE_V1,
     &ngx_http_range_header_filter_module_ctx, /* module context */
@@ -123,6 +127,10 @@ static ngx_http_module_t  ngx_http_range_body_filter_module_ctx = {
 };
 
 
+/*
+默认打开，只是响应体过滤函数，支持range功能，如果请求包含range请求，那就只发送range请求的一段内容。
+
+*/
 ngx_module_t  ngx_http_range_body_filter_module = {
     NGX_MODULE_V1,
     &ngx_http_range_body_filter_module_ctx, /* module context */

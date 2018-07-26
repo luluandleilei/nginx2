@@ -213,6 +213,10 @@ static ngx_http_module_t  ngx_http_gzip_filter_module_ctx = {
 };
 
 
+/*
+默认关闭，支持流式的压缩内容
+
+*/
 ngx_module_t  ngx_http_gzip_filter_module = {
     NGX_MODULE_V1,
     &ngx_http_gzip_filter_module_ctx,      /* module context */

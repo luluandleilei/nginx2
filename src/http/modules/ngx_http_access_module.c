@@ -66,18 +66,31 @@ static ngx_int_t ngx_http_access_init(ngx_conf_t *cf);
 
 
 static ngx_command_t  ngx_http_access_commands[] = {
-
+	/*
+	 Syntax:	allow address | CIDR | unix: | all;
+	 Default:	—
+	 Context:	http, server, location, limit_except
+	 
+	 Allows access for the specified network or address. 
+	 If the special value unix: is specified (1.5.1), allows access for all UNIX-domain sockets.
+	*/
     { ngx_string("allow"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LMT_CONF
-                        |NGX_CONF_TAKE1,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LMT_CONF |NGX_CONF_TAKE1,
       ngx_http_access_rule,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
       NULL },
 
+	/*
+	 Syntax:	deny address | CIDR | unix: | all;
+	 Default:	—
+	 Context:	http, server, location, limit_except
+
+	 Denies access for the specified network or address. 
+	 If the special value unix: is specified (1.5.1), denies access for all UNIX-domain sockets.
+	*/
     { ngx_string("deny"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LMT_CONF
-                        |NGX_CONF_TAKE1,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LMT_CONF |NGX_CONF_TAKE1,
       ngx_http_access_rule,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
@@ -103,6 +116,9 @@ static ngx_http_module_t  ngx_http_access_module_ctx = {
 };
 
 
+/*
+ The ngx_http_access_module module allows limiting access to certain client addresses.
+*/
 ngx_module_t  ngx_http_access_module = {
     NGX_MODULE_V1,
     &ngx_http_access_module_ctx,           /* module context */
@@ -326,22 +342,19 @@ ngx_http_access_rule(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         rc = ngx_ptocidr(&value[1], &cidr);
 
         if (rc == NGX_ERROR) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                         "invalid parameter \"%V\"", &value[1]);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid parameter \"%V\"", &value[1]);
             return NGX_CONF_ERROR;
         }
 
         if (rc == NGX_DONE) {
-            ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
-                         "low address bits of %V are meaningless", &value[1]);
+            ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "low address bits of %V are meaningless", &value[1]);
         }
     }
 
     if (cidr.family == AF_INET || all) {
 
         if (alcf->rules == NULL) {
-            alcf->rules = ngx_array_create(cf->pool, 4,
-                                           sizeof(ngx_http_access_rule_t));
+            alcf->rules = ngx_array_create(cf->pool, 4, sizeof(ngx_http_access_rule_t));
             if (alcf->rules == NULL) {
                 return NGX_CONF_ERROR;
             }
@@ -361,8 +374,7 @@ ngx_http_access_rule(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     if (cidr.family == AF_INET6 || all) {
 
         if (alcf->rules6 == NULL) {
-            alcf->rules6 = ngx_array_create(cf->pool, 4,
-                                            sizeof(ngx_http_access_rule6_t));
+            alcf->rules6 = ngx_array_create(cf->pool, 4, sizeof(ngx_http_access_rule6_t));
             if (alcf->rules6 == NULL) {
                 return NGX_CONF_ERROR;
             }

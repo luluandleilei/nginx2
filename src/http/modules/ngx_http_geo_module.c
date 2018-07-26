@@ -138,6 +138,9 @@ static ngx_http_module_t  ngx_http_geo_module_ctx = {
 };
 
 
+/*
+ The ngx_http_geo_module module creates variables with values depending on the client IP address.
+*/
 ngx_module_t  ngx_http_geo_module = {
     NGX_MODULE_V1,
     &ngx_http_geo_module_ctx,              /* module context */

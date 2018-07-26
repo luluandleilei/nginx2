@@ -717,6 +717,7 @@ static ngx_command_t  ngx_http_core_commands[] = {
 	 Syntax:	root path;
 	 Default: 	root html;
 	 Context:	http, server, location, if in location
+	 
 	 Sets the root directory for requests. For example, with the following configuration
 		location /i/ {
 		    root /data/w3;
@@ -724,7 +725,8 @@ static ngx_command_t  ngx_http_core_commands[] = {
 	 The /data/w3/i/top.gif file will be sent in response to the “/i/top.gif” request.
 
 	 The path value can contain variables, except $document_root and $realpath_root.
-	 A path to the file is constructed by merely adding a URI to the value of the root directive. If a URI has to be modified, the alias directive should be used.
+	 A path to the file is constructed by merely adding a URI to the value of the root directive. 
+	 If a URI has to be modified, the alias directive should be used.
 	*/
     { ngx_string("root"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF |NGX_CONF_TAKE1,
@@ -737,6 +739,7 @@ static ngx_command_t  ngx_http_core_commands[] = {
 	 Syntax:	alias path;
 	 Default:	—
 	 Context:	location
+	 
 	 Defines a replacement for the specified location. For example, with the following configuration
 		location /i/ {
 		    alias /data/w3/images/;
@@ -745,7 +748,8 @@ static ngx_command_t  ngx_http_core_commands[] = {
 	 
 	 The path value can contain variables, except $document_root and $realpath_root.
 	 
-	 If alias is used inside a location defined with a regular expression then such regular expression should contain captures and alias should refer to these captures (0.7.40), for example:
+	 If alias is used inside a location defined with a regular expression then such regular expression 
+	 should contain captures and alias should refer to these captures (0.7.40), for example:
 		location ~ ^/users/(.+\.(?:gif|jpe?g|png))$ {
 		    alias /data/w3/images/$1;
 		}
@@ -1020,6 +1024,7 @@ static ngx_command_t  ngx_http_core_commands[] = {
 	 Syntax:	read_ahead size;
 	 Default: 	read_ahead 0;
 	 Context:	http, server, location
+	 
 	 Sets the amount of pre-reading for the kernel when working with file.
 
 	 On Linux, the posix_fadvise(0, 0, 0, POSIX_FADV_SEQUENTIAL) system call is used, and so the size parameter is ignored.
@@ -1138,6 +1143,7 @@ static ngx_command_t  ngx_http_core_commands[] = {
 	 Syntax:	postpone_output size;
 	 Default: 	postpone_output 1460;
 	 Context:	http, server, location
+	 
 	 If possible, the transmission of client data will be postponed until nginx has at least size bytes of data to send. 
 	 The zero value disables postponing data transmission.
 	*/
@@ -2607,8 +2613,7 @@ ngx_http_send_header(ngx_http_request_t *r)
     }
 
     if (r->header_sent) {
-        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
-                      "header already sent");
+        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0, "header already sent");
         return NGX_ERROR;
     }
 
@@ -2643,8 +2648,7 @@ ngx_http_output_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
 
 u_char *
-ngx_http_map_uri_to_path(ngx_http_request_t *r, ngx_str_t *path,
-    size_t *root_length, size_t reserved)
+ngx_http_map_uri_to_path(ngx_http_request_t *r, ngx_str_t *path, size_t *root_length, size_t reserved)
 {
     u_char                    *last;
     size_t                     alias;
@@ -2654,10 +2658,8 @@ ngx_http_map_uri_to_path(ngx_http_request_t *r, ngx_str_t *path,
 
     alias = clcf->alias;
 
-    if (alias && !r->valid_location) {
-        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
-                      "\"alias\" cannot be used in location \"%V\" "
-                      "where URI was rewritten", &clcf->name);
+    if (alias && !r->valid_location) {	//XXX: 什么意思？
+        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0, "\"alias\" cannot be used in location \"%V\" " "where URI was rewritten", &clcf->name);
         return NULL;
     }
 
@@ -2683,16 +2685,11 @@ ngx_http_map_uri_to_path(ngx_http_request_t *r, ngx_str_t *path,
             reserved += r->uri.len - alias + 1;
         }
 
-        if (ngx_http_script_run(r, path, clcf->root_lengths->elts, reserved,
-                                clcf->root_values->elts)
-            == NULL)
-        {
+        if (ngx_http_script_run(r, path, clcf->root_lengths->elts, reserved, clcf->root_values->elts) == NULL) {
             return NULL;
         }
 
-        if (ngx_get_full_name(r->pool, (ngx_str_t *) &ngx_cycle->prefix, path)
-            != NGX_OK)
-        {
+        if (ngx_get_full_name(r->pool, (ngx_str_t *) &ngx_cycle->prefix, path) != NGX_OK) {
             return NULL;
         }
 
@@ -2715,6 +2712,15 @@ ngx_http_map_uri_to_path(ngx_http_request_t *r, ngx_str_t *path,
 }
 
 
+/*
+用户名是Aladdin、口令是open sesame，则拼接后的结果就是Aladdin:open sesame，
+然后再将其用Base64编码，得到QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+
+GET /private/index.html HTTP/1.0
+Host: localhost
+Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+
+*/
 ngx_int_t
 ngx_http_auth_basic_user(ngx_http_request_t *r)
 {
@@ -2732,11 +2738,7 @@ ngx_http_auth_basic_user(ngx_http_request_t *r)
 
     encoded = r->headers_in.authorization->value;
 
-    if (encoded.len < sizeof("Basic ") - 1
-        || ngx_strncasecmp(encoded.data, (u_char *) "Basic ",
-                           sizeof("Basic ") - 1)
-           != 0)
-    {
+    if (encoded.len < sizeof("Basic ") - 1 || ngx_strncasecmp(encoded.data, (u_char *) "Basic ", sizeof("Basic ") - 1) != 0) {
         r->headers_in.user.data = (u_char *) "";
         return NGX_DECLINED;
     }
@@ -3412,8 +3414,7 @@ ngx_http_cleanup_add(ngx_http_request_t *r, size_t size)
 
 
 ngx_int_t
-ngx_http_set_disable_symlinks(ngx_http_request_t *r,
-    ngx_http_core_loc_conf_t *clcf, ngx_str_t *path, ngx_open_file_info_t *of)
+ngx_http_set_disable_symlinks(ngx_http_request_t *r, ngx_http_core_loc_conf_t *clcf, ngx_str_t *path, ngx_open_file_info_t *of)
 {
 #if (NGX_HAVE_OPENAT)
     u_char     *p;
@@ -4993,7 +4994,7 @@ ngx_http_core_root(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
-    if (clcf->named && alias) {
+    if (clcf->named && alias) {	//XXX: 为什么alias 不能用于named location
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "the \"alias\" directive cannot be used " "inside the named location");
 
         return NGX_CONF_ERROR;

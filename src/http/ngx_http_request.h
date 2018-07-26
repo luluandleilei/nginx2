@@ -371,54 +371,97 @@ typedef void (*ngx_http_event_handler_pt)(ngx_http_request_t *r);
 struct ngx_http_request_s {
     uint32_t                          signature;         /* "HTTP" */
 
+	//Pointer to a ngx_connection_t client connection object. 
+	//Several requests can reference the same connection object at the same time - one main request and its subrequests. 
+	//After a request is deleted, a new request can be created on the same connection.
+
+	//Note that for HTTP connections ngx_connection_t's data field points back to the request. 
+	//Such requests are called active, as opposed to the other requests tied to the connection. 
+	//An active request is used to handle client connection events and is allowed to output its response to the client. 
+	//Normally, each request becomes active at some point so that it can send its output.
     ngx_connection_t                 *connection;
 
+	//Array of HTTP module contexts. 
+	//Each module of type NGX_HTTP_MODULE can store any value (normally, a pointer to a structure) in the request. 
+	//The value is stored in the ctx array at the module's ctx_index position. 
+	//The following macros provide a convenient way to get and set request contexts:
+	//		ngx_http_get_module_ctx(r, module) — Returns the module's context
+	//		ngx_http_set_ctx(r, c, module) — Sets c as the module's context
     void                            **ctx;
+	//main_conf, srv_conf, loc_conf — Arrays of current request configurations. 
+	//Configurations are stored at the module's ctx_index positions.
     void                            **main_conf;
     void                            **srv_conf;
     void                            **loc_conf;
 
+	//read_event_handler, write_event_handler - Read and write event handlers for the request. 
+	//Normally, both the read and write event handlers for an HTTP connection are set to ngx_http_request_handler(). 
+	//This function calls the read_event_handler and write_event_handler handlers for the currently active request.
     ngx_http_event_handler_pt         read_event_handler;
     ngx_http_event_handler_pt         write_event_handler;
 
 #if (NGX_HTTP_CACHE)
+	//Request cache object for caching the upstream response.
     ngx_http_cache_t                 *cache;
 #endif
 
+	//Request upstream object for proxying.
     ngx_http_upstream_t              *upstream;
     ngx_array_t                      *upstream_states;
                                          /* of ngx_http_upstream_state_t */
 
+	//Request pool. 
+	//The request object itself is allocated in this pool, which is destroyed when the request is deleted. 
+	//For allocations that need to be available throughout the client connection's lifetime, use ngx_connection_t's pool instead.
     ngx_pool_t                       *pool;
+	//Buffer into which the client HTTP request header is read.
     ngx_buf_t                        *header_in;
 
+	//headers_in, headers_out — Input and output HTTP headers objects. 
+	//Both objects contain the headers field of type ngx_list_t for keeping the raw list of headers. 
+	//In addition to that, specific headers are available for getting and setting as separate fields, 
+	//for example content_length_n, status etc.
     ngx_http_headers_in_t             headers_in;
     ngx_http_headers_out_t            headers_out;
 
+	//Client request body object.
     ngx_http_request_body_t          *request_body;
 
     time_t                            lingering_time;
+	//start_sec, start_msec — Time point when the request was created, used for tracking request duration.
     time_t                            start_sec;
     ngx_msec_t                        start_msec;
 
+	//Numeric representation of the client HTTP request method. 
+	//Numeric values for methods are defined in src/http/ngx_http_request.h with the macros NGX_HTTP_GET, NGX_HTTP_HEAD, NGX_HTTP_POST, etc.
     ngx_uint_t                        method;
-    ngx_uint_t                        http_version;	//Client HTTP protocol version in numeric form (NGX_HTTP_VERSION_10, NGX_HTTP_VERSION_11, etc.).
+	//Client HTTP protocol version in numeric form (NGX_HTTP_VERSION_10, NGX_HTTP_VERSION_11, etc.).
+    ngx_uint_t                        http_version;		
 
-    ngx_str_t                         request_line;
+	//Request line in the original client request.
+    ngx_str_t                         request_line;		
+	//uri, args, exten — URI, arguments and file extension for the current request. 
+	//The URI value here might differ from the original URI sent by the client due to normalization. 
+	//Throughout request processing, these values can change as internal redirects are performed.
     ngx_str_t                         uri;
     ngx_str_t                         args;
     ngx_str_t                         exten;
-    ngx_str_t                         unparsed_uri;
+	//URI in the original client request
+    ngx_str_t                         unparsed_uri;	
 
+	//text representation of the client HTTP request method.
     ngx_str_t                         method_name;
-    ngx_str_t                         http_protocol;	//Client HTTP protocol version in its original text form (“HTTP/1.0”, “HTTP/1.1” etc).
+	//Client HTTP protocol version in its original text form (“HTTP/1.0”, “HTTP/1.1” etc).
+    ngx_str_t                         http_protocol;	
     ngx_str_t                         schema;
 
     ngx_chain_t                      *out;
 	//Pointer to a main request object. 
-	//This object is created to process a client HTTP request, as opposed to subrequests, which are created to perform a specific subtask within the main request.
-    ngx_http_request_t               *main;			
-    ngx_http_request_t               *parent;		//Pointer to the parent request of a subrequest.
+	//This object is created to process a client HTTP request, as opposed to subrequests, 
+	//which are created to perform a specific subtask within the main request.
+    ngx_http_request_t               *main;		
+	//Pointer to the parent request of a subrequest.
+    ngx_http_request_t               *parent;		
     //List of output buffers and subrequests, in the order in which they are sent and created. 
     //The list is used by the postpone filter to provide consistent request output when parts of it are created by subrequests.
     ngx_http_postponed_request_t     *postponed;	
@@ -428,13 +471,20 @@ struct ngx_http_request_s {
 	//Normally, this handler holds the request main function, which at first runs request phases and then produces the output.
 	ngx_http_posted_request_t        *posted_requests;	
 
-    ngx_int_t                         phase_handler;	//Index of current request phase.
+	//Index of current request phase.
+    ngx_int_t                         phase_handler;	
     ngx_http_handler_pt               content_handler;
     ngx_uint_t                        access_code;
 
     ngx_http_variable_value_t        *variables;	//XXX:缓存所有被索引的变量的值
 
 #if (NGX_PCRE)
+	//ncaptures, captures, captures_data — Regex captures produced by the last regex match of the request. 
+	//A regex match can occur at a number of places during request processing: map lookup, server lookup 
+	//by SNI or HTTP Host, rewrite, proxy_redirect, etc. Captures produced by a lookup are stored in the 
+	//above mentioned fields. The field ncaptures holds the number of captures, captures holds captures 
+	//boundaries and captures_data holds the string against which the regex was matched and which is used 
+	//to extract captures. After each new regex match, request captures are reset to hold new values.
     ngx_uint_t                        ncaptures;
     int                              *captures;
     u_char                           *captures_data;
@@ -457,9 +507,21 @@ struct ngx_http_request_s {
 
     ngx_http_cleanup_t               *cleanup;
 
-    unsigned                          count:16;			//Request reference counter. The field only makes sense for the main request. Increasing the counter is done by simple r->main->count++. To decrease the counter, call ngx_http_finalize_request(r, rc). Creating of a subrequest and running the request body read process both increment the counter.
-    unsigned                          subrequests:8;	//Current subrequest nesting level. Each subrequest inherits its parent's nesting level, decreased by one. An error is generated if the value reaches zero. The value for the main request is defined by the NGX_HTTP_MAX_SUBREQUESTS constant.
-    unsigned                          blocked:8;
+	//Request reference counter. 
+	//The field only makes sense for the main request. 
+	//Increasing the counter is done by simple r->main->count++. 
+	//To decrease the counter, call ngx_http_finalize_request(r, rc). 
+	//Creating of a subrequest and running the request body read process both increment the counter.
+    unsigned                          count:16;		
+	//Current subrequest nesting level. 
+	//Each subrequest inherits its parent's nesting level, decreased by one. 
+	//An error is generated if the value reaches zero. 
+	//The value for the main request is defined by the NGX_HTTP_MAX_SUBREQUESTS constant.
+    unsigned                          subrequests:8;	
+	//Counter of blocks held on the request. 
+	//While this value is non-zero, the request cannot be terminated. 
+	//Currently, this value is increased by pending AIO operations (POSIX AIO and thread operations) and active cache lock.
+    unsigned                          blocked:8;		
 
     unsigned                          aio:1;	//表示当前是否在进行aio操作
 
@@ -483,7 +545,11 @@ struct ngx_http_request_s {
     unsigned                          valid_location:1;
     unsigned                          valid_unparsed_uri:1;
     unsigned                          uri_changed:1;
-    unsigned                          uri_changes:4;
+	//Number of URI changes remaining for the request. 
+	//The total number of times a request can change its URI is limited by the NGX_HTTP_MAX_URI_CHANGES constant. 
+	//With each change the value is decremented until it reaches zero, at which time an error is generated. 
+	//Rewrites and internal redirects to normal or named locations are considered URI changes.
+    unsigned                          uri_changes:4;		
 
     unsigned                          request_body_in_single_buf:1;
     unsigned                          request_body_in_file_only:1;
@@ -493,7 +559,10 @@ struct ngx_http_request_s {
     unsigned                          request_body_file_log_level:3;
     unsigned                          request_body_no_buffering:1;
 
-    unsigned                          subrequest_in_memory:1;	//Output is not sent to the client, but rather stored in memory. The flag only affects subrequests which are processed by one of the proxying modules. After a subrequest is finalized its output is available in a r->upstream->buffer of type ngx_buf_t.
+	//Output is not sent to the client, but rather stored in memory. 
+	//The flag only affects subrequests which are processed by one of the proxying modules. 
+	//After a subrequest is finalized its output is available in a r->upstream->buffer of type ngx_buf_t.
+    unsigned                          subrequest_in_memory:1;	
     unsigned                          waited:1;
 
 #if (NGX_HTTP_CACHE)
@@ -524,33 +593,49 @@ struct ngx_http_request_s {
 
     unsigned                          pipeline:1;
     unsigned                          chunked:1;
-    unsigned                          header_only:1;
+	//Flag indicating that the output does not require a body. For example, this flag is used by HTTP HEAD requests.
+    unsigned                          header_only:1;		
     unsigned                          expect_trailers:1;
-    unsigned                          keepalive:1;
+	//Flag indicating whether client connection keepalive is supported. 
+	//The value is inferred from the HTTP version and the value of the “Connection” header.
+    unsigned                          keepalive:1;			
     unsigned                          lingering_close:1;
     unsigned                          discard_body:1;
     unsigned                          reading_body:1;
-    unsigned                          internal:1;
+    unsigned                          internal:1;			//Flag indicating that the current request is internal. To enter the internal state, a request must pass through an internal redirect or be a subrequest. Internal requests are allowed to enter internal locations.
     unsigned                          error_page:1;
     unsigned                          filter_finalize:1;
     unsigned                          post_action:1;
     unsigned                          request_complete:1;
     unsigned                          request_output:1;
-    unsigned                          header_sent:1;
+    unsigned                          header_sent:1;		//Flag indicating that the output header has already been sent by the request.
     unsigned                          expect_tested:1;
     unsigned                          root_tested:1;
     unsigned                          done:1;
     unsigned                          logged:1;
 
-    unsigned                          buffered:4;
+    unsigned                          buffered:4;	//Bitmask showing which modules have buffered the output produced by the request. A number of filters can buffer output; for example, sub_filter can buffer data because of a partial string match, copy filter can buffer data because of the lack of free output buffers etc. As long as this value is non-zero, the request is not finalized pending the flush.
 
-    unsigned                          main_filter_need_in_memory:1;
-    unsigned                          filter_need_in_memory:1;
-    unsigned                          filter_need_temporary:1;
+	//main_filter_need_in_memory, filter_need_in_memory — Flags requesting that the output produced in memory buffers rather than files. 
+	//This is a signal to the copy filter to read data from file buffers even if sendfile is enabled. 
+	//The difference between the two flags is the location of the filter modules that set them. 
+	//Filters called before the postpone filter in the filter chain set filter_need_in_memory, 
+	//requesting that only the current request output come in memory buffers. 
+	//Filters called later in the filter chain set main_filter_need_in_memory, 
+	//requesting that both the main request and all subrequests read files in memory while sending output.
+    unsigned                          main_filter_need_in_memory:1;	
+    unsigned                          filter_need_in_memory:1;		
+	//Flag requesting that the request output be produced in temporary buffers, but not in readonly memory buffers or file buffers. This is used by filters which may change output directly in the buffers where it's sent.
+	unsigned                          filter_need_temporary:1;		
     unsigned                          preserve_body:1;
-    unsigned                          allow_ranges:1;
-    unsigned                          subrequest_ranges:1;
-    unsigned                          single_range:1;
+	//Flag indicating that a partial response can be sent to the client, as requested by the HTTP Range header.
+    unsigned                          allow_ranges:1;				
+	//Flag indicating that a partial response can be sent while a subrequest is being processed.
+	unsigned                          subrequest_ranges:1;			
+	//Flag indicating that only a single continuous range of output data can be sent to the client. 
+	//This flag is usually set when sending a stream of data, 
+	//for example from a proxied server, and the entire response is not available in one buffer.
+	unsigned                          single_range:1;				
     unsigned                          disable_not_modified:1;
     unsigned                          stat_reading:1;
     unsigned                          stat_writing:1;
@@ -591,8 +676,9 @@ struct ngx_http_request_s {
     u_char                           *port_start;
     u_char                           *port_end;
 
-    unsigned                          http_minor:16;	//Client HTTP protocol version in numeric form split into major and minor parts.
-    unsigned                          http_major:16;	//Client HTTP protocol version in numeric form split into major and minor parts.
+	//http_major, http_minor  — Client HTTP protocol version in numeric form split into major and minor parts.
+    unsigned                          http_minor:16;	
+    unsigned                          http_major:16;	
 };
 
 

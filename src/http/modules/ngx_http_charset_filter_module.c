@@ -193,6 +193,10 @@ static ngx_http_module_t  ngx_http_charset_filter_module_ctx = {
 };
 
 
+/*
+默认关闭，可以添加charset，也可以将内容从一种字符集转换到另外一种字符集，不支持多字节字符集。
+
+*/
 ngx_module_t  ngx_http_charset_filter_module = {
     NGX_MODULE_V1,
     &ngx_http_charset_filter_module_ctx,   /* module context */

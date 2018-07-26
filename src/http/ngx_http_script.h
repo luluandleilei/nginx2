@@ -66,19 +66,25 @@ typedef struct {
 typedef struct {
     ngx_str_t                   value;
     ngx_uint_t                 *flushes;
-    void                       *lengths;
+    void                       *lengths;	//cv.lengths contains information about the presence of variables in the expression. The NULL value means that the expression contained static text only, and so can be stored in a simple string rather than as a complex value.
     void                       *values;
 } ngx_http_complex_value_t;
 
 
 typedef struct {
-    ngx_conf_t                 *cf;				//入参
-    ngx_str_t                  *value;			//入参
-    ngx_http_complex_value_t   *complex_value;	//出参
+    ngx_conf_t                 *cf;				//[in]Configuration pointer
+    ngx_str_t                  *value;			//[in]String to be parsed
+    ngx_http_complex_value_t   *complex_value;	//[out]Compiled value
 
-    unsigned                    zero:1;
-    unsigned                    conf_prefix:1;
-    unsigned                    root_prefix:1;
+	//[in]Flag that enables zero-terminating value. 
+	//It is useful when results are to be passed to libraries that require zero-terminated strings.
+    unsigned                    zero:1;			
+	//[in]Prefixes the result with the configuration prefix (the directory where nginx is currently looking for configuration). 
+	//Prefixes are handy when dealing with filenames.
+	unsigned                    conf_prefix:1;	
+	//[in]Prefixes the result with the root prefix (the normal nginx installation prefix). 
+	//Prefixes are handy when dealing with filenames.
+	unsigned                    root_prefix:1;	
 } ngx_http_compile_complex_value_t;
 
 
@@ -205,11 +211,9 @@ typedef struct {
 
 void ngx_http_script_flush_complex_value(ngx_http_request_t *r,
     ngx_http_complex_value_t *val);
-ngx_int_t ngx_http_complex_value(ngx_http_request_t *r,
-    ngx_http_complex_value_t *val, ngx_str_t *value);
+ngx_int_t ngx_http_complex_value(ngx_http_request_t *r, ngx_http_complex_value_t *val, ngx_str_t *value);
 ngx_int_t ngx_http_compile_complex_value(ngx_http_compile_complex_value_t *ccv);
-char *ngx_http_set_complex_value_slot(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+char *ngx_http_set_complex_value_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 
 ngx_int_t ngx_http_test_predicates(ngx_http_request_t *r,

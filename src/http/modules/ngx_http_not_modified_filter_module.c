@@ -12,8 +12,7 @@
 
 static ngx_uint_t ngx_http_test_if_unmodified(ngx_http_request_t *r);
 static ngx_uint_t ngx_http_test_if_modified(ngx_http_request_t *r);
-static ngx_uint_t ngx_http_test_if_match(ngx_http_request_t *r,
-    ngx_table_elt_t *header, ngx_uint_t weak);
+static ngx_uint_t ngx_http_test_if_match(ngx_http_request_t *r, ngx_table_elt_t *header, ngx_uint_t weak);
 static ngx_int_t ngx_http_not_modified_filter_init(ngx_conf_t *cf);
 
 
@@ -32,6 +31,10 @@ static ngx_http_module_t  ngx_http_not_modified_filter_module_ctx = {
 };
 
 
+/*
+默认打开，如果请求的if-modified-since等于回复的last-modified间值，说明回复没有变化，清空所有回复的内容，返回304。
+
+*/
 ngx_module_t  ngx_http_not_modified_filter_module = {
     NGX_MODULE_V1,
     &ngx_http_not_modified_filter_module_ctx, /* module context */
@@ -54,38 +57,25 @@ static ngx_http_output_header_filter_pt  ngx_http_next_header_filter;
 static ngx_int_t
 ngx_http_not_modified_header_filter(ngx_http_request_t *r)
 {
-    if (r->headers_out.status != NGX_HTTP_OK
-        || r != r->main
-        || r->disable_not_modified)
-    {
+    if (r->headers_out.status != NGX_HTTP_OK || r != r->main || r->disable_not_modified) {
         return ngx_http_next_header_filter(r);
     }
 
-    if (r->headers_in.if_unmodified_since
-        && !ngx_http_test_if_unmodified(r))
-    {
-        return ngx_http_filter_finalize_request(r, NULL,
-                                                NGX_HTTP_PRECONDITION_FAILED);
+    if (r->headers_in.if_unmodified_since && !ngx_http_test_if_unmodified(r)) {
+        return ngx_http_filter_finalize_request(r, NULL, NGX_HTTP_PRECONDITION_FAILED);
     }
 
-    if (r->headers_in.if_match
-        && !ngx_http_test_if_match(r, r->headers_in.if_match, 0))
-    {
-        return ngx_http_filter_finalize_request(r, NULL,
-                                                NGX_HTTP_PRECONDITION_FAILED);
+    if (r->headers_in.if_match && !ngx_http_test_if_match(r, r->headers_in.if_match, 0)) {
+        return ngx_http_filter_finalize_request(r, NULL, NGX_HTTP_PRECONDITION_FAILED);
     }
 
     if (r->headers_in.if_modified_since || r->headers_in.if_none_match) {
 
-        if (r->headers_in.if_modified_since
-            && ngx_http_test_if_modified(r))
-        {
+        if (r->headers_in.if_modified_since && ngx_http_test_if_modified(r)) {
             return ngx_http_next_header_filter(r);
         }
 
-        if (r->headers_in.if_none_match
-            && !ngx_http_test_if_match(r, r->headers_in.if_none_match, 1))
-        {
+        if (r->headers_in.if_none_match && !ngx_http_test_if_match(r, r->headers_in.if_none_match, 1)) {
             return ngx_http_next_header_filter(r);
         }
 
@@ -118,11 +108,9 @@ ngx_http_test_if_unmodified(ngx_http_request_t *r)
         return 0;
     }
 
-    iums = ngx_parse_http_time(r->headers_in.if_unmodified_since->value.data,
-                               r->headers_in.if_unmodified_since->value.len);
+    iums = ngx_parse_http_time(r->headers_in.if_unmodified_since->value.data, r->headers_in.if_unmodified_since->value.len);
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                 "http iums:%T lm:%T", iums, r->headers_out.last_modified_time);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http iums:%T lm:%T", iums, r->headers_out.last_modified_time);
 
     if (iums >= r->headers_out.last_modified_time) {
         return 1;
@@ -148,19 +136,15 @@ ngx_http_test_if_modified(ngx_http_request_t *r)
         return 1;
     }
 
-    ims = ngx_parse_http_time(r->headers_in.if_modified_since->value.data,
-                              r->headers_in.if_modified_since->value.len);
+    ims = ngx_parse_http_time(r->headers_in.if_modified_since->value.data, r->headers_in.if_modified_since->value.len);
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http ims:%T lm:%T", ims, r->headers_out.last_modified_time);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http ims:%T lm:%T", ims, r->headers_out.last_modified_time);
 
     if (ims == r->headers_out.last_modified_time) {
         return 0;
     }
 
-    if (clcf->if_modified_since == NGX_HTTP_IMS_EXACT
-        || ims < r->headers_out.last_modified_time)
-    {
+    if (clcf->if_modified_since == NGX_HTTP_IMS_EXACT || ims < r->headers_out.last_modified_time) {
         return 1;
     }
 
@@ -169,8 +153,7 @@ ngx_http_test_if_modified(ngx_http_request_t *r)
 
 
 static ngx_uint_t
-ngx_http_test_if_match(ngx_http_request_t *r, ngx_table_elt_t *header,
-    ngx_uint_t weak)
+ngx_http_test_if_match(ngx_http_request_t *r, ngx_table_elt_t *header, ngx_uint_t weak)
 {
     u_char     *start, *end, ch;
     ngx_str_t   etag, *list;
@@ -187,8 +170,7 @@ ngx_http_test_if_match(ngx_http_request_t *r, ngx_table_elt_t *header,
 
     etag = r->headers_out.etag->value;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http im:\"%V\" etag:%V", list, &etag);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http im:\"%V\" etag:%V", list, &etag);
 
     if (weak
         && etag.len > 2
