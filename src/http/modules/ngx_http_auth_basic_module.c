@@ -23,8 +23,7 @@ typedef struct {
 static ngx_int_t ngx_http_auth_basic_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_auth_basic_crypt_handler(ngx_http_request_t *r,
     ngx_str_t *passwd, ngx_str_t *realm);
-static ngx_int_t ngx_http_auth_basic_set_realm(ngx_http_request_t *r,
-    ngx_str_t *realm);
+static ngx_int_t ngx_http_auth_basic_set_realm(ngx_http_request_t *r, ngx_str_t *realm);
 static void ngx_http_auth_basic_close(ngx_file_t *file);
 static void *ngx_http_auth_basic_create_loc_conf(ngx_conf_t *cf);
 static char *ngx_http_auth_basic_merge_loc_conf(ngx_conf_t *cf,
@@ -197,10 +196,10 @@ ngx_http_auth_basic_handler(ngx_http_request_t *r)
     file.log = r->connection->log;
 
     state = sw_login;
-    passwd = 0;
-    login = 0;
-    left = 0;
-    offset = 0;
+    passwd = 0;		//口令在buf中的起始位置的偏移量
+    login = 0;		//当前匹配请求中的用户名的偏移量
+    left = 0;		//读文件时写到buf中起始位置的偏移量
+    offset = 0;		//每次读文件时的偏移量
 
     for ( ;; ) {
         i = left;
@@ -296,27 +295,21 @@ ngx_http_auth_basic_handler(ngx_http_request_t *r)
         return ngx_http_auth_basic_crypt_handler(r, &pwd, &realm);
     }
 
-    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                  "user \"%V\" was not found in \"%s\"",
-                  &r->headers_in.user, user_file.data);
+    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "user \"%V\" was not found in \"%s\"", &r->headers_in.user, user_file.data);
 
     return ngx_http_auth_basic_set_realm(r, &realm);
 }
 
 
 static ngx_int_t
-ngx_http_auth_basic_crypt_handler(ngx_http_request_t *r, ngx_str_t *passwd,
-    ngx_str_t *realm)
+ngx_http_auth_basic_crypt_handler(ngx_http_request_t *r, ngx_str_t *passwd, ngx_str_t *realm)
 {
     ngx_int_t   rc;
     u_char     *encrypted;
 
-    rc = ngx_crypt(r->pool, r->headers_in.passwd.data, passwd->data,
-                   &encrypted);
+    rc = ngx_crypt(r->pool, r->headers_in.passwd.data, passwd->data, &encrypted);
 
-    ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "rc: %i user: \"%V\" salt: \"%s\"",
-                   rc, &r->headers_in.user, passwd->data);
+    ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "rc: %i user: \"%V\" salt: \"%s\"", rc, &r->headers_in.user, passwd->data);
 
     if (rc != NGX_OK) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
@@ -326,12 +319,9 @@ ngx_http_auth_basic_crypt_handler(ngx_http_request_t *r, ngx_str_t *passwd,
         return NGX_OK;
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "encrypted: \"%s\"", encrypted);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "encrypted: \"%s\"", encrypted);
 
-    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                  "user \"%V\": password mismatch",
-                  &r->headers_in.user);
+    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "user \"%V\": password mismatch", &r->headers_in.user);
 
     return ngx_http_auth_basic_set_realm(r, realm);
 }
@@ -352,7 +342,7 @@ ngx_http_auth_basic_set_realm(ngx_http_request_t *r, ngx_str_t *realm)
 
     basic = ngx_pnalloc(r->pool, len);
     if (basic == NULL) {
-        r->headers_out.www_authenticate->hash = 0;
+        r->headers_out.www_authenticate->hash = 0;	//XXX:为什么要标识hash字段为0？
         r->headers_out.www_authenticate = NULL;
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
@@ -373,8 +363,7 @@ static void
 ngx_http_auth_basic_close(ngx_file_t *file)
 {
     if (ngx_close_file(file->fd) == NGX_FILE_ERROR) {
-        ngx_log_error(NGX_LOG_ALERT, file->log, ngx_errno,
-                      ngx_close_file_n " \"%s\" failed", file->name.data);
+        ngx_log_error(NGX_LOG_ALERT, file->log, ngx_errno, ngx_close_file_n " \"%s\" failed", file->name.data);
     }
 }
 

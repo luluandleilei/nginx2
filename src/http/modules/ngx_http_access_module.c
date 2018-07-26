@@ -297,8 +297,7 @@ ngx_http_access_found(ngx_http_request_t *r, ngx_uint_t deny)
         clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
         if (clcf->satisfy == NGX_HTTP_SATISFY_ALL) {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                          "access forbidden by rule");
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "access forbidden by rule");
         }
 
         return NGX_HTTP_FORBIDDEN;

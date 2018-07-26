@@ -18,8 +18,8 @@ struct ngx_file_s {
     ngx_str_t                  name;	//文件名
     ngx_file_info_t            info;	//文件大小等资源信息，实际就是Linux系统定义的stat结构
 
-    off_t                      offset;		//当前读到的文件偏移量位置
-    off_t                      sys_offset;
+    off_t                      offset;		//统计到目前为止从文件中读取/写入的字节总数
+    off_t                      sys_offset;	//当前文件的偏移量位置(XXX读写是同一个偏移量么？？？)
 
     ngx_log_t                 *log;		//日志对象，相关的日志会输出到log指定的日志文件中
 

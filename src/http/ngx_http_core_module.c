@@ -1262,7 +1262,9 @@ static ngx_command_t  ngx_http_core_commands[] = {
 	 Syntax:	satisfy all | any;
 	 Default: 	satisfy all;
 	 Context:	http, server, location
-	 Allows access if all (all) or at least one (any) of the ngx_http_access_module, ngx_http_auth_basic_module, ngx_http_auth_request_module, or ngx_http_auth_jwt_module modules allow access.
+	 
+	 Allows access if all (all) or at least one (any) of the ngx_http_access_module, ngx_http_auth_basic_module, 
+	 ngx_http_auth_request_module, or ngx_http_auth_jwt_module modules allow access.
 
 	 Example:
 		location / {
@@ -1964,8 +1966,7 @@ ngx_http_core_access_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
         return NGX_AGAIN;
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "access phase: %ui", r->phase_handler);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "access phase: %ui", r->phase_handler);
 
     rc = ph->handler(r);
 
@@ -3084,9 +3085,8 @@ ngx_http_gzip_quantity(u_char *p, u_char *last)
 
 
 ngx_int_t
-ngx_http_subrequest(ngx_http_request_t *r,
-    ngx_str_t *uri, ngx_str_t *args, ngx_http_request_t **psr,
-    ngx_http_post_subrequest_t *ps, ngx_uint_t flags)
+ngx_http_subrequest(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *args, 
+	ngx_http_request_t **psr, ngx_http_post_subrequest_t *ps, ngx_uint_t flags)
 {
     ngx_time_t                    *tp;
     ngx_connection_t              *c;
@@ -4404,8 +4404,7 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
                               prev->keepalive_disable,
                               (NGX_CONF_BITMASK_SET
                                |NGX_HTTP_KEEPALIVE_DISABLE_MSIE6));
-    ngx_conf_merge_uint_value(conf->satisfy, prev->satisfy,
-                              NGX_HTTP_SATISFY_ALL);
+    ngx_conf_merge_uint_value(conf->satisfy, prev->satisfy, NGX_HTTP_SATISFY_ALL);
     ngx_conf_merge_uint_value(conf->if_modified_since, prev->if_modified_since,
                               NGX_HTTP_IMS_EXACT);
     ngx_conf_merge_uint_value(conf->max_ranges, prev->max_ranges,

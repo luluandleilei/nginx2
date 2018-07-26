@@ -12,7 +12,7 @@
 
 typedef struct {
     ngx_str_t                 uri;
-    ngx_array_t              *vars;
+    ngx_array_t              *vars;		/* array of ngx_http_auth_request_variable_t */
 } ngx_http_auth_request_conf_t;
 
 
@@ -48,6 +48,13 @@ static char *ngx_http_auth_request_set(ngx_conf_t *cf, ngx_command_t *cmd, void 
 
 static ngx_command_t  ngx_http_auth_request_commands[] = {
 
+	/*
+	 Syntax:	auth_request uri | off;
+	 Default: 	auth_request off;
+	 Context:	http, server, location
+	 
+	 Enables authorization based on the result of a subrequest and sets the URI to which the subrequest will be sent.
+	*/
     { ngx_string("auth_request"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_http_auth_request,
@@ -88,6 +95,16 @@ static ngx_http_module_t  ngx_http_auth_request_module_ctx = {
 };
 
 
+/*
+The ngx_http_auth_request_module module (1.5.4+) implements client authorization based on the result of a subrequest. 
+If the subrequest returns a 2xx response code, the access is allowed. 
+If it returns 401 or 403, the access is denied with the corresponding error code. 
+Any other response code returned by the subrequest is considered an error.
+
+For the 401 error, the client also receives the “WWW-Authenticate” header from the subrequest response.
+
+This module is not built by default, it should be enabled with the --with-http_auth_request_module configuration parameter.
+*/
 ngx_module_t  ngx_http_auth_request_module = {
     NGX_MODULE_V1,
     &ngx_http_auth_request_module_ctx,     /* module context */
@@ -237,8 +254,7 @@ ngx_http_auth_request_set_variables(ngx_http_request_t *r,
     ngx_http_auth_request_variable_t  *av, *last;
     ngx_http_core_main_conf_t         *cmcf;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "auth request set variables");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "auth request set variables");
 
     if (arcf->vars == NULL) {
         return NGX_OK;
@@ -286,11 +302,9 @@ ngx_http_auth_request_set_variables(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_http_auth_request_variable(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
+ngx_http_auth_request_variable(ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data)
 {
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "auth request variable");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "auth request variable");
 
     v->not_found = 1;
 

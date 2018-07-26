@@ -252,7 +252,7 @@ typedef struct {
 
 
 typedef struct {
-    ngx_list_t                        headers;
+    ngx_list_t                        headers;		//array of ngx_table_elt_t
     ngx_list_t                        trailers;
 
     ngx_uint_t                        status;
@@ -338,8 +338,7 @@ struct ngx_http_cleanup_s {
 };
 
 
-typedef ngx_int_t (*ngx_http_post_subrequest_pt)(ngx_http_request_t *r,
-    void *data, ngx_int_t rc);
+typedef ngx_int_t (*ngx_http_post_subrequest_pt)(ngx_http_request_t *r, void *data, ngx_int_t rc);
 
 typedef struct {
     ngx_http_post_subrequest_pt       handler;

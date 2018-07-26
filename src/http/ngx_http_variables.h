@@ -24,12 +24,21 @@ typedef void (*ngx_http_set_variable_pt) (ngx_http_request_t *r, ngx_http_variab
 typedef ngx_int_t (*ngx_http_get_variable_pt) (ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
 
 
-#define NGX_HTTP_VAR_CHANGEABLE   1		//Enables redefinition of the variable: there is no conflict if another module defines a variable with the same name. This allows the 'set' directive to override variables.
-#define NGX_HTTP_VAR_NOCACHEABLE  2		//Disables caching, which is useful for variables such as $time_local. //表示这个变量每次都要去取值，而不是直接返回上次cache的值(配合对应的接口)
-#define NGX_HTTP_VAR_INDEXED      4		//Indicates that this variable is only accessible by index, not by name. This is a small optimization for use when it is known that the variable is not needed in modules like SSI or Perl.//表示这个变量是用索引读取的. //表示这个变量可以用索引进行读取
+//Enables redefinition of the variable: there is no conflict if another module defines a variable with the same name. 
+//This allows the 'set' directive to override variables.
+#define NGX_HTTP_VAR_CHANGEABLE   1		
+//Disables caching, which is useful for variables such as $time_local. 
+#define NGX_HTTP_VAR_NOCACHEABLE  2		//表示这个变量每次都要去取值，而不是直接返回上次cache的值(配合对应的接口)
+//Indicates that this variable is only accessible by index, not by name. 
+//This is a small optimization for use when it is known that the variable is not needed in modules like SSI or Perl.
+#define NGX_HTTP_VAR_INDEXED      4		//表示这个变量是用索引读取的. //表示这个变量可以用索引进行读取
 #define NGX_HTTP_VAR_NOHASH       8		//表示这个变量不需要被hash.
 #define NGX_HTTP_VAR_WEAK         16
-#define NGX_HTTP_VAR_PREFIX       32	//The name of the variable is a prefix. In this case, a handler must implement additional logic to obtain the value of a specific variable. For example, all “arg_” variables are processed by the same handler, which performs lookup in request arguments and returns the value of a specific argument.
+//The name of the variable is a prefix. 
+//In this case, a handler must implement additional logic to obtain the value of a specific variable. 
+//For example, all “arg_” variables are processed by the same handler, 
+//which performs lookup in request arguments and returns the value of a specific argument.
+#define NGX_HTTP_VAR_PREFIX       32	
 
 
 struct ngx_http_variable_s {
