@@ -37,8 +37,7 @@ static ngx_int_t ngx_file_info_wrapper(ngx_str_t *name,
     ngx_open_file_info_t *of, ngx_file_info_t *fi, ngx_log_t *log);
 static ngx_int_t ngx_open_and_stat_file(ngx_str_t *name,
     ngx_open_file_info_t *of, ngx_log_t *log);
-static void ngx_open_file_add_event(ngx_open_file_cache_t *cache,
-    ngx_cached_open_file_t *file, ngx_open_file_info_t *of, ngx_log_t *log);
+static void ngx_open_file_add_event(ngx_open_file_cache_t *cache, ngx_cached_open_file_t *file, ngx_open_file_info_t *of, ngx_log_t *log);
 static void ngx_open_file_cleanup(void *data);
 static void ngx_close_cached_file(ngx_open_file_cache_t *cache,
     ngx_cached_open_file_t *file, ngx_uint_t min_uses, ngx_log_t *log);
@@ -944,8 +943,7 @@ done:
  */
 
 static void
-ngx_open_file_add_event(ngx_open_file_cache_t *cache,
-    ngx_cached_open_file_t *file, ngx_open_file_info_t *of, ngx_log_t *log)
+ngx_open_file_add_event(ngx_open_file_cache_t *cache, ngx_cached_open_file_t *file, ngx_open_file_info_t *of, ngx_log_t *log)
 {
     ngx_open_file_cache_event_t  *fev;
 
@@ -987,9 +985,7 @@ ngx_open_file_add_event(ngx_open_file_cache_t *cache,
 
     file->event->log = ngx_cycle->log;
 
-    if (ngx_add_event(file->event, NGX_VNODE_EVENT, NGX_ONESHOT_EVENT)
-        != NGX_OK)
-    {
+    if (ngx_add_event(file->event, NGX_VNODE_EVENT, NGX_ONESHOT_EVENT) != NGX_OK) {
         ngx_free(file->event->data);
         ngx_free(file->event);
         file->event = NULL;
@@ -1074,8 +1070,7 @@ ngx_open_file_del_event(ngx_cached_open_file_t *file)
         return;
     }
 
-    (void) ngx_del_event(file->event, NGX_VNODE_EVENT,
-                         file->count ? NGX_FLUSH_EVENT : NGX_CLOSE_EVENT);
+    (void) ngx_del_event(file->event, NGX_VNODE_EVENT, file->count ? NGX_FLUSH_EVENT : NGX_CLOSE_EVENT);
 
     ngx_free(file->event->data);
     ngx_free(file->event);

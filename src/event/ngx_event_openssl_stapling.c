@@ -1072,12 +1072,10 @@ ngx_ssl_ocsp_write_handler(ngx_event_t *wev)
     c = wev->data;
     ctx = c->data;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_EVENT, wev->log, 0,
-                   "ssl ocsp write handler");
+    ngx_log_debug0(NGX_LOG_DEBUG_EVENT, wev->log, 0, "ssl ocsp write handler");
 
     if (wev->timedout) {
-        ngx_log_error(NGX_LOG_ERR, wev->log, NGX_ETIMEDOUT,
-                      "OCSP responder timed out");
+        ngx_log_error(NGX_LOG_ERR, wev->log, NGX_ETIMEDOUT, "OCSP responder timed out");
         ngx_ssl_ocsp_error(ctx);
         return;
     }

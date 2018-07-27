@@ -82,9 +82,8 @@ struct ngx_event_s {
     unsigned         closed:1;	//标志位，为1时表示当前事件已经关闭，epoll模块没有使用它
 
     /* to test on worker exit */
-    unsigned         channel:1;		//该标志位目前无实际意义
-    unsigned         resolver:1;	 //该标志位目前无实际意义
-
+    unsigned         channel:1;		//表明这是channel描述符对应的事件
+    unsigned         resolver:1;	//
 	//Timer event flag indicating that the event should be ignored while shutting down the worker. 
 	//Graceful worker shutdown is delayed until there are no non-cancelable timer events scheduled.
     unsigned         cancelable:1;	
@@ -191,19 +190,28 @@ struct ngx_event_aio_s {
 
 
 typedef struct {
-    ngx_int_t  (*add)(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags);	//添加事件方法，它将负责把一个感兴趣的事件添加到操作系统提供的事件驱动机制(如epoll、kqueue等)中， //这样，在事件发生后，将可以在调用下面的process_events时获取这个事件
-    ngx_int_t  (*del)(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags);	//删除事件方法，它将把一个已经存在于事件驱动机制中的事件移除，这样以后即使这个事件发生，调用 //process_events方法时也无法再获取这个事件
+	//添加事件方法，它将负责把一个感兴趣的事件添加到操作系统提供的事件驱动机制(如epoll、kqueue等)中， 
+	//这样，在事件发生后，将可以在调用下面的process_events时获取这个事件
+    ngx_int_t  (*add)(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags);	
+	//删除事件方法，它将把一个已经存在于事件驱动机制中的事件移除，这样以后即使这个事件发生，
+	//调用 process_events方法时也无法再获取这个事件
+    ngx_int_t  (*del)(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags);	
 
-    ngx_int_t  (*enable)(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags);	//启用一个事件，目前事件框架不会调用这个方法，大部分事件驱动模块对于该方法的实现都是与上面的add方法完全一致的
-    ngx_int_t  (*disable)(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags); //禁用一个事件，目前事件框架不会调用这个方法，大部分事件驱动模块对于该方法的实现都是与上面的del方法完全一致的
+	//启用一个事件，目前事件框架不会调用这个方法，大部分事件驱动模块对于该方法的实现都是与上面的add方法完全一致的
+    ngx_int_t  (*enable)(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags);	
+	//禁用一个事件，目前事件框架不会调用这个方法，大部分事件驱动模块对于该方法的实现都是与上面的del方法完全一致的
+    ngx_int_t  (*disable)(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags); 
 
-    ngx_int_t  (*add_conn)(ngx_connection_t *c);	//向事件驱动机制中添加一个新的连接，这意味着连接上的读写事件都添加到事件驱动机制中了
-    ngx_int_t  (*del_conn)(ngx_connection_t *c, ngx_uint_t flags);	//从事件驱动机制中移除一个连接，这意味着连接上的读写事件都从事件驱动机制中移除了
+	//向事件驱动机制中添加一个新的连接，这意味着连接上的读写事件都添加到事件驱动机制中了
+    ngx_int_t  (*add_conn)(ngx_connection_t *c);	
+	//从事件驱动机制中移除一个连接，这意味着连接上的读写事件都从事件驱动机制中移除了
+    ngx_int_t  (*del_conn)(ngx_connection_t *c, ngx_uint_t flags);	
 
-    ngx_int_t  (*notify)(ngx_event_handler_pt handler);	//???仅在多线程环境下会被调用。 目前，Nginx在产品环境下还不会以多线程方式运行。
+	//XXX: ???仅在多线程环境下会被调用。 目前，Nginx在产品环境下还不会以多线程方式运行。
+    ngx_int_t  (*notify)(ngx_event_handler_pt handler);	
 
-    ngx_int_t  (*process_events)(ngx_cycle_t *cycle, ngx_msec_t timer,	//在正常的工作循环中，将通过调用process_events方法来处理事件。
-                                 ngx_uint_t flags);
+	//在正常的工作循环中，将通过调用process_events方法来处理事件。
+    ngx_int_t  (*process_events)(ngx_cycle_t *cycle, ngx_msec_t timer, ngx_uint_t flags);	
 
     ngx_int_t  (*init)(ngx_cycle_t *cycle, ngx_msec_t timer);	//初始化事件驱动模块的方法
     void       (*done)(ngx_cycle_t *cycle);						//退出事件驱动模块前调用的方法
@@ -504,7 +512,7 @@ extern ngx_atomic_t  *ngx_stat_waiting;
 #endif
 
 
-#define NGX_UPDATE_TIME         1
+#define NGX_UPDATE_TIME         1	//表示每次事件驱动机制返回时更新当前时间
 #define NGX_POST_EVENTS         2	//表示事件需要延后处理
 
 

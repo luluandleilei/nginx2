@@ -58,7 +58,7 @@ ngx_event_accept(ngx_event_t *ev)
         if (use_accept4) {
             s = accept4(lc->fd, &sa.sockaddr, &socklen, SOCK_NONBLOCK);
         } else {
-            s = accept(lc->fd, &sa.sockaddr, &socklen);
+            s = accept(lc->fd, &sa.sockaddr, &socklen);		//XXX: accpet失败时的返回值类型？
         }
 #else
         s = accept(lc->fd, &sa.sockaddr, &socklen);
@@ -146,7 +146,7 @@ ngx_event_accept(ngx_event_t *ev)
         (void) ngx_atomic_fetch_add(ngx_stat_active, 1);
 #endif
 
-        c->pool = ngx_create_pool(ls->pool_size, ev->log);
+        c->pool = ngx_create_pool(ls->pool_size, ev->log);	//ls->pool_size是哪个server下的配置? 默认的？
         if (c->pool == NULL) {
             ngx_close_accepted_connection(c);
             return;
@@ -229,7 +229,7 @@ ngx_event_accept(ngx_event_t *ev)
         if (ev->deferred_accept) {
             rev->ready = 1;
 #if (NGX_HAVE_KQUEUE || NGX_HAVE_EPOLLRDHUP)
-            rev->available = 1;
+            rev->available = 1;		//XXX: NGX_HAVE_EPOLLRDHUP下表示什么意思？
 #endif
         }
 
@@ -258,9 +258,7 @@ ngx_event_accept(ngx_event_t *ev)
                 return;
             }
 
-            c->addr_text.len = ngx_sock_ntop(c->sockaddr, c->socklen,
-                                             c->addr_text.data,
-                                             ls->addr_text_max_len, 0);
+            c->addr_text.len = ngx_sock_ntop(c->sockaddr, c->socklen, c->addr_text.data, ls->addr_text_max_len, 0);
             if (c->addr_text.len == 0) {
                 ngx_close_accepted_connection(c);
                 return;
@@ -340,6 +338,7 @@ ngx_trylock_accept_mutex(ngx_cycle_t *cycle)
 }
 
 
+//将监听套接字的读事件添加到事件驱动机制中
 ngx_int_t
 ngx_enable_accept_events(ngx_cycle_t *cycle)
 {
@@ -365,6 +364,7 @@ ngx_enable_accept_events(ngx_cycle_t *cycle)
 }
 
 
+//将监听套接字的读事件从事件驱动机制中移除
 static ngx_int_t
 ngx_disable_accept_events(ngx_cycle_t *cycle, ngx_uint_t all)
 {
@@ -414,8 +414,7 @@ ngx_close_accepted_connection(ngx_connection_t *c)
     c->fd = (ngx_socket_t) -1;
 
     if (ngx_close_socket(fd) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, c->log, ngx_socket_errno,
-                      ngx_close_socket_n " failed");
+        ngx_log_error(NGX_LOG_ALERT, c->log, ngx_socket_errno, ngx_close_socket_n " failed");
     }
 
     if (c->pool) {

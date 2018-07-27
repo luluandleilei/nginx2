@@ -30,15 +30,15 @@ typedef int               ngx_err_t;
 #define NGX_ENOTDIR       ENOTDIR
 #define NGX_EISDIR        EISDIR
 #define NGX_EINVAL        EINVAL
-#define NGX_ENFILE        ENFILE
-#define NGX_EMFILE        EMFILE
+#define NGX_ENFILE        ENFILE		//The system limit on the total number of open files has been reached
+#define NGX_EMFILE        EMFILE		//The per-process limit of open file descriptors has been reached.
 #define NGX_ENOSPC        ENOSPC
 #define NGX_EPIPE         EPIPE
 #define NGX_EINPROGRESS   EINPROGRESS
 #define NGX_ENOPROTOOPT   ENOPROTOOPT
 #define NGX_EOPNOTSUPP    EOPNOTSUPP
 #define NGX_EADDRINUSE    EADDRINUSE
-#define NGX_ECONNABORTED  ECONNABORTED
+#define NGX_ECONNABORTED  ECONNABORTED	//A connection has been aborted
 #define NGX_ECONNRESET    ECONNRESET
 #define NGX_ENOTCONN      ENOTCONN
 #define NGX_ETIMEDOUT     ETIMEDOUT

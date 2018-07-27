@@ -449,7 +449,7 @@ ngx_stream_optimize_servers(ngx_conf_t *cf, ngx_array_t *ports)
     for (p = 0; p < ports->nelts; p++) {
 
         ngx_sort(port[p].addrs.elts, (size_t) port[p].addrs.nelts,
-                 sizeof(ngx_stream_conf_addr_t), ngx_stream_cmp_conf_addrs);
+			sizeof(ngx_stream_conf_addr_t), ngx_stream_cmp_conf_addrs);
 
         addr = port[p].addrs.elts;
         last = port[p].addrs.nelts;

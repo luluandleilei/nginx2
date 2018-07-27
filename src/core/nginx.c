@@ -634,7 +634,6 @@ ngx_add_inherited_sockets(ngx_cycle_t *cycle)
     ngx_listening_t  *ls;
 
     inherited = (u_char *) getenv(NGINX_VAR);
-
     if (inherited == NULL) {
         return NGX_OK;
     }

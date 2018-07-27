@@ -548,6 +548,17 @@ ngx_epoll_done(ngx_cycle_t *cycle)
 }
 
 
+/*
+man epoll:
+Q:  What  happens  if you register the same file descriptor on an epoll
+    instance twice?
+ 
+A: You will probably get EEXIST.  However, it is  possible  to  add  a
+    duplicate  (dup(2),  dup2(2),  fcntl(2)  F_DUPFD) descriptor to the
+    same epoll instance.  This can be a useful technique for  filtering
+    events,  if the duplicate file descriptors are registered with dif-
+    ferent events masks.
+*/
 static ngx_int_t
 ngx_epoll_add_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
 {
@@ -626,7 +637,7 @@ ngx_epoll_del_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
      * before the closing the file descriptor
      */
 
-    if (flags & NGX_CLOSE_EVENT) {
+    if (flags & NGX_CLOSE_EVENT) {	//关闭连接时，不需要显示删除，因为在连接关闭时会自动删除
         ev->active = 0;
         return NGX_OK;
     }
@@ -645,7 +656,7 @@ ngx_epoll_del_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
     if (e->active) {
         op = EPOLL_CTL_MOD;
         ee.events = prev | (uint32_t) flags;
-        ee.data.ptr = (void *) ((uintptr_t) c | ev->instance);
+        ee.data.ptr = (void *) ((uintptr_t) c | ev->instance);	//XXX: 这里是不是应该是e->instance而不是ev->instance?
 
     } else {
         op = EPOLL_CTL_DEL;
@@ -706,16 +717,14 @@ ngx_epoll_del_connection(ngx_connection_t *c, ngx_uint_t flags)
         return NGX_OK;
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_EVENT, c->log, 0,
-                   "epoll del connection: fd:%d", c->fd);
+    ngx_log_debug1(NGX_LOG_DEBUG_EVENT, c->log, 0, "epoll del connection: fd:%d", c->fd);
 
     op = EPOLL_CTL_DEL;
     ee.events = 0;
     ee.data.ptr = NULL;
 
     if (epoll_ctl(ep, op, c->fd, &ee) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, c->log, ngx_errno,
-                      "epoll_ctl(%d, %d) failed", op, c->fd);
+        ngx_log_error(NGX_LOG_ALERT, c->log, ngx_errno, "epoll_ctl(%d, %d) failed", op, c->fd);
         return NGX_ERROR;
     }
 
@@ -808,7 +817,9 @@ ngx_epoll_process_events(ngx_cycle_t *cycle, ngx_msec_t timer, ngx_uint_t flags)
 
         rev = c->read;
 
-        if (c->fd == -1 || rev->instance != instance) {
+		//c->fd == -1 表示处理其他连接时此连接被回收， 
+		//rev->instance != instance 表示处理其他连接时此连接被回收且重用了
+        if (c->fd == -1 || rev->instance != instance) { 
 
             /*
              * the stale event from a file descriptor
@@ -866,7 +877,9 @@ ngx_epoll_process_events(ngx_cycle_t *cycle, ngx_msec_t timer, ngx_uint_t flags)
 
         if ((revents & EPOLLOUT) && wev->active) {
 
-            if (c->fd == -1 || wev->instance != instance) {
+			//为什么这里还需要进行一次c->fd == -1 || wev->instance != instance的判断？
+			//在上面处理读事件的过程中，可能释放了该连接，或者释放并重用了该连接
+            if (c->fd == -1 || wev->instance != instance) {	
 
                 /*
                  * the stale event from a file descriptor
@@ -879,7 +892,7 @@ ngx_epoll_process_events(ngx_cycle_t *cycle, ngx_msec_t timer, ngx_uint_t flags)
 
             wev->ready = 1;
 #if (NGX_THREADS)
-            wev->complete = 1;
+            wev->complete = 1;		//XXX: ???
 #endif
 
             if (flags & NGX_POST_EVENTS) {

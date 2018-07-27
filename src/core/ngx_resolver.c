@@ -4470,8 +4470,7 @@ ngx_tcp_connect(ngx_resolver_connection_t *rec)
     ngx_log_debug1(NGX_LOG_DEBUG_EVENT, &rec->log, 0, "TCP socket %d", s);
 
     if (s == (ngx_socket_t) -1) {
-        ngx_log_error(NGX_LOG_ALERT, &rec->log, ngx_socket_errno,
-                      ngx_socket_n " failed");
+        ngx_log_error(NGX_LOG_ALERT, &rec->log, ngx_socket_errno, ngx_socket_n " failed");
         return NGX_ERROR;
     }
 
@@ -4479,16 +4478,14 @@ ngx_tcp_connect(ngx_resolver_connection_t *rec)
 
     if (c == NULL) {
         if (ngx_close_socket(s) == -1) {
-            ngx_log_error(NGX_LOG_ALERT, &rec->log, ngx_socket_errno,
-                          ngx_close_socket_n " failed");
+            ngx_log_error(NGX_LOG_ALERT, &rec->log, ngx_socket_errno, ngx_close_socket_n " failed");
         }
 
         return NGX_ERROR;
     }
 
     if (ngx_nonblocking(s) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, &rec->log, ngx_socket_errno,
-                      ngx_nonblocking_n " failed");
+        ngx_log_error(NGX_LOG_ALERT, &rec->log, ngx_socket_errno, ngx_nonblocking_n " failed");
 
         goto failed;
     }
@@ -4509,8 +4506,7 @@ ngx_tcp_connect(ngx_resolver_connection_t *rec)
         }
     }
 
-    ngx_log_debug3(NGX_LOG_DEBUG_EVENT, &rec->log, 0,
-                   "connect to %V, fd:%d #%uA", &rec->server, s, c->number);
+    ngx_log_debug3(NGX_LOG_DEBUG_EVENT, &rec->log, 0, "connect to %V, fd:%d #%uA", &rec->server, s, c->number);
 
     rc = connect(s, rec->sockaddr, rec->socklen);
 
@@ -4545,8 +4541,7 @@ ngx_tcp_connect(ngx_resolver_connection_t *rec)
                 level = NGX_LOG_CRIT;
             }
 
-            ngx_log_error(level, &rec->log, err, "connect() to %V failed",
-                          &rec->server);
+            ngx_log_error(level, &rec->log, err, "connect() to %V failed", &rec->server);
 
             ngx_close_connection(c);
             rec->tcp = NULL;
@@ -4572,8 +4567,7 @@ ngx_tcp_connect(ngx_resolver_connection_t *rec)
 
     if (ngx_event_flags & NGX_USE_IOCP_EVENT) {
 
-        ngx_log_debug1(NGX_LOG_DEBUG_EVENT, &rec->log, ngx_socket_errno,
-                       "connect(): %d", rc);
+        ngx_log_debug1(NGX_LOG_DEBUG_EVENT, &rec->log, ngx_socket_errno, "connect(): %d", rc);
 
         if (ngx_blocking(s) == -1) {
             ngx_log_error(NGX_LOG_ALERT, &rec->log, ngx_socket_errno,

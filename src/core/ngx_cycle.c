@@ -244,7 +244,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     senv = environ;	//XXX:为什么需要保存环境变量指针
 
 
-	//初始化ngx_conf_t对象
+	/* 初始化ngx_conf_t对象 */
     ngx_memzero(&conf, sizeof(ngx_conf_t));
     /* STUB: init array ? */
     conf.args = ngx_array_create(pool, 10, sizeof(ngx_str_t));	//XXX:args从pool中分配，在解析完配置后不需要被回收吗？
@@ -326,7 +326,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
          */
 
         old_ccf = (ngx_core_conf_t *) ngx_get_conf(old_cycle->conf_ctx, ngx_core_module);
-        if (ccf->pid.len != old_ccf->pid.len || ngx_strcmp(ccf->pid.data, old_ccf->pid.data) != 0) {	//rreconfigure配置后指定了新的pid文件
+        if (ccf->pid.len != old_ccf->pid.len || ngx_strcmp(ccf->pid.data, old_ccf->pid.data) != 0) {	//reconfigure配置后指定了新的pid文件
             /* new pid file name */
 
             if (ngx_create_pidfile(&ccf->pid, log) != NGX_OK) {
@@ -477,14 +477,14 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
 
     if (old_cycle->listening.nelts) {
         ls = old_cycle->listening.elts;
-        for (i = 0; i < old_cycle->listening.nelts; i++) {
+        for (i = 0; i < old_cycle->listening.nelts; i++) {	//清除所有old_cycle的listen对象的保留标志位
             ls[i].remain = 0;
         }
 
         nls = cycle->listening.elts;
-        for (n = 0; n < cycle->listening.nelts; n++) {
+        for (n = 0; n < cycle->listening.nelts; n++) {	/* for each listening socket */
 
-            for (i = 0; i < old_cycle->listening.nelts; i++) {
+            for (i = 0; i < old_cycle->listening.nelts; i++) {	/* for each old listening socket */
                 if (ls[i].ignore) {
                     continue;
                 }
@@ -497,7 +497,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
                     continue;
                 }
 
-                if (ngx_cmp_sockaddr(nls[n].sockaddr, nls[n].socklen, ls[i].sockaddr, ls[i].socklen, 1) == NGX_OK) {
+                if (ngx_cmp_sockaddr(nls[n].sockaddr, nls[n].socklen, ls[i].sockaddr, ls[i].socklen, 1) == NGX_OK) { //继承old cycle的套接字
                     nls[n].fd = ls[i].fd;
                     nls[n].previous = &ls[i];
                     ls[i].remain = 1;
@@ -520,27 +520,26 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
                             nls[n].add_deferred = 1;
                         }
 
-                    } else if (ls[i].accept_filter) {
+                    } else if (ls[i].accept_filter) {	//ls[i].accept_filter != NULL && nls[n].accept_filter == NULL
                         nls[n].delete_deferred = 1;
 
-                    } else if (nls[n].accept_filter) {
+                    } else if (nls[n].accept_filter) {	//ls[i].accept_filter == NULL && nls[n].accept_filter != NULL
                         nls[n].add_deferred = 1;
                     }
 #endif
 
 #if (NGX_HAVE_DEFERRED_ACCEPT && defined TCP_DEFER_ACCEPT)
 
-                    if (ls[i].deferred_accept && !nls[n].deferred_accept) {
+                    if (ls[i].deferred_accept && !nls[n].deferred_accept) {	//删除监听套接字的defer accept选项
                         nls[n].delete_deferred = 1;
 
-                    } else if (ls[i].deferred_accept != nls[n].deferred_accept)
-                    {
+                    } else if (ls[i].deferred_accept != nls[n].deferred_accept) {	//添加监听套接字的defer accept选项
                         nls[n].add_deferred = 1;
                     }
 #endif
 
 #if (NGX_HAVE_REUSEPORT)
-                    if (nls[n].reuseport && !ls[i].reuseport) {
+                    if (nls[n].reuseport && !ls[i].reuseport) {  //XXX:不能删除只能添加reuseport属性？
                         nls[n].add_reuseport = 1;
                     }
 #endif
@@ -1009,7 +1008,7 @@ ngx_signal_process(ngx_cycle_t *cycle, char *sig)
 static ngx_int_t
 ngx_test_lockfile(u_char *file, ngx_log_t *log)
 {
-#if !(NGX_HAVE_ATOMIC_OPS)
+#if !(NGX_HAVE_ATOMIC_OPS)	//仅在不支持原子操作时才进行检查
     ngx_fd_t  fd;
 
     fd = ngx_open_file(file, NGX_FILE_RDWR, NGX_FILE_CREATE_OR_OPEN, NGX_FILE_DEFAULT_ACCESS);

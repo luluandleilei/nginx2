@@ -34,7 +34,10 @@ static char *ngx_event_core_init_conf(ngx_cycle_t *cycle, void *conf);
 
 
 static ngx_uint_t     ngx_timer_resolution;		//ngx_core_module模块的timer_resolution命令指定的时间更新间隔
-sig_atomic_t          ngx_event_timer_alarm;	//全局变量，当它设为1时表示需要更新时间 //在ngx_event_action_t的process_events方法中，每一个事件驱动模块都需要在ngx_event_timer_alarm为1时 //调用ngx_time_update方法更新系统时间，在更新系统时间结束后需要将ngx_event_timer_alarm设为0	
+//全局变量，当它设为1时表示需要更新时间 
+//在ngx_event_action_t的process_events方法中，每一个事件驱动模块都需要在ngx_event_timer_alarm为1时 
+//调用ngx_time_update方法更新系统时间，在更新系统时间结束后需要将ngx_event_timer_alarm设为0
+sig_atomic_t          ngx_event_timer_alarm;		
 
 static ngx_uint_t     ngx_event_max_module;		//event类型模块的总个数
 
@@ -50,8 +53,8 @@ ngx_atomic_t         *ngx_accept_mutex_ptr;		//XXX：指向负载均衡锁使用
 ngx_shmtx_t           ngx_accept_mutex;			//负载均衡锁
 ngx_uint_t            ngx_use_accept_mutex;	 	//表示是否使用accept_mutex负载均衡锁
 ngx_uint_t            ngx_accept_events;
-ngx_uint_t            ngx_accept_mutex_held;
-ngx_msec_t            ngx_accept_mutex_delay;	//?//负载均衡锁会使有些worker进程在拿不到锁时至少延迟accept_mutex_delay毫秒再重新获取负载均衡锁
+ngx_uint_t            ngx_accept_mutex_held;	//表示抢占到负载均衡锁
+ngx_msec_t            ngx_accept_mutex_delay;	//?//负载均衡锁会使有些worker进程在拿不到锁时至多延迟accept_mutex_delay毫秒再重新获取负载均衡锁
 ngx_int_t             ngx_accept_disabled;
 
 
@@ -156,11 +159,13 @@ static ngx_command_t  ngx_event_core_commands[] = {
       
 	/*
 	 Syntax:	multi_accept on | off;
-	 Default:	
-	 multi_accept off;
+	 Default: 	multi_accept off;
 	 Context:	events
-	 If multi_accept is disabled, a worker process will accept one new connection at a time. Otherwise, a worker process will accept all new connections at a time.
-	 The directive is ignored if kqueue connection processing method is used, because it reports the number of new connections waiting to be accepted.
+	 
+	 If multi_accept is disabled, a worker process will accept one new connection at a time. 
+	 Otherwise, a worker process will accept all new connections at a time.
+	 The directive is ignored if kqueue connection processing method is used, 
+	 because it reports the number of new connections waiting to be accepted.
 	*/
     { ngx_string("multi_accept"),
       NGX_EVENT_CONF|NGX_CONF_FLAG,
@@ -189,7 +194,8 @@ static ngx_command_t  ngx_event_core_commands[] = {
 	 Syntax:	accept_mutex_delay time;
 	 Default:  	accept_mutex_delay 500ms;
 	 Context:	events
-	 If accept_mutex is enabled, specifies the maximum time during which a worker process will try to restart accepting new connections if another worker process is currently accepting new connections.
+	 If accept_mutex is enabled, specifies the maximum time during which a worker process will try 
+	 to restart accepting new connections if another worker process is currently accepting new connections.
 	*/
     { ngx_string("accept_mutex_delay"),
       NGX_EVENT_CONF|NGX_CONF_TAKE1,
@@ -256,11 +262,12 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
     ngx_uint_t  flags;
     ngx_msec_t  timer, delta;
 
-    if (ngx_timer_resolution) {
+	//获取定时时间
+    if (ngx_timer_resolution) {	//指定了定时器精度，由周期信号驱动，设置定时时间为无限长
         timer = NGX_TIMER_INFINITE;
         flags = 0;
 
-    } else {
+    } else {	//定时事件的最小超时时间作为定时时间
         timer = ngx_event_find_timer();
         flags = NGX_UPDATE_TIME;
 
@@ -280,7 +287,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
             ngx_accept_disabled--;
 
         } else {
-            if (ngx_trylock_accept_mutex(cycle) == NGX_ERROR) {
+            if (ngx_trylock_accept_mutex(cycle) == NGX_ERROR) {	//XXX: 发生错误为什么是return，不是继续调用epoll_wait?
                 return;
             }
 
@@ -289,7 +296,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
 				//因为ngx_accept_mutex是全局锁，这样做可以尽量减少该进程抢到锁以后，从accept开始到结束的时间，以便其他进程继续接收新的连接，提高吞吐量。
                 flags |= NGX_POST_EVENTS;	
 
-            } else {
+            } else {	//未抢占到负载均衡锁，设置定时时间不超过ngx_accept_mutex_delay（至多ngx_accept_mutex_delay时间内会再次去尝试获取负载均衡锁）
                 if (timer == NGX_TIMER_INFINITE || timer > ngx_accept_mutex_delay) {
                     timer = ngx_accept_mutex_delay;
                 }
@@ -311,7 +318,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
         ngx_shmtx_unlock(&ngx_accept_mutex);
     }
 
-    if (delta) {
+    if (delta) {	//定时事件精度为毫秒
         ngx_event_expire_timers();
     }
 
@@ -399,10 +406,7 @@ ngx_handle_write_event(ngx_event_t *wev, size_t lowat)
         /* kqueue, epoll */
 
         if (!wev->active && !wev->ready) {
-            if (ngx_add_event(wev, NGX_WRITE_EVENT,
-                              NGX_CLEAR_EVENT | (lowat ? NGX_LOWAT_EVENT : 0))
-                == NGX_ERROR)
-            {
+            if (ngx_add_event(wev, NGX_WRITE_EVENT, NGX_CLEAR_EVENT | (lowat ? NGX_LOWAT_EVENT : 0)) == NGX_ERROR) {
                 return NGX_ERROR;
             }
         }
@@ -414,9 +418,7 @@ ngx_handle_write_event(ngx_event_t *wev, size_t lowat)
         /* select, poll, /dev/poll */
 
         if (!wev->active && !wev->ready) {
-            if (ngx_add_event(wev, NGX_WRITE_EVENT, NGX_LEVEL_EVENT)
-                == NGX_ERROR)
-            {
+            if (ngx_add_event(wev, NGX_WRITE_EVENT, NGX_LEVEL_EVENT) == NGX_ERROR) {
                 return NGX_ERROR;
             }
 
@@ -424,9 +426,7 @@ ngx_handle_write_event(ngx_event_t *wev, size_t lowat)
         }
 
         if (wev->active && wev->ready) {
-            if (ngx_del_event(wev, NGX_WRITE_EVENT, NGX_LEVEL_EVENT)
-                == NGX_ERROR)
-            {
+            if (ngx_del_event(wev, NGX_WRITE_EVENT, NGX_LEVEL_EVENT) == NGX_ERROR) {
                 return NGX_ERROR;
             }
 
@@ -755,7 +755,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
     wev = cycle->write_events;
     for (i = 0; i < cycle->connection_n; i++) {
-        wev[i].closed = 1;	//XXX：为什么不设置 wev[i].instance = 1;
+        wev[i].closed = 1;	//XXX：为什么不设置 wev[i].instance = 1; ???
     }
 
     i = cycle->connection_n;
@@ -807,7 +807,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 #endif
 
         if (!(ngx_event_flags & NGX_USE_IOCP_EVENT)) {
-            if (ls[i].previous) {
+            if (ls[i].previous) {	
 
                 /*
                  * delete the old accept events that were bound to
@@ -924,12 +924,8 @@ ngx_send_lowat(ngx_connection_t *c, size_t lowat)
 
     sndlowat = (int) lowat;
 
-    if (setsockopt(c->fd, SOL_SOCKET, SO_SNDLOWAT,
-                   (const void *) &sndlowat, sizeof(int))
-        == -1)
-    {
-        ngx_connection_error(c, ngx_socket_errno,
-                             "setsockopt(SO_SNDLOWAT) failed");
+    if (setsockopt(c->fd, SOL_SOCKET, SO_SNDLOWAT, (const void *) &sndlowat, sizeof(int)) == -1) {
+        ngx_connection_error(c, ngx_socket_errno, "setsockopt(SO_SNDLOWAT) failed");
         return NGX_ERROR;
     }
 

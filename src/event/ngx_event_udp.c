@@ -79,8 +79,7 @@ ngx_event_recvmsg(ngx_event_t *ev)
     ls = lc->listening;
     ev->ready = 0;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_EVENT, ev->log, 0,
-                   "recvmsg on %V, ready: %d", &ls->addr_text, ev->available);
+    ngx_log_debug2(NGX_LOG_DEBUG_EVENT, ev->log, 0, "recvmsg on %V, ready: %d", &ls->addr_text, ev->available);
 
     do {
         ngx_memzero(&msg, sizeof(struct msghdr));
@@ -120,8 +119,7 @@ ngx_event_recvmsg(ngx_event_t *ev)
             err = ngx_socket_errno;
 
             if (err == NGX_EAGAIN) {
-                ngx_log_debug0(NGX_LOG_DEBUG_EVENT, ev->log, err,
-                               "recvmsg() not ready");
+                ngx_log_debug0(NGX_LOG_DEBUG_EVENT, ev->log, err, "recvmsg() not ready");
                 return;
             }
 
@@ -132,8 +130,7 @@ ngx_event_recvmsg(ngx_event_t *ev)
 
 #if (NGX_HAVE_MSGHDR_MSG_CONTROL)
         if (msg.msg_flags & (MSG_TRUNC|MSG_CTRUNC)) {
-            ngx_log_error(NGX_LOG_ALERT, ev->log, 0,
-                          "recvmsg() truncated data");
+            ngx_log_error(NGX_LOG_ALERT, ev->log, 0, "recvmsg() truncated data");
             continue;
         }
 #endif
@@ -168,10 +165,7 @@ ngx_event_recvmsg(ngx_event_t *ev)
             ngx_memcpy(&lsa, local_sockaddr, local_socklen);
             local_sockaddr = &lsa.sockaddr;
 
-            for (cmsg = CMSG_FIRSTHDR(&msg);
-                 cmsg != NULL;
-                 cmsg = CMSG_NXTHDR(&msg, cmsg))
-            {
+            for (cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
 
 #if (NGX_HAVE_IP_RECVDSTADDR)
 
@@ -574,11 +568,8 @@ ngx_lookup_udp_connection(ngx_listening_t *ls, struct sockaddr *sockaddr,
     if (sockaddr->sa_family == AF_UNIX) {
         struct sockaddr_un *saun = (struct sockaddr_un *) sockaddr;
 
-        if (socklen <= (socklen_t) offsetof(struct sockaddr_un, sun_path)
-            || saun->sun_path[0] == '\0')
-        {
-            ngx_log_debug0(NGX_LOG_DEBUG_EVENT, ngx_cycle->log, 0,
-                           "unbound unix socket");
+        if (socklen <= (socklen_t) offsetof(struct sockaddr_un, sun_path) || saun->sun_path[0] == '\0') {
+            ngx_log_debug0(NGX_LOG_DEBUG_EVENT, ngx_cycle->log, 0, "unbound unix socket");
             return NULL;
         }
     }

@@ -3872,8 +3872,7 @@ ngx_http_upstream_process_upstream(ngx_http_request_t *r,
 
 
 static void
-ngx_http_upstream_process_request(ngx_http_request_t *r,
-    ngx_http_upstream_t *u)
+ngx_http_upstream_process_request(ngx_http_request_t *r, ngx_http_upstream_t *u)
 {
     ngx_temp_file_t   *tf;
     ngx_event_pipe_t  *p;
@@ -3949,19 +3948,15 @@ ngx_http_upstream_process_request(ngx_http_request_t *r,
 #endif
 
         if (p->upstream_done || p->upstream_eof || p->upstream_error) {
-            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                           "http upstream exit: %p", p->out);
+            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http upstream exit: %p", p->out);
 
-            if (p->upstream_done
-                || (p->upstream_eof && p->length == -1))
-            {
+            if (p->upstream_done || (p->upstream_eof && p->length == -1)) {
                 ngx_http_upstream_finalize_request(r, u, 0);
                 return;
             }
 
             if (p->upstream_eof) {
-                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                              "upstream prematurely closed connection");
+                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "upstream prematurely closed connection");
             }
 
             ngx_http_upstream_finalize_request(r, u, NGX_HTTP_BAD_GATEWAY);
@@ -3970,8 +3965,7 @@ ngx_http_upstream_process_request(ngx_http_request_t *r,
     }
 
     if (p->downstream_error) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "http upstream downstream error");
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http upstream downstream error");
 
         if (!u->cacheable && !u->store && u->peer.connection) {
             ngx_http_upstream_finalize_request(r, u, NGX_ERROR);

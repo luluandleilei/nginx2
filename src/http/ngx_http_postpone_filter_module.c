@@ -10,10 +10,8 @@
 #include <ngx_http.h>
 
 
-static ngx_int_t ngx_http_postpone_filter_add(ngx_http_request_t *r,
-    ngx_chain_t *in);
-static ngx_int_t ngx_http_postpone_filter_in_memory(ngx_http_request_t *r,
-    ngx_chain_t *in);
+static ngx_int_t ngx_http_postpone_filter_add(ngx_http_request_t *r, ngx_chain_t *in);
+static ngx_int_t ngx_http_postpone_filter_in_memory(ngx_http_request_t *r, ngx_chain_t *in);
 static ngx_int_t ngx_http_postpone_filter_init(ngx_conf_t *cf);
 
 
@@ -189,8 +187,7 @@ ngx_http_postpone_filter_in_memory(ngx_http_request_t *r, ngx_chain_t *in)
 
     c = r->connection;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "http postpone filter in memory");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0, "http postpone filter in memory");
 
     if (r->out == NULL) {
         clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
@@ -199,8 +196,7 @@ ngx_http_postpone_filter_in_memory(ngx_http_request_t *r, ngx_chain_t *in)
             len = r->headers_out.content_length_n;
 
             if (len > clcf->subrequest_output_buffer_size) {
-                ngx_log_error(NGX_LOG_ERR, c->log, 0,
-                              "too big subrequest response: %uz", len);
+                ngx_log_error(NGX_LOG_ERR, c->log, 0, "too big subrequest response: %uz", len);
                 return NGX_ERROR;
             }
 

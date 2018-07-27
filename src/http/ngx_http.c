@@ -47,8 +47,7 @@ static ngx_int_t ngx_http_init_listening(ngx_conf_t *cf, ngx_http_conf_port_t *p
 static ngx_listening_t *ngx_http_add_listening(ngx_conf_t *cf, ngx_http_conf_addr_t *addr);
 static ngx_int_t ngx_http_add_addrs(ngx_conf_t *cf, ngx_http_port_t *hport, ngx_http_conf_addr_t *addr);
 #if (NGX_HAVE_INET6)
-static ngx_int_t ngx_http_add_addrs6(ngx_conf_t *cf, ngx_http_port_t *hport,
-    ngx_http_conf_addr_t *addr);
+static ngx_int_t ngx_http_add_addrs6(ngx_conf_t *cf, ngx_http_port_t *hport, ngx_http_conf_addr_t *addr);
 #endif
 
 ngx_uint_t   ngx_http_max_module;	//HTTTP模块个数
@@ -1220,9 +1219,7 @@ ngx_http_add_address(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf, ngx_http_co
         }
     }
 
-#if (NGX_HTTP_V2 && NGX_HTTP_SSL                                              \
-     && !defined TLSEXT_TYPE_application_layer_protocol_negotiation           \
-     && !defined TLSEXT_TYPE_next_proto_neg)
+#if (NGX_HTTP_V2 && NGX_HTTP_SSL && !defined TLSEXT_TYPE_application_layer_protocol_negotiation && !defined TLSEXT_TYPE_next_proto_neg)
 
     if (lsopt->http2 && lsopt->ssl) {
         ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "nginx was built with OpenSSL that lacks ALPN "
@@ -1572,17 +1569,17 @@ ngx_http_init_listening(ngx_conf_t *cf, ngx_http_conf_port_t *port)
         switch (ls->sockaddr->sa_family) {
 
 #if (NGX_HAVE_INET6)
-        case AF_INET6:
-            if (ngx_http_add_addrs6(cf, hport, addr) != NGX_OK) {
-                return NGX_ERROR;
-            }
-            break;
+	        case AF_INET6:
+	            if (ngx_http_add_addrs6(cf, hport, addr) != NGX_OK) {
+	                return NGX_ERROR;
+	            }
+	            break;
 #endif
-        default: /* AF_INET */
-            if (ngx_http_add_addrs(cf, hport, addr) != NGX_OK) {
-                return NGX_ERROR;
-            }
-            break;
+	        default: /* AF_INET */
+	            if (ngx_http_add_addrs(cf, hport, addr) != NGX_OK) {
+	                return NGX_ERROR;
+	            }
+	            break;
         }
 
         if (ngx_clone_listening(cf, ls) != NGX_OK) {

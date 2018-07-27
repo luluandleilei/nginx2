@@ -48,26 +48,26 @@ struct ngx_listening_s {
     /* should be here because of the deferred accept */
     ngx_msec_t          post_accept_timeout;
 
-    ngx_listening_t    *previous;
+    ngx_listening_t    *previous;	//记录该listen对象继承的listen对象，用于删除侦听套接字的先前事件(继承的listen对象)，仅在单进程模式下有效
     ngx_connection_t   *connection;	//XXX:监听套接字对应的connection对象
 
-    ngx_rbtree_t        rbtree;		//
+    ngx_rbtree_t        rbtree;		//XXX: UDP?
     ngx_rbtree_node_t   sentinel;
 
     ngx_uint_t          worker;		//该listen对象所属于的worker进程的编号
 
-    unsigned            open:1;
-    unsigned            remain:1;
+    unsigned            open:1;		//XXX:表示该套接字主动打开的，而不是继承的，在初始化新的cycle时需要调用close释放掉，不是继承的不能close掉，将会回滚还原时使用
+    unsigned            remain:1;	//XXX:保留该对象？记录该listen对象是否被新的cycle复用，复用则保留
     unsigned            ignore:1;	//为1表示跳过设置当前ngx_listening_t结构体中的套接字，为0时正常初始化套接字
 
     unsigned            bound:1;       /* already bound */
     unsigned            inherited:1;   /* inherited from previous process */
     unsigned            nonblocking_accept:1;
-    unsigned            listen:1;		//是否为1表示当前结构体对应的套接字已经监听
+    unsigned            listen:1;		//表示当前结构体对应的套接字已经监听
     unsigned            nonblocking:1;
     unsigned            shared:1;    /* shared between threads or processes */
     unsigned            addr_ntop:1;
-    unsigned            wildcard:1;
+    unsigned            wildcard:1;	//XXX： 表示通配地址？
 
 #if (NGX_HAVE_INET6)
     unsigned            ipv6only:1;
@@ -157,12 +157,16 @@ struct ngx_connection_s {
     socklen_t           socklen;	//sockaddr结构体的长度		
     ngx_str_t           addr_text;	//连接客户端字符串形式的ip地址
 
-	//proxy_protocol_addr, proxy_protocol_port - PROXY protocol client address and port, if the PROXY protocol is enabled for the connection.
+	//proxy_protocol_addr, proxy_protocol_port - PROXY protocol client address and port, 
+	//if the PROXY protocol is enabled for the connection.
     ngx_str_t           proxy_protocol_addr;
     in_port_t           proxy_protocol_port;
 
 #if (NGX_SSL || NGX_COMPAT)
-	//An nginx connection can transparently encapsulate the SSL layer. In this case the connection's ssl field holds a pointer to an ngx_ssl_connection_t structure, keeping all SSL-related data for the connection, including SSL_CTX and SSL. The recv, send, recv_chain, and send_chain handlers are set to SSL-enabled functions as well.
+	//An nginx connection can transparently encapsulate the SSL layer. 
+	//In this case the connection's ssl field holds a pointer to an ngx_ssl_connection_t structure, 
+	//keeping all SSL-related data for the connection, including SSL_CTX and SSL. 
+	//The recv, send, recv_chain, and send_chain handlers are set to SSL-enabled functions as well.
     ngx_ssl_connection_t  *ssl;	//SSL context for the connection.
 #endif
 
@@ -197,12 +201,16 @@ struct ngx_connection_s {
     unsigned            destroyed:1;	//标志位，为 1时表示连接已经销毁。这里的连接指的是TCP连接，而不是ngx_connection_t结构体。 //当destroyed为 1时，结构体仍然存在，但其对应的套接字、内存池等已经不可用
 
     unsigned            idle:1;		//标志位，为 1时表示连接处于空闲状态，如keepalive请求中两次请求之间的状态
-    unsigned            reusable:1;	//Flag indicating the connection is in a state that makes it eligible for reuse.//标志位，为 1时表示连接可重用，它与上面的queue字段是对应使用的
-    unsigned            close:1;	//Flag indicating that the connection is being reused and needs to be closed. //标志位，为 1时表示连接关闭
+    //Flag indicating the connection is in a state that makes it eligible for reuse.
+    unsigned            reusable:1;	//标志位，为 1时表示连接可重用，它与上面的queue字段是对应使用的
+    //Flag indicating that the connection is being reused and needs to be closed.
+    unsigned            close:1;	 //标志位，为 1时表示连接关闭
     unsigned            shared:1;	
 
     unsigned            sendfile:1;		//标志位，为 1时表示正将文件中的数据发往连接的另一端
-    unsigned            sndlowat:1;		//标志位，为 1时表示只有在连接套接字对应的发送缓冲区必须满足最低设置的大小阈值时，事件驱动模块才会分发该事件。 //与ngx_handle_write_event函数中的lowat参数是对应的。是否设置该连接的发送低水位标志，若设置过将不再重复设置
+    //标志位，为 1时表示只有在连接套接字对应的发送缓冲区必须满足最低设置的大小阈值时，事件驱动模块才会分发该事件。 
+    //与ngx_handle_write_event函数中的lowat参数是对应的。是否设置该连接的发送低水位标志，若设置过将不再重复设置
+    unsigned            sndlowat:1;		
     unsigned            tcp_nodelay:2;	/* ngx_connection_tcp_nodelay_e */	 //标志位，表示如何使用TCP的nodelay特性。 它的取值范围是ngx_connection_tcp_nodelay_e枚举类型
     unsigned            tcp_nopush:2;	/* ngx_connection_tcp_nopush_e */ //标志位，表示如何使用TCP的nopush特性。 它的取值范围是ngx_connection_tcp_nopush_e枚举类型
 

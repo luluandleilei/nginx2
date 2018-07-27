@@ -3107,7 +3107,7 @@ ngx_http_subrequest(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *args,
         return NGX_ERROR;
     }
 
-    if (r->subrequest_in_memory) {
+    if (r->subrequest_in_memory) {	//XXX: ???
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "nested in-memory subrequest \"%V\"", uri);
         return NGX_ERROR;
     }
@@ -3181,7 +3181,7 @@ ngx_http_subrequest(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *args,
     sr->parent = r;
     sr->post_subrequest = ps;
     sr->read_event_handler = ngx_http_request_empty_handler;	//读事件handler赋值为不做任何事的函数，因为子请求不用再读数据或者检查连接状态；
-    sr->write_event_handler = ngx_http_handler;	//写事件handler为ngx_http_handler，它会重走phase 
+    sr->write_event_handler = ngx_http_handler;				//写事件handler为ngx_http_handler，它会重走phase 
 
     sr->variables = r->variables;
 
@@ -4876,6 +4876,7 @@ ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 }
 
 
+/* server_name *.example.com .example.com www.example.* */
 static char *
 ngx_http_core_server_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
