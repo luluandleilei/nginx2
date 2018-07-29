@@ -585,7 +585,7 @@ ngx_open_listening_sockets(ngx_cycle_t *cycle)
                 continue;
             }
 
-            ls[i].listen = 1;
+            ls[i].listen = 1;	//XXX:上面已经调用了listen函数，这里是不是应该置0？
 
             ls[i].fd = s;
         }

@@ -56,14 +56,14 @@ struct ngx_listening_s {
 
     ngx_uint_t          worker;		//该listen对象所属于的worker进程的编号
 
-    unsigned            open:1;		//XXX:表示该套接字主动打开的，而不是继承的，在初始化新的cycle时需要调用close释放掉，不是继承的不能close掉，将会回滚还原时使用
-    unsigned            remain:1;	//XXX:保留该对象？记录该listen对象是否被新的cycle复用，复用则保留
-    unsigned            ignore:1;	//为1表示跳过设置当前ngx_listening_t结构体中的套接字，为0时正常初始化套接字
+    unsigned            open:1;		//XXX:表示cycle的listen对象套接字主动打开的，而不是从old_cycle继承的，在初始化新的cycle失败时需要调用close释放掉，继承listen对象不能close掉，将会回滚还原时使用
+    unsigned            remain:1;	//XXX:保留该对象？记录old_cycle的listen对象是否被新的cycle复用，复用则标记保留，在关闭old_cycle的listen对象时不关闭掉
+    unsigned            ignore:1;	//XXX：为1表示跳过设置当前ngx_listening_t结构体中的套接字，为0时正常初始化套接字
 
     unsigned            bound:1;       /* already bound */
     unsigned            inherited:1;   /* inherited from previous process */
     unsigned            nonblocking_accept:1;
-    unsigned            listen:1;		//表示当前结构体对应的套接字已经监听
+    unsigned            listen:1;		//XXX：we should change backlog via listen
     unsigned            nonblocking:1;
     unsigned            shared:1;    /* shared between threads or processes */
     unsigned            addr_ntop:1;
