@@ -557,7 +557,10 @@ ngx_open_listening_sockets(ngx_cycle_t *cycle)
                 continue;
             }
 
-            if (listen(s, ls[i].backlog) == -1) {	//XXX: listen在什么会后会失败？？
+			//XXX: listen在什么会后会失败？？
+			//此处调用listen仅仅是用来检查在某些系统中bind失败会在listen中体现，
+			//在后面ngx_configure_listening_sockets中根据ls[i].listen标识才是真正调用listen
+            if (listen(s, ls[i].backlog) == -1) {	
                 err = ngx_socket_errno;
 
                 /*
@@ -992,6 +995,7 @@ ngx_close_connection(ngx_connection_t *c)
         return;
     }
 
+	/*将连接的定时事件移除*/
     if (c->read->timer_set) {
         ngx_del_timer(c->read);
     }
@@ -1000,6 +1004,7 @@ ngx_close_connection(ngx_connection_t *c)
         ngx_del_timer(c->write);
     }
 
+	/*将连接的监听的读写事件移除*/
     if (!c->shared) {
         if (ngx_del_conn) {
             ngx_del_conn(c, NGX_CLOSE_EVENT);
@@ -1015,6 +1020,7 @@ ngx_close_connection(ngx_connection_t *c)
         }
     }
 
+	//将连接在posted队列中的事件移除
     if (c->read->posted) {
         ngx_delete_posted_event(c->read);
     }
@@ -1026,16 +1032,20 @@ ngx_close_connection(ngx_connection_t *c)
     c->read->closed = 1;
     c->write->closed = 1;
 
-    ngx_reusable_connection(c, 0);	//XXX：如果connection在cycle.reusable_connections_queue中时，将其从该队列中移除
+	//XXX：如果connection在cycle.reusable_connections_queue中时，将其从该队列中移除
+    ngx_reusable_connection(c, 0);	
 
     log_error = c->log_error;
 
+	//将connection对象放到free_connection列表中
     ngx_free_connection(c);
 
+	//XXX:设置连接对象的文件描述符无效
+	//如果该连接对象共享描述符则直接返回，否则关闭对象的文件描述符
     fd = c->fd;
     c->fd = (ngx_socket_t) -1;
 
-    if (c->shared) {
+    if (c->shared) {	//XXX: c->shared是干嘛用的？？？
         return;
     }
 
@@ -1148,8 +1158,7 @@ ngx_close_idle_connections(ngx_cycle_t *cycle)
 
 
 ngx_int_t
-ngx_connection_local_sockaddr(ngx_connection_t *c, ngx_str_t *s,
-    ngx_uint_t port)
+ngx_connection_local_sockaddr(ngx_connection_t *c, ngx_str_t *s, ngx_uint_t port)
 {
     socklen_t             len;
     ngx_uint_t            addr;
@@ -1212,8 +1221,7 @@ ngx_connection_local_sockaddr(ngx_connection_t *c, ngx_str_t *s,
         return NGX_OK;
     }
 
-    s->len = ngx_sock_ntop(c->local_sockaddr, c->local_socklen,
-                           s->data, s->len, port);
+    s->len = ngx_sock_ntop(c->local_sockaddr, c->local_socklen, s->data, s->len, port);
 
     return NGX_OK;
 }

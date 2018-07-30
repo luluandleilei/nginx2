@@ -419,9 +419,7 @@ ngx_http_special_response_handler(ngx_http_request_t *r, ngx_int_t error)
     ngx_http_err_page_t       *err_page;
     ngx_http_core_loc_conf_t  *clcf;
 
-    ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http special response: %i, \"%V?%V\"",
-                   error, &r->uri, &r->args);
+    ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http special response: %i, \"%V?%V\"", error, &r->uri, &r->args);
 
     r->err_status = error;
 
@@ -453,7 +451,7 @@ ngx_http_special_response_handler(ngx_http_request_t *r, ngx_int_t error)
 
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
-    if (!r->error_page && clcf->error_pages && r->uri_changes != 0) {
+    if (!r->error_page && clcf->error_pages && r->uri_changes != 0) { //XXX: clcf->error_pages ???
 
         if (clcf->recursive_error_pages == 0) {
             r->error_page = 1;
@@ -474,11 +472,7 @@ ngx_http_special_response_handler(ngx_http_request_t *r, ngx_int_t error)
         r->keepalive = 0;
     }
 
-    if (clcf->msie_refresh
-        && r->headers_in.msie
-        && (error == NGX_HTTP_MOVED_PERMANENTLY
-            || error == NGX_HTTP_MOVED_TEMPORARILY))
-    {
+    if (clcf->msie_refresh && r->headers_in.msie && (error == NGX_HTTP_MOVED_PERMANENTLY || error == NGX_HTTP_MOVED_TEMPORARILY)) {
         return ngx_http_send_refresh(r);
     }
 
@@ -490,21 +484,15 @@ ngx_http_special_response_handler(ngx_http_request_t *r, ngx_int_t error)
         /* 204 */
         err = 0;
 
-    } else if (error >= NGX_HTTP_MOVED_PERMANENTLY
-               && error < NGX_HTTP_LAST_3XX)
-    {
+    } else if (error >= NGX_HTTP_MOVED_PERMANENTLY && error < NGX_HTTP_LAST_3XX) {
         /* 3XX */
         err = error - NGX_HTTP_MOVED_PERMANENTLY + NGX_HTTP_OFF_3XX;
 
-    } else if (error >= NGX_HTTP_BAD_REQUEST
-               && error < NGX_HTTP_LAST_4XX)
-    {
+    } else if (error >= NGX_HTTP_BAD_REQUEST && error < NGX_HTTP_LAST_4XX) {
         /* 4XX */
         err = error - NGX_HTTP_BAD_REQUEST + NGX_HTTP_OFF_4XX;
 
-    } else if (error >= NGX_HTTP_NGINX_CODES
-               && error < NGX_HTTP_LAST_5XX)
-    {
+    } else if (error >= NGX_HTTP_NGINX_CODES && error < NGX_HTTP_LAST_5XX) {
         /* 49X, 5XX */
         err = error - NGX_HTTP_NGINX_CODES + NGX_HTTP_OFF_5XX;
         switch (error) {

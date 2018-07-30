@@ -67,9 +67,7 @@ ngx_event_acceptex(ngx_event_t *rev)
             return;
         }
 
-        c->addr_text.len = ngx_sock_ntop(c->sockaddr, c->socklen,
-                                         c->addr_text.data,
-                                         ls->addr_text_max_len, 0);
+        c->addr_text.len = ngx_sock_ntop(c->sockaddr, c->socklen, c->addr_text.data, ls->addr_text_max_len, 0);
         if (c->addr_text.len == 0) {
             /* TODO: close socket */
             return;

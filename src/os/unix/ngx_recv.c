@@ -126,7 +126,9 @@ ngx_unix_recv(ngx_connection_t *c, u_char *buf, size_t size)
 
 #endif
 
-            if ((size_t) n < size && !(ngx_event_flags & NGX_USE_GREEDY_EVENT)) {
+			//XXX: 为什么这时要置rev->ready为0 ？？？
+			//当rev->ready被置为0，将不会调用ngx_unix_recv继续读取数据
+            if ((size_t) n < size && !(ngx_event_flags & NGX_USE_GREEDY_EVENT)) {	
                 rev->ready = 0;
             }
 

@@ -825,8 +825,7 @@ ngx_http_test_expect(ngx_http_request_t *r)
         return NGX_OK;
     }
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "send 100 Continue");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "send 100 Continue");
 
     n = r->connection->send(r->connection,
                             (u_char *) "HTTP/1.1 100 Continue" CRLF CRLF,

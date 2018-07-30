@@ -238,6 +238,7 @@ static ngx_command_t  ngx_http_core_commands[] = {
 	 Syntax:	connection_pool_size size;
 	 Default: 	connection_pool_size 256|512;
 	 Context:	http, server
+	 
 	 Allows accurate tuning of per-connection memory allocations. 
 	 This directive has minimal impact on performance and should not generally be used. 
 	 By default, the size is equal to 256 bytes on 32-bit platforms and 512 bytes on 64-bit platforms.
@@ -268,6 +269,7 @@ static ngx_command_t  ngx_http_core_commands[] = {
 	 Syntax:	client_header_timeout time;
 	 Default: 	client_header_timeout 60s;
 	 Context:	http, server
+	 
 	 Defines a timeout for reading client request header. 
 	 If a client does not transmit the entire header within this time, the 408 (Request Time-out) error is returned to the client.
 	*/
@@ -1334,6 +1336,19 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_loc_conf_t, lingering_timeout),
       NULL },
 
+	/*
+	 Syntax:	reset_timedout_connection on | off;
+	 Default: 	reset_timedout_connection off;
+	 Context:	http, server, location
+
+	 Enables or disables resetting timed out connections. 
+	 The reset is performed as follows. 
+	 Before closing a socket, the SO_LINGER option is set on it with a timeout value of 0. 
+	 When the socket is closed, TCP RST is sent to the client, and all memory occupied by this socket is released. 
+	 This helps avoid keeping an already closed socket with filled buffers in a FIN_WAIT1 state for a long time.
+
+	 It should be noted that timed out keep-alive connections are closed normally.
+	*/
     { ngx_string("reset_timedout_connection"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
       ngx_conf_set_flag_slot,
@@ -4547,6 +4562,8 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 }
 
 
+//解析参数填充到ngx_http_listen_opt_t中
+//将ngx_http_listen_opt_t添加到全局。。。。中
 static char *
 ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {

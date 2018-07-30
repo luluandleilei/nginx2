@@ -52,10 +52,10 @@ ngx_atomic_t         *ngx_connection_counter = &connection_counter;
 ngx_atomic_t         *ngx_accept_mutex_ptr;		//XXX：指向负载均衡锁使用的原子变量， 用于标识是否初始化了负载均衡锁
 ngx_shmtx_t           ngx_accept_mutex;			//负载均衡锁
 ngx_uint_t            ngx_use_accept_mutex;	 	//表示是否使用accept_mutex负载均衡锁
-ngx_uint_t            ngx_accept_events;
+ngx_uint_t            ngx_accept_events;		
 ngx_uint_t            ngx_accept_mutex_held;	//表示抢占到负载均衡锁
 ngx_msec_t            ngx_accept_mutex_delay;	//?//负载均衡锁会使有些worker进程在拿不到锁时至多延迟accept_mutex_delay毫秒再重新获取负载均衡锁
-ngx_int_t             ngx_accept_disabled;
+ngx_int_t             ngx_accept_disabled;		//XXX: 负载均衡衡量值？ 控制worker进程是否去竞争accept_mutex锁，
 
 
 #if (NGX_STAT_STUB)
@@ -262,7 +262,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
     ngx_uint_t  flags;
     ngx_msec_t  timer, delta;
 
-	//获取定时时间
+	/* 获取事件驱动机制的等待时间 */
     if (ngx_timer_resolution) {	//指定了定时器精度，由周期信号驱动，设置定时时间为无限长
         timer = NGX_TIMER_INFINITE;
         flags = 0;
@@ -312,7 +312,9 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
 
     ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0, "timer delta: %M", delta);
 
-    ngx_event_process_posted(cycle, &ngx_posted_accept_events);	//ngx_posted_accept_events是放到ngx_accept_mutex锁里面处理的。该队列里面处理的都是accept事件，它会一口气把内核backlog里等待的连接都accept进来，注册到读写事件里。
+	//ngx_posted_accept_events是放到ngx_accept_mutex锁里面处理的。
+	//该队列里面处理的都是accept事件，它会一口气把内核backlog里等待的连接都accept进来，注册到读写事件里。
+    ngx_event_process_posted(cycle, &ngx_posted_accept_events);	
 
     if (ngx_accept_mutex_held) {
         ngx_shmtx_unlock(&ngx_accept_mutex);
@@ -333,7 +335,9 @@ ngx_handle_read_event(ngx_event_t *rev, ngx_uint_t flags)
 
         /* kqueue, epoll */
 
-        if (!rev->active && !rev->ready) {
+		//XXX： 为什么不是仅仅判断rev->active就够了？？？
+		//
+        if (!rev->active && !rev->ready) {	
             if (ngx_add_event(rev, NGX_READ_EVENT, NGX_CLEAR_EVENT) == NGX_ERROR) {
                 return NGX_ERROR;
             }
@@ -679,7 +683,8 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
 #if !(NGX_WIN32)
 
-    if (ngx_timer_resolution && !(ngx_event_flags & NGX_USE_TIMER_EVENT)) {
+	//XXX:事件驱动机制不支持XXX, 若指定了指定了时间精度则使用定时器进行通知更新事件频率
+    if (ngx_timer_resolution && !(ngx_event_flags & NGX_USE_TIMER_EVENT)) {	
         struct sigaction  sa;
         struct itimerval  itv;
 
@@ -702,6 +707,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
         }
     }
 
+	//XXX：事件驱动机制不支持透明数据，则创建描述符表到connection的映射表来关联
     if (ngx_event_flags & NGX_USE_FD_EVENT) {
         struct rlimit  rlmt;
 
@@ -776,7 +782,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
     cycle->free_connection_n = cycle->connection_n;
 
     /* for each listening socket */
-
+	
     ls = cycle->listening.elts;
     for (i = 0; i < cycle->listening.nelts; i++) {
 
@@ -891,7 +897,9 @@ ngx_event_process_init(ngx_cycle_t *cycle)
         }
 
 #endif
-
+		//listen fd是以LT模式注册的，也促成了ngx_event_accept中可以自由控制accept的数量，
+		//accept调用指定次数之后，可以自由放弃accept，而均衡地交给其他进程来accept，
+		//若不是LT，那么一旦该进程自主放弃accept(即没有发生EAGAIN)，其他进程就得不到epoll的通知了。
         if (ngx_add_event(rev, NGX_READ_EVENT, 0) == NGX_ERROR) {
             return NGX_ERROR;
         }

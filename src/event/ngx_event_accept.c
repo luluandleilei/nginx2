@@ -31,7 +31,7 @@ ngx_event_accept(ngx_event_t *ev)
     static ngx_uint_t  use_accept4 = 1;
 #endif
 
-    if (ev->timedout) {
+    if (ev->timedout) {	//XXX:什么时候会添加定时事件？
         if (ngx_enable_accept_events((ngx_cycle_t *) ngx_cycle) != NGX_OK) {
             return;
         }
@@ -47,7 +47,7 @@ ngx_event_accept(ngx_event_t *ev)
 
     lc = ev->data;
     ls = lc->listening;
-    ev->ready = 0;
+    ev->ready = 0;	//XXX: 这里为什么要把ev->ready置为零？？？
 
     ngx_log_debug2(NGX_LOG_DEBUG_EVENT, ev->log, 0, "accept on %V, ready: %d", &ls->addr_text, ev->available);
 
@@ -93,7 +93,7 @@ ngx_event_accept(ngx_event_t *ev)
             ngx_log_error(level, ev->log, err, "accept() failed");
 #endif
 
-            if (err == NGX_ECONNABORTED) {
+            if (err == NGX_ECONNABORTED) {	//XXX: 连接被对端中止(怎么中止的？)
                 if (ngx_event_flags & NGX_USE_KQUEUE_EVENT) {
                     ev->available--;
                 }
@@ -103,12 +103,15 @@ ngx_event_accept(ngx_event_t *ev)
                 }
             }
 
-            if (err == NGX_EMFILE || err == NGX_ENFILE) {
+            if (err == NGX_EMFILE || err == NGX_ENFILE) {	//XXX: 没有足够的文件描述符可用
+            	//移除监听事件
                 if (ngx_disable_accept_events((ngx_cycle_t *) ngx_cycle, 1) != NGX_OK) {
                     return;
                 }
 
-                if (ngx_use_accept_mutex) {
+                if (ngx_use_accept_mutex) {	
+					//在不出错的情况下，会在处理完post_accept队列中的事件是才释放锁
+					//这里提前释放，会有什么影响？post_accept中未处理完的事件会怎么处理？
                     if (ngx_accept_mutex_held) {
                         ngx_shmtx_unlock(&ngx_accept_mutex);
                         ngx_accept_mutex_held = 0;
@@ -124,20 +127,25 @@ ngx_event_accept(ngx_event_t *ev)
             return;
         }
 
+		/* s >= 0 */
+
 #if (NGX_STAT_STUB)
         (void) ngx_atomic_fetch_add(ngx_stat_accepted, 1);
 #endif
 
-        ngx_accept_disabled = ngx_cycle->connection_n / 8 - ngx_cycle->free_connection_n;	//当前进程的空闲连接数小于总(最大)连接数1/8的话，就会被禁止accept一段时间
+		//XXX： 当前进程的空闲连接数小于总(最大)连接数1/8的话，就会被禁止accept一段时间
+        ngx_accept_disabled = ngx_cycle->connection_n / 8 - ngx_cycle->free_connection_n;	
 
         c = ngx_get_connection(s, ev->log);
-
+		
         if (c == NULL) {
             if (ngx_close_socket(s) == -1) {
                 ngx_log_error(NGX_LOG_ALERT, ev->log, ngx_socket_errno, ngx_close_socket_n " failed");
             }
 
-            return;
+			//没有可用的连接对象直接返回，后续的没有accept的连接可以被其他worker进程处理么？
+			//XXX: 为什么没有向NGX_EMFILE错误一样，释放负载均衡锁？
+            return;	
         }
 
         c->type = SOCK_STREAM;
@@ -172,7 +180,7 @@ ngx_event_accept(ngx_event_t *ev)
 
         /* set a blocking mode for iocp and non-blocking mode for others */
 
-        if (ngx_inherited_nonblocking) {
+        if (ngx_inherited_nonblocking) {		//XXX: ngx_inherited_nonblocking是干嘛用的？
             if (ngx_event_flags & NGX_USE_IOCP_EVENT) {
                 if (ngx_blocking(s) == -1) {
                     ngx_log_error(NGX_LOG_ALERT, ev->log, ngx_socket_errno, ngx_blocking_n " failed");
@@ -282,6 +290,9 @@ ngx_event_accept(ngx_event_t *ev)
         }
 #endif
 
+		//将新连接上的读写事件注册到事件监控机制中，若事件监控机制是epoll，不会执行该步骤
+        //因为epoll是在ngx_http_init_connection()中把新连接对应的读事件注册到epoll中 
+        //XXX:为什么要针对epoll进行特殊处理？
         if (ngx_add_conn && (ngx_event_flags & NGX_USE_EPOLL_EVENT) == 0) {
             if (ngx_add_conn(c) == NGX_ERROR) {
                 ngx_close_accepted_connection(c);
@@ -292,13 +303,13 @@ ngx_event_accept(ngx_event_t *ev)
         log->data = NULL;
         log->handler = NULL;
 
-        ls->handler(c);
+        ls->handler(c);	//ngx_http_init_connection()
 
         if (ngx_event_flags & NGX_USE_KQUEUE_EVENT) {
             ev->available--;
         }
 
-    } while (ev->available);
+    } while (ev->available);	//XXX: available为1表示一次尽可能多地接收新连接，循环调用accept()直到取完accept队列中的连接
 }
 
 
@@ -309,7 +320,7 @@ ngx_trylock_accept_mutex(ngx_cycle_t *cycle)
 
         ngx_log_debug0(NGX_LOG_DEBUG_EVENT, cycle->log, 0, "accept mutex locked");
 
-        if (ngx_accept_mutex_held && ngx_accept_events == 0) {
+        if (ngx_accept_mutex_held && ngx_accept_events == 0) {	//XXX: ngx_accept_events是干嘛用的？
             return NGX_OK;
         }
 
@@ -355,6 +366,9 @@ ngx_enable_accept_events(ngx_cycle_t *cycle)
             continue;
         }
 
+		//listen fd是以LT模式注册的，也促成了ngx_event_accept中可以自由控制accept的数量，
+		//accept调用指定次数之后，可以自由放弃accept，而均衡地交给其他进程来accept，
+		//若不是LT，那么一旦该进程自主放弃accept(即没有发生EAGAIN)，其他进程就得不到epoll的通知了。
         if (ngx_add_event(c->read, NGX_READ_EVENT, 0) == NGX_ERROR) {
             return NGX_ERROR;
         }

@@ -56,9 +56,7 @@ ngx_proxy_protocol_read(ngx_connection_t *c, u_char *buf, u_char *last)
     p = buf;
     len = last - buf;
 
-    if (len >= sizeof(ngx_proxy_protocol_header_t)
-        && memcmp(p, signature, sizeof(signature) - 1) == 0)
-    {
+    if (len >= sizeof(ngx_proxy_protocol_header_t) && memcmp(p, signature, sizeof(signature) - 1) == 0) {
         return ngx_proxy_protocol_v2_read(c, buf, last);
     }
 
@@ -70,15 +68,12 @@ ngx_proxy_protocol_read(ngx_connection_t *c, u_char *buf, u_char *last)
     len -= 6;
 
     if (len >= 7 && ngx_strncmp(p, "UNKNOWN", 7) == 0) {
-        ngx_log_debug0(NGX_LOG_DEBUG_CORE, c->log, 0,
-                       "PROXY protocol unknown protocol");
+        ngx_log_debug0(NGX_LOG_DEBUG_CORE, c->log, 0, "PROXY protocol unknown protocol");
         p += 7;
         goto skip;
     }
 
-    if (len < 5 || ngx_strncmp(p, "TCP", 3) != 0
-        || (p[3] != '4' && p[3] != '6') || p[4] != ' ')
-    {
+    if (len < 5 || ngx_strncmp(p, "TCP", 3) != 0 || (p[3] != '4' && p[3] != '6') || p[4] != ' ') {
         goto invalid;
     }
 
@@ -147,9 +142,7 @@ ngx_proxy_protocol_read(ngx_connection_t *c, u_char *buf, u_char *last)
 
     c->proxy_protocol_port = (in_port_t) n;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_CORE, c->log, 0,
-                   "PROXY protocol address: %V %d", &c->proxy_protocol_addr,
-                   c->proxy_protocol_port);
+    ngx_log_debug2(NGX_LOG_DEBUG_CORE, c->log, 0, "PROXY protocol address: %V %d", &c->proxy_protocol_addr, c->proxy_protocol_port);
 
 skip:
 

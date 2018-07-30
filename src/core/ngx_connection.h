@@ -37,15 +37,19 @@ struct ngx_listening_s {
     /* handler of accepted connection */
     ngx_connection_handler_pt   handler;
 
-    void               *servers;  /* array of ngx_http_in_addr_t, for example */
+	/* array of ngx_http_in_addr_t, for example */
+	//XXX：每个ngx_http_in_addr_t记录了对应的ip，默认server,及。。。
+    void               *servers;  
 
     ngx_log_t           log;
     ngx_log_t          *logp;
 
+	//Per-connection memory allocations of default server
     size_t              pool_size;
     /* should be here because of the AcceptEx() preread */
     size_t              post_accept_buffer_size;
     /* should be here because of the deferred accept */
+	//Timeout for reading client request header of default server
     ngx_msec_t          post_accept_timeout;
 
     ngx_listening_t    *previous;	//记录该listen对象继承的listen对象，用于删除侦听套接字的先前事件(继承的listen对象)，仅在单进程模式下有效
@@ -66,7 +70,7 @@ struct ngx_listening_s {
     unsigned            listen:1;		//XXX：we should change backlog via listen
     unsigned            nonblocking:1;
     unsigned            shared:1;    /* shared between threads or processes */
-    unsigned            addr_ntop:1;
+    unsigned            addr_ntop:1;	//XXX:将网络地址转换为字符串形式的地址?
     unsigned            wildcard:1;	//XXX： 表示通配地址？
 
 #if (NGX_HAVE_INET6)
@@ -177,11 +181,16 @@ struct ngx_connection_s {
     struct sockaddr    *local_sockaddr;	//本机的监听端口对应的sockaddr结构体，也就是listening监听对象中的sockaddr成员
     socklen_t           local_socklen;
 
-    ngx_buf_t          *buffer;	//用于接收、缓存客户端发来的字节流，每个事件消费模块可自由决定从连接池中分配多大的空间给该字段。 //例如，在HTTP模块中，它的大小决定于client_header_buffer_size配置项	
+	//用于接收、缓存客户端发来的字节流，每个事件消费模块可自由决定从连接池中分配多大的空间给该字段。 
+	//例如，在HTTP模块中，它的大小决定于client_header_buffer_size配置项
+    ngx_buf_t          *buffer;		
 
-    ngx_queue_t         queue;	//用来将当前连接以双向链表元素的形式添加到ngx_cycle_t核心结构体的reuseable_connections_queue双向链表中，表示可以重用的连接
+	//用来将当前连接以双向链表元素的形式添加到ngx_cycle_t核心结构体的reuseable_connections_queue双向链表中，表示可以重用的连接
+    ngx_queue_t         queue;	
 
-    ngx_atomic_uint_t   number;	//连接使用次数。ngx_connection_t结构体每次建立一条来自客户端的连接，或者用于主动向后端服务器发起连接时(ngx_peer_connection_s也使用它)，number都会加 1
+	//连接使用次数。ngx_connection_t结构体每次建立一条来自客户端的连接，
+	//或者用于主动向后端服务器发起连接时(ngx_peer_connection_s也使用它)，number都会加 1
+    ngx_atomic_uint_t   number;	
 
     ngx_uint_t          requests;	//处理的请求次数
 
@@ -198,7 +207,9 @@ struct ngx_connection_s {
 
     unsigned            timedout:1;		//标志位，为 1时表示连接已超时
     unsigned            error:1;		//标志位，为 1时表示连接处理过程中出现错误
-    unsigned            destroyed:1;	//标志位，为 1时表示连接已经销毁。这里的连接指的是TCP连接，而不是ngx_connection_t结构体。 //当destroyed为 1时，结构体仍然存在，但其对应的套接字、内存池等已经不可用
+    //标志位，为 1时表示连接已经销毁。这里的连接指的是TCP连接，而不是ngx_connection_t结构体。 
+    //当destroyed为 1时，结构体仍然存在，但其对应的套接字、内存池等已经不可用
+    unsigned            destroyed:1;	
 
     unsigned            idle:1;		//标志位，为 1时表示连接处于空闲状态，如keepalive请求中两次请求之间的状态
     //Flag indicating the connection is in a state that makes it eligible for reuse.
@@ -245,8 +256,7 @@ void ngx_configure_listening_sockets(ngx_cycle_t *cycle);
 void ngx_close_listening_sockets(ngx_cycle_t *cycle);
 void ngx_close_connection(ngx_connection_t *c);
 void ngx_close_idle_connections(ngx_cycle_t *cycle);
-ngx_int_t ngx_connection_local_sockaddr(ngx_connection_t *c, ngx_str_t *s,
-    ngx_uint_t port);
+ngx_int_t ngx_connection_local_sockaddr(ngx_connection_t *c, ngx_str_t *s, ngx_uint_t port);
 ngx_int_t ngx_tcp_nodelay(ngx_connection_t *c);
 ngx_int_t ngx_connection_error(ngx_connection_t *c, ngx_err_t err, char *text);
 

@@ -32,10 +32,16 @@ struct ngx_event_s {
 
     unsigned         write:1;	//Flag indicating a write event. Absence of the flag indicates a read event.
 
-    unsigned         accept:1;	//为1时表示为此事件可以建立新的连接。通常情况下，在ngx_cycle_t中的listening动态数组中，每一个监听对象ngx_listening_t对应的读事件中的accept标志位才会是1 //指明该事件属于监听套接字
+	//(1)为1时表示为此事件可以建立新的连接。
+	//通常情况下，在ngx_cycle_t中的listening动态数组中，每一个监听对象ngx_listening_t对应的读事件中的accept标志位才会是1 
+	//(2)指明该事件属于监听套接字
+    unsigned         accept:1;	
 
     /* used to detect the stale events in kqueue and epoll */
-    unsigned         instance:1;	//用于区分当前事件是否是过期的， 它仅仅是给事件驱动模块使用的， 而事件消费模块可不用关心。 //为什么需要这个标志位呢？当开始处理一批事件时，处理前面的事件可能会关闭一些连接，而这些连接有可能 //影响这批事件中还未处理到的后面的事件。这时，可通过instance标志位来避免处理后面的已经过期的事件。
+	//用于区分当前事件是否是过期的， 它仅仅是给事件驱动模块使用的， 而事件消费模块可不用关心。 
+	//为什么需要这个标志位呢？当开始处理一批事件时，处理前面的事件可能会关闭一些连接，而这些连接有可能 
+	//影响这批事件中还未处理到的后面的事件。这时，可通过instance标志位来避免处理后面的已经过期的事件。
+    unsigned         instance:1;	
 
     /*
      * the event was passed or would be passed to a kernel;
@@ -45,7 +51,8 @@ struct ngx_event_s {
     //normally from notification mechanisms like epoll, kqueue, poll.
     unsigned         active:1;	
 
-    unsigned         disabled:1;	//标志位，为1时表示禁用事件，仅在kqueue或者rtsig事件驱动模块中有效，而对于epoll事件驱动模块则无意义
+	//标志位，为1时表示禁用事件，仅在kqueue或者rtsig事件驱动模块中有效，而对于epoll事件驱动模块则无意义
+    unsigned         disabled:1;	
 
     /* the ready event; in aio mode 0 means that no operation can be posted */
 	//Flag indicating that the event has received an I/O notification.
@@ -78,9 +85,9 @@ struct ngx_event_s {
 
 	//Flag indicating that the event is posted to a queue.
     unsigned         posted:1;	 
-
-    unsigned         closed:1;	//标志位，为1时表示当前事件已经关闭，epoll模块没有使用它
-
+	
+	//标志位，为1时表示当前事件已经关闭，epoll模块没有使用它
+    unsigned         closed:1;	
     /* to test on worker exit */
     unsigned         channel:1;		//表明这是channel描述符对应的事件
     unsigned         resolver:1;	//
@@ -369,8 +376,7 @@ extern ngx_uint_t            ngx_use_epoll_rdhup;
 #define NGX_DISABLE_EVENT  EV_DISABLE
 
 
-#elif (NGX_HAVE_DEVPOLL && !(NGX_TEST_BUILD_DEVPOLL)) \
-      || (NGX_HAVE_EVENTPORT && !(NGX_TEST_BUILD_EVENTPORT))
+#elif (NGX_HAVE_DEVPOLL && !(NGX_TEST_BUILD_DEVPOLL)) || (NGX_HAVE_EVENTPORT && !(NGX_TEST_BUILD_EVENTPORT))
 
 #define NGX_READ_EVENT     POLLIN
 #define NGX_WRITE_EVENT    POLLOUT
@@ -385,7 +391,7 @@ extern ngx_uint_t            ngx_use_epoll_rdhup;
 #define NGX_WRITE_EVENT    EPOLLOUT
 
 #define NGX_LEVEL_EVENT    0
-#define NGX_CLEAR_EVENT    EPOLLET
+#define NGX_CLEAR_EVENT    EPOLLET		//XXX： 边沿触发
 #define NGX_ONESHOT_EVENT  0x70000000
 #if 0
 #define NGX_ONESHOT_EVENT  EPOLLONESHOT

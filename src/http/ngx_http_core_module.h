@@ -70,7 +70,7 @@ typedef struct {
 
     unsigned                   set:1;					//设置了套接字相关的选项
     unsigned                   default_server:1;
-    unsigned                   bind:1;
+    unsigned                   bind:1;					//XXX:该ip，port需要绑定(指定了bind选项或者指定了套接字选项)
     unsigned                   wildcard:1;				//XXX: wildcard address ??
     unsigned                   ssl:1;
     unsigned                   http2:1;	
@@ -215,17 +215,23 @@ typedef struct {
 
     ngx_str_t                   server_name;	//当前server块的虚拟主机名，如果存在的话，则会与HTTP请求中的Host头部做匹配，匹配上后由当前ngx_http_core_srv_conf_t处理请求
 
-    size_t                      connection_pool_size;	//Allows accurate tuning of per-connection memory allocations.
-    size_t                      request_pool_size;		//Allows accurate tuning of per-request memory allocations. 
-    size_t                      client_header_buffer_size;		//Sets buffer size for reading client request header. 
+	//Per-connection memory allocations.
+    size_t                      connection_pool_size;	
+	//Per-request memory allocations.
+    size_t                      request_pool_size;		
+	//The buffer size for reading client request header.
+    size_t                      client_header_buffer_size;		 
 
-    ngx_bufs_t                  large_client_header_buffers;	//Sets the maximum number and size of buffers used for reading large client request header.
+	//The maximum number and size of buffers used for reading large client request header.
+    ngx_bufs_t                  large_client_header_buffers;	
 
-    ngx_msec_t                  client_header_timeout;	//Defines a timeout for reading client request header. 
+	//Timeout for reading client request header. 
+    ngx_msec_t                  client_header_timeout;	
 
     ngx_flag_t                  ignore_invalid_headers;
     ngx_flag_t                  merge_slashes;
-    ngx_flag_t                  underscores_in_headers;	//Enables or disables the use of underscores in client request header fields.
+	//Enables or disables the use of underscores in client request header fields.
+    ngx_flag_t                  underscores_in_headers;	
 
     unsigned                    listen:1;	//表示当前server配置块下有listen配置项
 #if (NGX_PCRE)
@@ -283,7 +289,7 @@ typedef struct {
 
 #endif
 
-
+//XXX：以数组的形式记录某个port下不同addr的server信息
 typedef struct {
     /* ngx_http_in_addr_t or ngx_http_in6_addr_t */
     void                      *addrs;

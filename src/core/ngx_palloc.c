@@ -289,8 +289,7 @@ ngx_pfree(ngx_pool_t *pool, void *p)
 
     for (l = pool->large; l; l = l->next) {
         if (p == l->alloc) {
-            ngx_log_debug1(NGX_LOG_DEBUG_ALLOC, pool->log, 0,
-                           "free: %p", l->alloc);
+            ngx_log_debug1(NGX_LOG_DEBUG_ALLOC, pool->log, 0, "free: %p", l->alloc);
             ngx_free(l->alloc);
             l->alloc = NULL;
 

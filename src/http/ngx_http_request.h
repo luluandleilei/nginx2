@@ -253,7 +253,7 @@ typedef struct {
 
 typedef struct {
     ngx_list_t                        headers;		//array of ngx_table_elt_t
-    ngx_list_t                        trailers;
+    ngx_list_t                        trailers;		//array of ngx_table_elt_t
 
     ngx_uint_t                        status;
     ngx_str_t                         status_line;
@@ -307,8 +307,8 @@ typedef struct {
 typedef struct ngx_http_addr_conf_s  ngx_http_addr_conf_t;
 
 typedef struct {
-    ngx_http_addr_conf_t             *addr_conf;
-    ngx_http_conf_ctx_t              *conf_ctx;
+    ngx_http_addr_conf_t             *addr_conf;	//the server configuration for the address:port
+    ngx_http_conf_ctx_t              *conf_ctx;		//the default server configuration for the address:port
 
 #if (NGX_HTTP_SSL || NGX_COMPAT)
     ngx_str_t                        *ssl_servername;
@@ -499,7 +499,7 @@ struct ngx_http_request_s {
 
     ngx_uint_t                        err_status;
 
-    ngx_http_connection_t            *http_connection;
+    ngx_http_connection_t            *http_connection;	//XXX：该请求所属的http_connection
     ngx_http_v2_stream_t             *stream;
 
     ngx_http_log_handler_pt           log_handler;

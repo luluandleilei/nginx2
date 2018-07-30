@@ -288,7 +288,7 @@ ngx_http_init_connection(ngx_connection_t *c)
 
     sscf = ngx_http_get_module_srv_conf(hc->conf_ctx, ngx_http_ssl_module);
 
-    if (sscf->enable || hc->addr_conf->ssl) {
+    if (sscf->enable || hc->addr_conf->ssl) {	//XXX:为什么还要判断sscf->enable？？？
         hc->ssl = 1;
         c->log->action = "SSL handshaking";
         rev->handler = ngx_http_ssl_handshake;
@@ -297,13 +297,14 @@ ngx_http_init_connection(ngx_connection_t *c)
 #endif
 
     if (hc->addr_conf->proxy_protocol) {
-        hc->proxy_protocol = 1;
+        hc->proxy_protocol = 1;	//为什么设置此标志？hc->addr_conf->proxy_protocol不就已经体现了么？
         c->log->action = "reading PROXY protocol";
     }
 
     if (rev->ready) {
         /* the deferred accept(), iocp */
 
+		//XXX:这里是不是遗漏了ngx_add_timer(rev, c->listening->post_accept_timeout)调用？？？
         if (ngx_use_accept_mutex) {
             ngx_post_event(rev, &ngx_posted_events);
             return;
@@ -314,7 +315,9 @@ ngx_http_init_connection(ngx_connection_t *c)
     }
 
     ngx_add_timer(rev, c->listening->post_accept_timeout);
-    ngx_reusable_connection(c, 1);
+	//XXX:为什么这时候的connection对象被认为是reusable的？？？
+	//三次握手完成，但没有收到客户端发送的请求被认为是reusable，将其添加到可重用队列中
+    ngx_reusable_connection(c, 1);	
 
     if (ngx_handle_read_event(rev, 0) != NGX_OK) {
         ngx_http_close_connection(c);
@@ -338,7 +341,7 @@ ngx_http_wait_request_handler(ngx_event_t *rev)
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0, "http wait request handler");
 
-    if (rev->timedout) {
+    if (rev->timedout) {	//Timeout for reading client request header 
         ngx_log_error(NGX_LOG_INFO, c->log, NGX_ETIMEDOUT, "client timed out");
         ngx_http_close_connection(c);
         return;
@@ -349,6 +352,7 @@ ngx_http_wait_request_handler(ngx_event_t *rev)
         return;
     }
 
+	//分配缓冲对象(buf)和缓冲对象使用的缓冲区
     hc = c->data;
     cscf = ngx_http_get_module_srv_conf(hc->conf_ctx, ngx_http_core_module);
 
@@ -365,7 +369,7 @@ ngx_http_wait_request_handler(ngx_event_t *rev)
 
         c->buffer = b;
 
-    } else if (b->start == NULL) {
+    } else if (b->start == NULL) {	//XXX：什么时候回发生？参看后面的ngx_pfree函数调用
 
         b->start = ngx_palloc(c->pool, size);
         if (b->start == NULL) {
@@ -378,13 +382,17 @@ ngx_http_wait_request_handler(ngx_event_t *rev)
         b->end = b->last + size;
     }
 
+	//读数据到缓冲区中
     n = c->recv(c, b->last, size);
 
     if (n == NGX_AGAIN) {
 
         if (!rev->timer_set) {
             ngx_add_timer(rev, c->listening->post_accept_timeout);
-            ngx_reusable_connection(c, 1);
+			//XXX: 为什么是放在这个if{}内，而不是放在if{}外面
+			//只需要设置一次，且多次的NGX_AGAIN不会影响该connection在可重用队列中的次序
+			//可使在没有free connection时，优先释放该对象
+            ngx_reusable_connection(c, 1);	
         }
 
         if (ngx_handle_read_event(rev, 0) != NGX_OK) {
@@ -409,15 +417,14 @@ ngx_http_wait_request_handler(ngx_event_t *rev)
     }
 
     if (n == 0) {
-        ngx_log_error(NGX_LOG_INFO, c->log, 0,
-                      "client closed connection");
+        ngx_log_error(NGX_LOG_INFO, c->log, 0, "client closed connection");
         ngx_http_close_connection(c);
         return;
     }
 
     b->last += n;
 
-    if (hc->proxy_protocol) {
+    if (hc->proxy_protocol) {	//TODO: 
         hc->proxy_protocol = 0;
 
         p = ngx_proxy_protocol_read(c, b->pos, b->last);
@@ -440,7 +447,7 @@ ngx_http_wait_request_handler(ngx_event_t *rev)
 
     c->log->action = "reading client request line";
 
-    ngx_reusable_connection(c, 0);
+    ngx_reusable_connection(c, 0);	//接收到客户端发送来的数据，将连接对象从可重用列表中删除
 
     c->data = ngx_http_create_request(c);
     if (c->data == NULL) {
@@ -492,13 +499,13 @@ ngx_http_create_request(ngx_connection_t *c)
     r->srv_conf = hc->conf_ctx->srv_conf;
     r->loc_conf = hc->conf_ctx->loc_conf;
 
-    r->read_event_handler = ngx_http_block_reading;
+    r->read_event_handler = ngx_http_block_reading;	//XXX: 为什么设置这个处理函数？？
 
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
     ngx_set_connection_log(r->connection, clcf->error_log);
 
-    r->header_in = hc->busy ? hc->busy->buf : c->buffer;
+    r->header_in = hc->busy ? hc->busy->buf : c->buffer;	//XXX： keep_alive 中会用到hc->busy???
 
     if (ngx_list_init(&r->headers_out.headers, r->pool, 20, sizeof(ngx_table_elt_t)) != NGX_OK) {
         ngx_destroy_pool(r->pool);
@@ -888,10 +895,9 @@ ngx_http_process_request_line(ngx_event_t *rev)
     c = rev->data;
     r = c->data;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, rev->log, 0,
-                   "http process request line");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, rev->log, 0, "http process request line");
 
-    if (rev->timedout) {
+    if (rev->timedout) {	//Timeout for reading client request header 
         ngx_log_error(NGX_LOG_INFO, c->log, NGX_ETIMEDOUT, "client timed out");
         c->timedout = 1;
         ngx_http_close_request(r, NGX_HTTP_REQUEST_TIME_OUT);
@@ -920,8 +926,7 @@ ngx_http_process_request_line(ngx_event_t *rev)
             r->request_line.data = r->request_start;
             r->request_length = r->header_in->pos - r->request_start;
 
-            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                           "http request line: \"%V\"", &r->request_line);
+            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0, "http request line: \"%V\"", &r->request_line);
 
             r->method_name.len = r->method_end - r->request_start + 1;
             r->method_name.data = r->request_line.data;
@@ -947,8 +952,7 @@ ngx_http_process_request_line(ngx_event_t *rev)
                 rc = ngx_http_validate_host(&host, r->pool, 0);
 
                 if (rc == NGX_DECLINED) {
-                    ngx_log_error(NGX_LOG_INFO, c->log, 0,
-                                  "client sent invalid host in request line");
+                    ngx_log_error(NGX_LOG_INFO, c->log, 0, "client sent invalid host in request line");
                     ngx_http_finalize_request(r, NGX_HTTP_BAD_REQUEST);
                     return;
                 }
@@ -965,12 +969,9 @@ ngx_http_process_request_line(ngx_event_t *rev)
                 r->headers_in.server = host;
             }
 
-            if (r->http_version < NGX_HTTP_VERSION_10) {
+            if (r->http_version < NGX_HTTP_VERSION_10) {	//XXX:低版本协议规则???
 
-                if (r->headers_in.server.len == 0
-                    && ngx_http_set_virtual_server(r, &r->headers_in.server)
-                       == NGX_ERROR)
-                {
+                if (r->headers_in.server.len == 0 && ngx_http_set_virtual_server(r, &r->headers_in.server) == NGX_ERROR) {
                     return;
                 }
 
@@ -979,10 +980,7 @@ ngx_http_process_request_line(ngx_event_t *rev)
             }
 
 
-            if (ngx_list_init(&r->headers_in.headers, r->pool, 20,
-                              sizeof(ngx_table_elt_t))
-                != NGX_OK)
-            {
+            if (ngx_list_init(&r->headers_in.headers, r->pool, 20, sizeof(ngx_table_elt_t)) != NGX_OK) {
                 ngx_http_close_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
                 return;
             }
@@ -999,8 +997,7 @@ ngx_http_process_request_line(ngx_event_t *rev)
 
             /* there was error while a request line parsing */
 
-            ngx_log_error(NGX_LOG_INFO, c->log, 0,
-                          ngx_http_client_errors[rc - NGX_HTTP_CLIENT_ERROR]);
+            ngx_log_error(NGX_LOG_INFO, c->log, 0, ngx_http_client_errors[rc - NGX_HTTP_CLIENT_ERROR]);
 
             if (rc == NGX_HTTP_PARSE_INVALID_VERSION) {
                 ngx_http_finalize_request(r, NGX_HTTP_VERSION_NOT_SUPPORTED);
@@ -1014,12 +1011,13 @@ ngx_http_process_request_line(ngx_event_t *rev)
 
         /* NGX_AGAIN: a request line parsing is still incomplete */
 
-        if (r->header_in->pos == r->header_in->end) {
+        if (r->header_in->pos == r->header_in->end) {	//XXX: 存储请求行的缓冲区大小不够
 
             rv = ngx_http_alloc_large_header_buffer(r, 1);
 
             if (rv == NGX_ERROR) {
-                ngx_http_close_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
+				//XXX: 这里为什么不是调用ngx_http_finalize_request给客户端汇报错误信息 ？？？
+                ngx_http_close_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);	
                 return;
             }
 
@@ -1027,8 +1025,7 @@ ngx_http_process_request_line(ngx_event_t *rev)
                 r->request_line.len = r->header_in->end - r->request_start;
                 r->request_line.data = r->request_start;
 
-                ngx_log_error(NGX_LOG_INFO, c->log, 0,
-                              "client sent too long URI");
+                ngx_log_error(NGX_LOG_INFO, c->log, 0, "client sent too long URI");
                 ngx_http_finalize_request(r, NGX_HTTP_REQUEST_URI_TOO_LARGE);
                 return;
             }
@@ -1350,13 +1347,12 @@ ngx_http_read_request_header(ngx_http_request_t *r)
 
     n = r->header_in->last - r->header_in->pos;
 
-    if (n > 0) {
+    if (n > 0) {	//XXX:缓冲区中有数据，直接返回
         return n;
     }
 
     if (rev->ready) {
-        n = c->recv(c, r->header_in->last,
-                    r->header_in->end - r->header_in->last);
+        n = c->recv(c, r->header_in->last, r->header_in->end - r->header_in->last);
     } else {
         n = NGX_AGAIN;
     }
@@ -1368,7 +1364,8 @@ ngx_http_read_request_header(ngx_http_request_t *r)
         }
 
         if (ngx_handle_read_event(rev, 0) != NGX_OK) {
-            ngx_http_close_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
+			//XXX: 为什么不是调用ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR) ???
+            ngx_http_close_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);	
             return NGX_ERROR;
         }
 
@@ -1376,15 +1373,14 @@ ngx_http_read_request_header(ngx_http_request_t *r)
     }
 
     if (n == 0) {
-        ngx_log_error(NGX_LOG_INFO, c->log, 0,
-                      "client prematurely closed connection");
+        ngx_log_error(NGX_LOG_INFO, c->log, 0, "client prematurely closed connection");
     }
 
     if (n == 0 || n == NGX_ERROR) {
         c->error = 1;
         c->log->action = "reading client request headers";
 
-        ngx_http_finalize_request(r, NGX_HTTP_BAD_REQUEST);
+        ngx_http_finalize_request(r, NGX_HTTP_BAD_REQUEST);	//XXX: n == 0 时应该不会有数据发送给客户端？？？
         return NGX_ERROR;
     }
 
@@ -1395,8 +1391,7 @@ ngx_http_read_request_header(ngx_http_request_t *r)
 
 
 static ngx_int_t
-ngx_http_alloc_large_header_buffer(ngx_http_request_t *r,
-    ngx_uint_t request_line)
+ngx_http_alloc_large_header_buffer(ngx_http_request_t *r, ngx_uint_t request_line)
 {
     u_char                    *old, *new;
     ngx_buf_t                 *b;
@@ -1404,8 +1399,7 @@ ngx_http_alloc_large_header_buffer(ngx_http_request_t *r,
     ngx_http_connection_t     *hc;
     ngx_http_core_srv_conf_t  *cscf;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http alloc large header buffer");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http alloc large header buffer");
 
     if (request_line && r->state == 0) {
 
@@ -1421,10 +1415,8 @@ ngx_http_alloc_large_header_buffer(ngx_http_request_t *r,
 
     cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
 
-    if (r->state != 0
-        && (size_t) (r->header_in->pos - old)
-                                     >= cscf->large_client_header_buffers.size)
-    {
+	//当前缓冲区大小已经超过了最大大小
+    if (r->state != 0 && (size_t) (r->header_in->pos - old) >= cscf->large_client_header_buffers.size) {
         return NGX_DECLINED;
     }
 
@@ -1436,14 +1428,11 @@ ngx_http_alloc_large_header_buffer(ngx_http_request_t *r,
 
         b = cl->buf;
 
-        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "http large header free: %p %uz",
-                       b->pos, b->end - b->last);
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http large header free: %p %uz", b->pos, b->end - b->last);
 
     } else if (hc->nbusy < cscf->large_client_header_buffers.num) {
 
-        b = ngx_create_temp_buf(r->connection->pool,
-                                cscf->large_client_header_buffers.size);
+        b = ngx_create_temp_buf(r->connection->pool, cscf->large_client_header_buffers.size);
         if (b == NULL) {
             return NGX_ERROR;
         }
@@ -1455,9 +1444,7 @@ ngx_http_alloc_large_header_buffer(ngx_http_request_t *r,
 
         cl->buf = b;
 
-        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "http large header alloc: %p %uz",
-                       b->pos, b->end - b->last);
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http large header alloc: %p %uz", b->pos, b->end - b->last);
 
     } else {
         return NGX_DECLINED;
@@ -1479,8 +1466,7 @@ ngx_http_alloc_large_header_buffer(ngx_http_request_t *r,
         return NGX_OK;
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http large header copy: %uz", r->header_in->pos - old);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http large header copy: %uz", r->header_in->pos - old);
 
     new = b->start;
 
@@ -2162,8 +2148,7 @@ ngx_http_request_handler(ngx_event_t *ev)
 
     ngx_http_set_log_request(c->log, r);
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "http run request: \"%V?%V\"", &r->uri, &r->args);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0, "http run request: \"%V?%V\"", &r->uri, &r->args);
 
     if (c->close) {
         r->main->count++;
@@ -2281,10 +2266,8 @@ ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
         rc = r->post_subrequest->handler(r, r->post_subrequest->data, rc);
     }
 
-    if (rc == NGX_ERROR
-        || rc == NGX_HTTP_REQUEST_TIME_OUT
-        || rc == NGX_HTTP_CLIENT_CLOSED_REQUEST
-        || c->error)
+    if (rc == NGX_ERROR || rc == NGX_HTTP_REQUEST_TIME_OUT
+        || rc == NGX_HTTP_CLIENT_CLOSED_REQUEST || c->error)
     {
         if (ngx_http_post_action(r) == NGX_OK) {
             return;
@@ -2300,7 +2283,7 @@ ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
             return;
         }
 
-        if (r == r->main) {
+        if (r == r->main) {	//XXX: 为什么主请求的时候要删除定时器？？？
             if (c->read->timer_set) {
                 ngx_del_timer(c->read);
             }
@@ -2409,9 +2392,7 @@ ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
     }
 
     if (r != c->data) {
-        ngx_log_error(NGX_LOG_ALERT, c->log, 0,
-                      "http finalize non-active request: \"%V?%V\"",
-                      &r->uri, &r->args);
+        ngx_log_error(NGX_LOG_ALERT, c->log, 0, "http finalize non-active request: \"%V?%V\"", &r->uri, &r->args);
         return;
     }
 
@@ -2529,8 +2510,7 @@ ngx_http_finalize_connection(ngx_http_request_t *r)
             ngx_add_timer(r->connection->read, clcf->lingering_timeout);
 
             if (r->lingering_time == 0) {
-                r->lingering_time = ngx_time()
-                                      + (time_t) (clcf->lingering_time / 1000);
+                r->lingering_time = ngx_time() + (time_t) (clcf->lingering_time / 1000);
             }
         }
 
@@ -2554,11 +2534,8 @@ ngx_http_finalize_connection(ngx_http_request_t *r)
         return;
     }
 
-    if (clcf->lingering_close == NGX_HTTP_LINGERING_ALWAYS
-        || (clcf->lingering_close == NGX_HTTP_LINGERING_ON
-            && (r->lingering_close
-                || r->header_in->pos < r->header_in->last
-                || r->connection->read->ready)))
+    if (clcf->lingering_close == NGX_HTTP_LINGERING_ALWAYS || (clcf->lingering_close == NGX_HTTP_LINGERING_ON
+    		&& (r->lingering_close || r->header_in->pos < r->header_in->last || r->connection->read->ready)))
     {
         ngx_http_set_lingering_close(r);
         return;
@@ -2687,14 +2664,11 @@ ngx_http_request_finalizer(ngx_http_request_t *r)
 void
 ngx_http_block_reading(ngx_http_request_t *r)
 {
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http reading blocked");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http reading blocked");
 
     /* aio does not call this handler */
 
-    if ((ngx_event_flags & NGX_USE_LEVEL_EVENT)
-        && r->connection->read->active)
-    {
+    if ((ngx_event_flags & NGX_USE_LEVEL_EVENT) && r->connection->read->active) {
         if (ngx_del_event(r->connection->read, NGX_READ_EVENT, 0) != NGX_OK) {
             ngx_http_close_request(r, 0);
         }
@@ -3144,8 +3118,7 @@ ngx_http_keepalive_handler(ngx_event_t *rev)
     c->log->handler = NULL;
 
     if (n == 0) {
-        ngx_log_error(NGX_LOG_INFO, c->log, ngx_socket_errno,
-                      "client %V closed keepalive connection", &c->addr_text);
+        ngx_log_error(NGX_LOG_INFO, c->log, ngx_socket_errno, "client %V closed keepalive connection", &c->addr_text);
         ngx_http_close_connection(c);
         return;
     }
@@ -3371,8 +3344,7 @@ ngx_http_close_request(ngx_http_request_t *r, ngx_int_t rc)
     r = r->main;
     c = r->connection;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "http request count:%d blk:%d", r->count, r->blocked);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0, "http request count:%d blk:%d", r->count, r->blocked);
 
     if (r->count == 0) {
         ngx_log_error(NGX_LOG_ALERT, c->log, 0, "http request count is zero");
@@ -3410,7 +3382,7 @@ ngx_http_free_request(ngx_http_request_t *r, ngx_int_t rc)
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "http close request");
 
-    if (r->pool == NULL) {
+    if (r->pool == NULL) {	//XXX: 可能发生吗？
         ngx_log_error(NGX_LOG_ALERT, log, 0, "http request already closed");
         return;
     }
@@ -3448,18 +3420,15 @@ ngx_http_free_request(ngx_http_request_t *r, ngx_int_t rc)
 
     log->action = "closing request";
 
-    if (r->connection->timedout) {
+    if (r->connection->timedout) {	//XXX: 与读写事件中的timeout有什么区别？
         clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
-        if (clcf->reset_timedout_connection) {
+        if (clcf->reset_timedout_connection) {	//XXX: 什么意思？？？
             linger.l_onoff = 1;
             linger.l_linger = 0;
 
-            if (setsockopt(r->connection->fd, SOL_SOCKET, SO_LINGER,
-                           (const void *) &linger, sizeof(struct linger)) == -1)
-            {
-                ngx_log_error(NGX_LOG_ALERT, log, ngx_socket_errno,
-                              "setsockopt(SO_LINGER) failed");
+            if (setsockopt(r->connection->fd, SOL_SOCKET, SO_LINGER, (const void *) &linger, sizeof(struct linger)) == -1) {
+                ngx_log_error(NGX_LOG_ALERT, log, ngx_socket_errno, "setsockopt(SO_LINGER) failed");
             }
         }
     }
@@ -3502,6 +3471,7 @@ ngx_http_log_request(ngx_http_request_t *r)
 }
 
 
+//
 void
 ngx_http_close_connection(ngx_connection_t *c)
 {
@@ -3524,7 +3494,7 @@ ngx_http_close_connection(ngx_connection_t *c)
     (void) ngx_atomic_fetch_add(ngx_stat_active, -1);
 #endif
 
-    c->destroyed = 1;
+    c->destroyed = 1;	//XXX：有什么用？
 
     pool = c->pool;
 

@@ -1070,6 +1070,10 @@ inclusive:
 }
 
 
+/*
+ cscf:		该lsopt所在server{}
+ lsopt: 	被添加的lsopt
+*/
 ngx_int_t
 ngx_http_add_listen(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf, ngx_http_listen_opt_t *lsopt)
 {
@@ -1162,6 +1166,7 @@ ngx_http_add_addresses(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf, ngx_http_
         http2 = lsopt->http2 || addr[i].opt.http2;
 #endif
 
+		//XXX:相同prot，addr的listen选项不能都设置了套接字选项
         if (lsopt->set) {
 
             if (addr[i].opt.set) {
@@ -1295,8 +1300,9 @@ ngx_http_optimize_servers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf, ngx_a
     }
 
     port = ports->elts;
-    for (p = 0; p < ports->nelts; p++) {
+    for (p = 0; p < ports->nelts; p++) {	//for each ngx_http_conf_port_t
 
+		//explicit bind ---> implicit bind ---> wildcard address
         ngx_sort(port[p].addrs.elts, (size_t) port[p].addrs.nelts, sizeof(ngx_http_conf_addr_t), ngx_http_cmp_conf_addrs);
 
         /*
@@ -1305,11 +1311,11 @@ ngx_http_optimize_servers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf, ngx_a
          */
 
         addr = port[p].addrs.elts;
-        for (a = 0; a < port[p].addrs.nelts; a++) {
+        for (a = 0; a < port[p].addrs.nelts; a++) {	//for each ngx_http_conf_addr_t
 
-            if (addr[a].servers.nelts > 1
+            if (addr[a].servers.nelts > 1	//同一个port，addr下有多个server{}
 #if (NGX_PCRE)
-                || addr[a].default_server->captures
+                || addr[a].default_server->captures	//XXX: 什么意思？？？
 #endif
                )
             {
@@ -1358,12 +1364,11 @@ ngx_http_server_names(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf, ngx_http_
 
     cscfp = addr->servers.elts;
 
-    for (s = 0; s < addr->servers.nelts; s++) {
+    for (s = 0; s < addr->servers.nelts; s++) { //for each ngx_http_core_srv_conf_t
 
         name = cscfp[s]->server_names.elts;
 
-        for (n = 0; n < cscfp[s]->server_names.nelts; n++) {
-
+        for (n = 0; n < cscfp[s]->server_names.nelts; n++) { //for each ngx_http_server_name_t
 #if (NGX_PCRE)
             if (name[n].regex) {
                 regex++;
@@ -1582,6 +1587,7 @@ ngx_http_init_listening(ngx_conf_t *cf, ngx_http_conf_port_t *port)
 	            break;
         }
 
+		//XXX:
         if (ngx_clone_listening(cf, ls) != NGX_OK) {
             return NGX_ERROR;
         }
@@ -1707,7 +1713,7 @@ ngx_http_add_addrs(ngx_conf_t *cf, ngx_http_port_t *hport, ngx_http_conf_addr_t 
             && addr[i].nregex == 0
 #endif
             )
-        {
+        {	//XXX:可能会出现这种情况么？一个server_name 也不指定？
             continue;
         }
 
@@ -1734,16 +1740,14 @@ ngx_http_add_addrs(ngx_conf_t *cf, ngx_http_port_t *hport, ngx_http_conf_addr_t 
 #if (NGX_HAVE_INET6)
 
 static ngx_int_t
-ngx_http_add_addrs6(ngx_conf_t *cf, ngx_http_port_t *hport,
-    ngx_http_conf_addr_t *addr)
+ngx_http_add_addrs6(ngx_conf_t *cf, ngx_http_port_t *hport, ngx_http_conf_addr_t *addr)
 {
     ngx_uint_t                 i;
     ngx_http_in6_addr_t       *addrs6;
     struct sockaddr_in6       *sin6;
     ngx_http_virtual_names_t  *vn;
 
-    hport->addrs = ngx_pcalloc(cf->pool,
-                               hport->naddrs * sizeof(ngx_http_in6_addr_t));
+    hport->addrs = ngx_pcalloc(cf->pool, hport->naddrs * sizeof(ngx_http_in6_addr_t));
     if (hport->addrs == NULL) {
         return NGX_ERROR;
     }
