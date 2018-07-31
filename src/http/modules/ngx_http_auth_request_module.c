@@ -234,8 +234,7 @@ ngx_http_auth_request_done(ngx_http_request_t *r, void *data, ngx_int_t rc)
 {
     ngx_http_auth_request_ctx_t   *ctx = data;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "auth request done s:%ui", r->headers_out.status);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "auth request done s:%ui", r->headers_out.status);
 
     ctx->done = 1;
     ctx->status = r->headers_out.status;

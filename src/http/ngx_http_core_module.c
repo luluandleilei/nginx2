@@ -36,8 +36,7 @@ static char *ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *ch
 
 static char *ngx_http_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy);
 static char *ngx_http_core_location(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy);
-static ngx_int_t ngx_http_core_regex_location(ngx_conf_t *cf,
-    ngx_http_core_loc_conf_t *clcf, ngx_str_t *regex, ngx_uint_t caseless);
+static ngx_int_t ngx_http_core_regex_location(ngx_conf_t *cf, ngx_http_core_loc_conf_t *clcf, ngx_str_t *regex, ngx_uint_t caseless);
 
 static char *ngx_http_core_types(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
@@ -374,9 +373,10 @@ static ngx_command_t  ngx_http_core_commands[] = {
 
 	/*
 	 Syntax:	location [ = | ~ | ~* | ^~ ] uri { ... }
-	 location @name { ... }
+	 			location @name { ... }
 	 Default:	—
 	 Context:	server, location
+	 
 	 Sets configuration depending on a request URI.
 
 	 The matching is performed against a normalized URI, after decoding the text encoded in the “%XX” form, resolving references to relative path components “.” and “..”, and possible compression of two or more adjacent slashes into a single slash.
@@ -3639,7 +3639,8 @@ ngx_http_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
     cscf = ctx->srv_conf[ngx_http_core_module.ctx_index];
     cscf->ctx = ctx;
 
-
+	/* 将属于当前server块的ngx_http_core_srv_conf_t 添加到servers动态数组中 */
+	
     cmcf = ctx->main_conf[ngx_http_core_module.ctx_index];
 
     cscfp = ngx_array_push(&cmcf->servers);
@@ -3743,6 +3744,7 @@ ngx_http_core_location(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
     clcf = ctx->loc_conf[ngx_http_core_module.ctx_index];
     clcf->loc_conf = ctx->loc_conf;
 
+	//分析location name
     value = cf->args->elts;
 
     if (cf->args->nelts == 3) {
@@ -3868,6 +3870,7 @@ ngx_http_core_location(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
         return NGX_CONF_ERROR;
     }
 
+	//解析当前location下的所有loc级别配置项
     save = *cf;
     cf->ctx = ctx;
     cf->cmd_type = NGX_HTTP_LOC_CONF;
@@ -4906,7 +4909,7 @@ ngx_http_core_server_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     value = cf->args->elts;
 
-    for (i = 1; i < cf->args->nelts; i++) {
+    for (i = 1; i < cf->args->nelts; i++) {	//for each server name
 
         ch = value[i].data[0];
 

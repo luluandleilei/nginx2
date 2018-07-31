@@ -170,6 +170,7 @@ ngx_http_init_connection(ngx_connection_t *c)
     ngx_http_in6_addr_t    *addr6;
 #endif
 
+	//构造并初始化http_connection
     hc = ngx_pcalloc(c->pool, sizeof(ngx_http_connection_t));
     if (hc == NULL) {
         ngx_http_close_connection(c);
@@ -274,7 +275,7 @@ ngx_http_init_connection(ngx_connection_t *c)
 
     rev = c->read;
     rev->handler = ngx_http_wait_request_handler;
-    c->write->handler = ngx_http_empty_handler;
+    c->write->handler = ngx_http_empty_handler;	//XXX:后面没有添加读事件，为什么还要添加读事件处理函数？
 
 #if (NGX_HTTP_V2)
     if (hc->addr_conf->http2) {
@@ -297,14 +298,20 @@ ngx_http_init_connection(ngx_connection_t *c)
 #endif
 
     if (hc->addr_conf->proxy_protocol) {
-        hc->proxy_protocol = 1;	//为什么设置此标志？hc->addr_conf->proxy_protocol不就已经体现了么？
+		//为什么设置此标志？hc->addr_conf->proxy_protocol不就已经体现了么？
+		//hc->addr_conf->proxy_protocol表示的整个配置的状态
+		//hc-proxy_protocol表示的是当前连接的proxy状态，后面读取到proxy头后会将该字段清0
+        hc->proxy_protocol = 1;	
         c->log->action = "reading PROXY protocol";
     }
 
-    if (rev->ready) {
+	//检查是否有数据可读
+    if (rev->ready) {	//有数据可读
         /* the deferred accept(), iocp */
 
 		//XXX:这里是不是遗漏了ngx_add_timer(rev, c->listening->post_accept_timeout)调用？？？
+		//为什么非要在后面读数据到了NGX_AGAIN时候判断event->timer_set再去添加定时器？
+		//为了减少定时器操作吗？
         if (ngx_use_accept_mutex) {
             ngx_post_event(rev, &ngx_posted_events);
             return;
@@ -313,6 +320,7 @@ ngx_http_init_connection(ngx_connection_t *c)
         rev->handler(rev);
         return;
     }
+	//无数据可读
 
 	//将可读事件加入到定时器中以监控接收请求是否超时
     ngx_add_timer(rev, c->listening->post_accept_timeout);
@@ -343,18 +351,18 @@ ngx_http_wait_request_handler(ngx_event_t *rev)
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0, "http wait request handler");
 
-    if (rev->timedout) {	//Timeout for reading client request header 
+    if (rev->timedout) { //Timeout for reading client request header 
         ngx_log_error(NGX_LOG_INFO, c->log, NGX_ETIMEDOUT, "client timed out");
         ngx_http_close_connection(c);
         return;
     }
 
-    if (c->close) {
+    if (c->close) {	//The connection is being reused and needs to be closed.
         ngx_http_close_connection(c);
         return;
     }
 
-	//分配缓冲对象(buf)和缓冲对象使用的缓冲区
+	/*分配缓冲对象(buf)和缓冲对象使用的缓冲区*/
     hc = c->data;
     cscf = ngx_http_get_module_srv_conf(hc->conf_ctx, ngx_http_core_module);
 
@@ -424,6 +432,8 @@ ngx_http_wait_request_handler(ngx_event_t *rev)
         return;
     }
 
+	/* n > 0 */
+	
     b->last += n;
 
     if (hc->proxy_protocol) {	//TODO: 
@@ -442,7 +452,9 @@ ngx_http_wait_request_handler(ngx_event_t *rev)
             c->log->action = "waiting for request";
             b->pos = b->start;
             b->last = b->start;
-            ngx_post_event(rev, &ngx_posted_events);
+			//XXX: 放到posted队列中再次调用recv读取数据，解析，直到recv返回NGX_AGAIN
+			//函数本身没有循环读取数据，通过放入到posted队列实现，循环读取，超棒！
+            ngx_post_event(rev, &ngx_posted_events);	
             return;
         }
     }

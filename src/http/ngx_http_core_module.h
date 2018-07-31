@@ -133,23 +133,57 @@ NGX_HTTP_TRY_FILES_PHASE
 挂载的动作一般是在模块上下文调用的postconfiguration函数中。
 */
 typedef enum {
+	//First phase. The ngx_http_realip_module registers its handler at this phase 
+	//to enable substitution of client addresses before any other module is invoked.
     NGX_HTTP_POST_READ_PHASE = 0,	//读取请求内容阶段 请求头读取完成之后的阶段
 
+	//Phase where rewrite directives defined in a server block (but outside a location block) are processed. 
+	//The ngx_http_rewrite_module installs its handler at this phase.
     NGX_HTTP_SERVER_REWRITE_PHASE,	//Server请求地址重写阶段 Server内请求地址重写阶段
 
+	//Special phase where a location is chosen based on the request URI. 
+	//Before this phase, the default location for the relevant virtual server is assigned to the request, 
+	//and any module requesting a location configuration receives the configuration for the default server location. 
+	//This phase a assigns a new location to the request. 
+	//No additional handlers can be registered at this phase.
     NGX_HTTP_FIND_CONFIG_PHASE,		//配置查找阶段
+    //Same as NGX_HTTP_SERVER_REWRITE_PHASE, but for rewrite rules defined in the location, chosen in the previous phase.
     NGX_HTTP_REWRITE_PHASE,			//Location请求地址重写阶段 Location内请求地址重写阶段
+    //Special phase where the request is redirected to a new location if its URI changed during a rewrite. 
+    //This is implemented by the request going through the NGX_HTTP_FIND_CONFIG_PHASE again. 
+    //No additional handlers can be registered at this phase.
     NGX_HTTP_POST_REWRITE_PHASE,	//请求地址重写提交阶段	请求地址重写完成之后的阶段  
 
+	//A common phase for different types of handlers, not associated with access control. 
+	//The standard nginx modules ngx_http_limit_conn_module and ngx_http_limit_req_module register their handlers at this phase.
     NGX_HTTP_PREACCESS_PHASE,		//访问权限检查准备阶段
 
+	//Phase where it is verified that the client is authorized to make the request. 
+	//Standard nginx modules such as ngx_http_access_module and ngx_http_auth_basic_module register their handlers at this phase. 
+	//By default the client must pass the authorization check of all handlers registered at this phase 
+	//for the request to continue to the next phase. 
+	//The satisfy directive, can be used to permit processing to continue if any of the phase handlers authorizes the client.
     NGX_HTTP_ACCESS_PHASE,			//访问权限检查阶段
+    //Special phase where the 'satisfy any' directive is processed. 
+    //If some access phase handlers denied access and none explicitly allowed it, the request is finalized. 
+    //No additional handlers can be registered at this phase.
     NGX_HTTP_POST_ACCESS_PHASE,		//访问权限检查提交阶段	访问权限检查完成之后的阶段
 
+	//Phase for handlers to be called prior to generating content. 
+	//Standard modules such as ngx_http_try_files_module and ngx_http_mirror_module register their handlers at this phase.
     NGX_HTTP_PRECONTENT_PHASE,		//配置项try_files处理阶段
 
+	//Phase where the response is normally generated. 
+	//Multiple nginx standard modules register their handlers at this phase, including ngx_http_index_module or ngx_http_static_module. 
+	//They are called sequentially until one of them produces the output. 
+	//It's also possible to set content handlers on a per-location basis. 
+	//If the ngx_http_core_module's location configuration has handler set, 
+	//it is called as the content handler and the handlers installed at this phase are ignored.
     NGX_HTTP_CONTENT_PHASE,			//内容产生阶段
 
+	//Phase where request logging is performed. 
+	//Currently, only the ngx_http_log_module registers its handler at this stage for access logging. 
+	//Log phase handlers are called at the very end of request processing, right before freeing the request.
     NGX_HTTP_LOG_PHASE				//日志模块处理阶段
 } ngx_http_phases;
 
@@ -197,12 +231,14 @@ typedef struct {
 
     ngx_hash_keys_arrays_t    *variables_keys;	//缓存各个模块定义的变量(由于nginx的hash需要一次提供所有hash节点来构建hash表)
 
-    ngx_array_t               *ports;	//array of ngx_http_conf_port_t //保存http{}配置块下监听的所有ngx_http_conf_port_t地址
+	//array of ngx_http_conf_port_t //保存http{}配置块下监听的所有ngx_http_conf_port_t端口
+    ngx_array_t               *ports;	
 
     ngx_http_phase_t           phases[NGX_HTTP_LOG_PHASE + 1];
 } ngx_http_core_main_conf_t;
 
 
+//XXX: 表示一个server{}块
 typedef struct {
     /* array of the ngx_http_server_name_t, "server_name" directive */
     ngx_array_t                 server_names;
@@ -213,7 +249,9 @@ typedef struct {
     u_char                     *file_name;	//
     ngx_uint_t                  line;
 
-    ngx_str_t                   server_name;	//当前server块的虚拟主机名，如果存在的话，则会与HTTP请求中的Host头部做匹配，匹配上后由当前ngx_http_core_srv_conf_t处理请求
+	//当前server块的虚拟主机名，如果存在的话，则会与HTTP请求中的Host头部做匹配，
+	//匹配上后由当前ngx_http_core_srv_conf_t处理请求
+    ngx_str_t                   server_name;	
 
 	//Per-connection memory allocations.
     size_t                      connection_pool_size;	
@@ -300,7 +338,7 @@ typedef struct {
 typedef struct {
     ngx_int_t                  family;	  //socket协议族
     in_port_t                  port;	  //监听端口
-    ngx_array_t                addrs;     /* array of ngx_http_conf_addr_t */
+    ngx_array_t                addrs;     /* array of ngx_http_conf_addr_t */	//监听端口对应着的所有ngx_http_conf_addr_t地址
 } ngx_http_conf_port_t;
 
 
@@ -317,7 +355,7 @@ typedef struct {
 #endif
     
     ngx_http_core_srv_conf_t  *default_server;	/* the default server configuration for this address:port */
-    ngx_array_t                servers;  		/* array of ngx_http_core_srv_conf_t */
+	ngx_array_t                servers;  		/* array of ngx_http_core_srv_conf_t */
 } ngx_http_conf_addr_t;
 
 
@@ -329,14 +367,15 @@ typedef struct {
 } ngx_http_err_page_t;
 
 
+//XXX: 表示一个location{}块
 struct ngx_http_core_loc_conf_s {
-    ngx_str_t     name;          /* location name */
+    ngx_str_t     name;         	/* location name */
 
 #if (NGX_PCRE)
-    ngx_http_regex_t  *regex;
+    ngx_http_regex_t  *regex;		//location为正则表达式的编译结果
 #endif
 
-    unsigned      noname:1;   /* "if () {}" block or limit_except */
+    unsigned      noname:1;   		/* "if () {}" block or limit_except */
     unsigned      lmt_excpt:1;
     unsigned      named:1;			//XXX:the named location
 
@@ -355,7 +394,9 @@ struct ngx_http_core_loc_conf_s {
 #endif
 
     /* pointer to the modules' loc_conf */
-    void        **loc_conf;		//指向所属location块内ngx_http_conf_ctx_t结构体中的loc_conf指针数组，它保存着当前location块内所有HTTP模块create_loc_conf方法产生的结构体指针
+	//指向所属location块内ngx_http_conf_ctx_t结构体中的loc_conf指针数组，
+	//它保存着当前location块内所有HTTP模块create_loc_conf方法产生的结构体指针
+    void        **loc_conf;		
 
     uint32_t      limit_except;
     void        **limit_except_loc_conf;
@@ -462,7 +503,10 @@ struct ngx_http_core_loc_conf_s {
     ngx_uint_t    types_hash_max_size;		//Sets the maximum size of the types hash tables.
     ngx_uint_t    types_hash_bucket_size;	//Sets the bucket size for the types hash tables.
 
-    ngx_queue_t  *locations;	//将同一个server块内多个表达location块的ngx_http_core_loc_conf_t结构体以双向链表方式组织起来，该location指针指向ngx_http_location_queue_t结构体	//属于当前块的所有location块通过ngx_http_location_queue_t结构体构成的双向链表
+	//(1)将同一个server块内多个表达location块的ngx_http_core_loc_conf_t结构体以双向链表方式组织起来，
+	//该location指针指向ngx_http_location_queue_t结构体	
+	//(2)属于当前块的所有location块通过ngx_http_location_queue_t结构体构成的双向链表
+    ngx_queue_t  *locations;	
 
 #if 0
     ngx_http_core_loc_conf_t  *prev_location;
@@ -471,12 +515,18 @@ struct ngx_http_core_loc_conf_s {
 
 
 typedef struct {
-    ngx_queue_t                      queue;		//XXX:ngx_http_location_queue_t类型双向链表头节点(父location）或 ngx_http_location_queue_t类型双向链表的子节点(子location)
-    ngx_http_core_loc_conf_t        *exact;		//如果子location中的字符串可以精确匹配(包括正则表达式)，exect将指向对应的ngx_http_core_loc_conf_t结构体(子location)，否则值为NULL
-    ngx_http_core_loc_conf_t        *inclusive;	//如果子location中的字符串无法精确匹配(包括自定义的通配符)，inclusive将指向对应的ngx_http_core_loc_conf_t结构体(子location)，否则值为NULL
-    ngx_str_t                       *name;		//XXX: pointer to location name(子location)//指向location(子location)的名称
-    u_char                          *file_name;	//XXX：子location的命令对应的配置文件(子location)
-    ngx_uint_t                       line;		//XXX: 子location的命令对应的配置文件的行号(子location)
+	//XXX:ngx_http_location_queue_t类型双向链表头节点(父location）或 ngx_http_location_queue_t类型双向链表的子节点(子location)
+    ngx_queue_t                      queue;		
+	//如果子location中的字符串可以精确匹配(包括正则表达式)，exect将指向对应的ngx_http_core_loc_conf_t结构体(子location)，否则值为NULL
+    ngx_http_core_loc_conf_t        *exact;	
+	//如果子location中的字符串无法精确匹配(包括自定义的通配符)，inclusive将指向对应的ngx_http_core_loc_conf_t结构体(子location)，否则值为NULL
+    ngx_http_core_loc_conf_t        *inclusive;	
+	//XXX: pointer to location name(子location)//指向location(子location)的名称
+    ngx_str_t                       *name;	
+	//XXX：子location的命令对应的配置文件(子location)
+    u_char                          *file_name;	
+	//XXX: 子location的命令对应的配置文件的行号(子location)
+    ngx_uint_t                       line;		
     ngx_queue_t                      list;		//
 } ngx_http_location_queue_t;
 

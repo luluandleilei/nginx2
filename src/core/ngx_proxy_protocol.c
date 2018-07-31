@@ -40,8 +40,7 @@ typedef struct {
 } ngx_proxy_protocol_inet6_addrs_t;
 
 
-static u_char *ngx_proxy_protocol_v2_read(ngx_connection_t *c, u_char *buf,
-    u_char *last);
+static u_char *ngx_proxy_protocol_v2_read(ngx_connection_t *c, u_char *buf, u_char *last);
 
 
 u_char *
@@ -154,8 +153,7 @@ skip:
 
 invalid:
 
-    ngx_log_error(NGX_LOG_ERR, c->log, 0,
-                  "broken header: \"%*s\"", (size_t) (last - buf), buf);
+    ngx_log_error(NGX_LOG_ERR, c->log, 0, "broken header: \"%*s\"", (size_t) (last - buf), buf);
 
     return NULL;
 }

@@ -14,17 +14,14 @@ static char *ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static ngx_int_t ngx_http_init_phases(ngx_conf_t *cf,
     ngx_http_core_main_conf_t *cmcf);
 static ngx_int_t ngx_http_init_headers_in_hash(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf);
-static ngx_int_t ngx_http_init_phase_handlers(ngx_conf_t *cf,
-    ngx_http_core_main_conf_t *cmcf);
+static ngx_int_t ngx_http_init_phase_handlers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf);
 
 static ngx_int_t ngx_http_add_addresses(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf, ngx_http_conf_port_t *port, ngx_http_listen_opt_t *lsopt);
 static ngx_int_t ngx_http_add_address(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf, ngx_http_conf_port_t *port, ngx_http_listen_opt_t *lsopt);
 static ngx_int_t ngx_http_add_server(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf, ngx_http_conf_addr_t *addr);
 
 static char *ngx_http_merge_servers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf, ngx_http_module_t *module, ngx_uint_t ctx_index);
-static char *ngx_http_merge_locations(ngx_conf_t *cf,
-    ngx_queue_t *locations, void **loc_conf, ngx_http_module_t *module,
-    ngx_uint_t ctx_index);
+static char *ngx_http_merge_locations(ngx_conf_t *cf, ngx_queue_t *locations, void **loc_conf, ngx_http_module_t *module, ngx_uint_t ctx_index);
 static ngx_int_t ngx_http_init_locations(ngx_conf_t *cf,
     ngx_http_core_srv_conf_t *cscf, ngx_http_core_loc_conf_t *pclcf);
 static ngx_int_t ngx_http_init_static_location_trees(ngx_conf_t *cf,
@@ -84,6 +81,7 @@ static ngx_core_module_t  ngx_http_module_ctx = {
 };
 
 
+//ngx_http_module核心模块定义了新的模块类型NGX_HTTP_MODULE。
 ngx_module_t  ngx_http_module = {
     NGX_MODULE_V1,
     &ngx_http_module_ctx,                  /* module context */
@@ -233,8 +231,8 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             continue;
         }
 
-        module = cf->cycle->modules[m]->ctx;
-        mi = cf->cycle->modules[m]->ctx_index;
+        module = cf->cycle->modules[m]->ctx;	//这个HTTP模块的ngx_http_module_t接口
+        mi = cf->cycle->modules[m]->ctx_index;	//这个HTTP模块在所有HTTP模块中的序号
 
         /* init http{} main_conf's */
 
@@ -521,11 +519,12 @@ ngx_http_merge_servers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf, ngx_http
     ngx_http_core_srv_conf_t   **cscfp;
 
     cscfp = cmcf->servers.elts;
-    ctx = (ngx_http_conf_ctx_t *) cf->ctx;
+    ctx = (ngx_http_conf_ctx_t *) cf->ctx;	//注意：这个ctx是在http{}块下的全局ngx_http_conf_ctx_t结构体
     saved = *ctx;
     rv = NGX_CONF_OK;
 
-    for (s = 0; s < cmcf->servers.nelts; s++) {
+	//遍历所有的server块下对应的ngx_http_core_srv_conf_t结构体
+    for (s = 0; s < cmcf->servers.nelts; s++) {	
 
         /* merge the server{}s' srv_conf's */
 
@@ -776,7 +775,7 @@ ngx_http_add_location(ngx_conf_t *cf, ngx_queue_t **locations, ngx_http_core_loc
 {
     ngx_http_location_queue_t  *lq;
 
-	//XXX:如必要为父location节点分配空间
+	//XXX:(1)如必要为父location节点分配空间
     if (*locations == NULL) {
         *locations = ngx_palloc(cf->temp_pool, sizeof(ngx_http_location_queue_t));
         if (*locations == NULL) {
@@ -786,7 +785,7 @@ ngx_http_add_location(ngx_conf_t *cf, ngx_queue_t **locations, ngx_http_core_loc
         ngx_queue_init(*locations);
     }
 
-	//XXX:初始化子location对应的链表节点
+	//XXX:(2)初始化子location对应的链表节点
     lq = ngx_palloc(cf->temp_pool, sizeof(ngx_http_location_queue_t));
     if (lq == NULL) {
         return NGX_ERROR;
@@ -812,7 +811,7 @@ ngx_http_add_location(ngx_conf_t *cf, ngx_queue_t **locations, ngx_http_core_loc
 
     ngx_queue_init(&lq->list);
 
-	//XXX:将子location(clcf)添加到父location((locations))的双向链表中
+	//XXX:(3)将子location(clcf)添加到父location((locations))的双向链表中
     ngx_queue_insert_tail(*locations, &lq->queue);
 
     return NGX_OK;
@@ -1334,6 +1333,10 @@ ngx_http_optimize_servers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf, ngx_a
 }
 
 
+/*
+XXX: 将addr下关联的多个ngx_http_core_srv_conf_t的server_name构造成散列表
+以加速查找host匹配的server_name对应的server
+*/
 static ngx_int_t
 ngx_http_server_names(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf, ngx_http_conf_addr_t *addr)
 {

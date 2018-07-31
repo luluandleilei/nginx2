@@ -38,7 +38,8 @@ struct ngx_shm_zone_s {
 
 //A cycle object stores the nginx runtime context created from a specific configuration. 
 struct ngx_cycle_s {
-	//Array of core module configurations. The configurations are created and filled during reading of nginx configuration files.
+	//Array of core module configurations. 
+	//The configurations are created and filled during reading of nginx configuration files.
     void                  ****conf_ctx;	
     ngx_pool_t               *pool;		//Cycle pool. Created for each new cycle.
 
@@ -56,6 +57,7 @@ struct ngx_cycle_s {
     ngx_uint_t                free_connection_n;//可用连接池中连接的总数
 
 	//Array of modules of type ngx_module_t, both static and dynamic, loaded by the current configuration.
+	//XXX: 为什么这里要通过拷贝一份成指针数组，使用原始的ngx_modules数组不行么？
     ngx_module_t            **modules;		
     ngx_uint_t                modules_n;
     ngx_uint_t                modules_used;		//prevent loading of additional modules 
@@ -158,8 +160,7 @@ void ngx_reopen_files(ngx_cycle_t *cycle, ngx_uid_t user);
 char **ngx_set_environment(ngx_cycle_t *cycle, ngx_uint_t *last);
 ngx_pid_t ngx_exec_new_binary(ngx_cycle_t *cycle, char *const *argv);
 ngx_cpuset_t *ngx_get_cpu_affinity(ngx_uint_t n);
-ngx_shm_zone_t *ngx_shared_memory_add(ngx_conf_t *cf, ngx_str_t *name,
-    size_t size, void *tag);
+ngx_shm_zone_t *ngx_shared_memory_add(ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag);
 void ngx_set_shutdown_timer(ngx_cycle_t *cycle);
 
 

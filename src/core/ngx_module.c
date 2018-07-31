@@ -82,7 +82,7 @@ ngx_count_modules(ngx_cycle_t *cycle, ngx_uint_t type)
     ngx_uint_t     i, next, max;
     ngx_module_t  *module;
 
-    next = 0;	//下一个可以使用的索引值
+    next = 0;	//下一个可以分配的索引值
     max = 0;	//最大索引值
 
     /* count appropriate modules, set up their indices */
@@ -94,7 +94,7 @@ ngx_count_modules(ngx_cycle_t *cycle, ngx_uint_t type)
             continue;
         }
 
-        if (module->ctx_index != NGX_MODULE_UNSET_INDEX) {  //XXX:什么时候会发生？
+        if (module->ctx_index != NGX_MODULE_UNSET_INDEX) {  //XXX:什么时候会发生？reconfigure时候回发生
 
             /* if ctx_index was assigned, preserve it */
 

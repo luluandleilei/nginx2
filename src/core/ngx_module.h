@@ -220,7 +220,7 @@
 
 
 struct ngx_module_s {
-    ngx_uint_t            ctx_index;    //同类型的模块在XXX列表中的索引
+    ngx_uint_t            ctx_index;    //同类型的模块在XXX列表中的索引 //同类型模块间的索引
     ngx_uint_t            index;        //每个模块在全局 ngx_modules 列表中的索引
 
     char                 *name;

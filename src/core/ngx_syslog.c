@@ -49,8 +49,7 @@ ngx_syslog_process_conf(ngx_conf_t *cf, ngx_syslog_peer_t *peer)
     }
 
     if (peer->server.sockaddr == NULL) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "no syslog server specified");
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "no syslog server specified");
         return NGX_CONF_ERROR;
     }
 
@@ -306,8 +305,7 @@ ngx_syslog_send(ngx_syslog_peer_t *peer, u_char *buf, size_t len)
     if (n == NGX_ERROR) {
 
         if (ngx_close_socket(peer->conn.fd) == -1) {
-            ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, ngx_socket_errno,
-                          ngx_close_socket_n " failed");
+            ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, ngx_socket_errno, ngx_close_socket_n " failed");
         }
 
         peer->conn.fd = (ngx_socket_t) -1;
