@@ -228,7 +228,7 @@ ngx_event_accept(ngx_event_t *ev)
         rev = c->read;
         wev = c->write;
 
-        wev->ready = 1;
+        wev->ready = 1;	//XXX: 为什么要置为1？？
 
         if (ngx_event_flags & NGX_USE_IOCP_EVENT) {
             rev->ready = 1;

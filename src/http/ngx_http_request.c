@@ -314,11 +314,13 @@ ngx_http_init_connection(ngx_connection_t *c)
         return;
     }
 
+	//将可读事件加入到定时器中以监控接收请求是否超时
     ngx_add_timer(rev, c->listening->post_accept_timeout);
 	//XXX:为什么这时候的connection对象被认为是reusable的？？？
 	//三次握手完成，但没有收到客户端发送的请求被认为是reusable，将其添加到可重用队列中
     ngx_reusable_connection(c, 1);	
 
+	//将可读事件加入到事件驱动中
     if (ngx_handle_read_event(rev, 0) != NGX_OK) {
         ngx_http_close_connection(c);
         return;
@@ -1201,10 +1203,8 @@ ngx_http_process_request_headers(ngx_event_t *rev)
                     r->lingering_close = 1;
 
                     if (p == NULL) {
-                        ngx_log_error(NGX_LOG_INFO, c->log, 0,
-                                      "client sent too large request");
-                        ngx_http_finalize_request(r,
-                                            NGX_HTTP_REQUEST_HEADER_TOO_LARGE);
+                        ngx_log_error(NGX_LOG_INFO, c->log, 0, "client sent too large request");
+                        ngx_http_finalize_request(r, NGX_HTTP_REQUEST_HEADER_TOO_LARGE);
                         return;
                     }
 

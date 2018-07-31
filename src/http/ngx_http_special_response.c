@@ -476,24 +476,19 @@ ngx_http_special_response_handler(ngx_http_request_t *r, ngx_int_t error)
         return ngx_http_send_refresh(r);
     }
 
-    if (error == NGX_HTTP_CREATED) {
-        /* 201 */
+    if (error == NGX_HTTP_CREATED) { /* 201 */
         err = 0;
 
-    } else if (error == NGX_HTTP_NO_CONTENT) {
-        /* 204 */
+    } else if (error == NGX_HTTP_NO_CONTENT) { /* 204 */
         err = 0;
 
-    } else if (error >= NGX_HTTP_MOVED_PERMANENTLY && error < NGX_HTTP_LAST_3XX) {
-        /* 3XX */
+    } else if (error >= NGX_HTTP_MOVED_PERMANENTLY && error < NGX_HTTP_LAST_3XX) { /* 3XX */
         err = error - NGX_HTTP_MOVED_PERMANENTLY + NGX_HTTP_OFF_3XX;
 
-    } else if (error >= NGX_HTTP_BAD_REQUEST && error < NGX_HTTP_LAST_4XX) {
-        /* 4XX */
+    } else if (error >= NGX_HTTP_BAD_REQUEST && error < NGX_HTTP_LAST_4XX) { /* 4XX */
         err = error - NGX_HTTP_BAD_REQUEST + NGX_HTTP_OFF_4XX;
 
-    } else if (error >= NGX_HTTP_NGINX_CODES && error < NGX_HTTP_LAST_5XX) {
-        /* 49X, 5XX */
+    } else if (error >= NGX_HTTP_NGINX_CODES && error < NGX_HTTP_LAST_5XX) { /* 49X, 5XX */
         err = error - NGX_HTTP_NGINX_CODES + NGX_HTTP_OFF_5XX;
         switch (error) {
             case NGX_HTTP_TO_HTTPS:
@@ -647,8 +642,7 @@ ngx_http_send_error_page(ngx_http_request_t *r, ngx_http_err_page_t *err_page)
 
 
 static ngx_int_t
-ngx_http_send_special_response(ngx_http_request_t *r,
-    ngx_http_core_loc_conf_t *clcf, ngx_uint_t err)
+ngx_http_send_special_response(ngx_http_request_t *r, ngx_http_core_loc_conf_t *clcf, ngx_uint_t err)
 {
     u_char       *tail;
     size_t        len;
