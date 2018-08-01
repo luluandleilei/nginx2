@@ -241,7 +241,7 @@ typedef struct {
 
     ngx_array_t                variables;         /* ngx_http_variable_t */		//XXX:记录实际被引用的变量 //存储索引过的变量的数组
     ngx_array_t                prefix_variables;  /* ngx_http_variable_t */		//存储前缀匹配的变量的数组
-    ngx_uint_t                 ncaptures;		  //XXX: max number of capturing subpatterns of server_name
+    ngx_uint_t                 ncaptures;		  //XXX: max number of capturing subpatterns of any regex configure
 
     ngx_uint_t                 server_names_hash_max_size;		//the maximum size of the server names hash tables
     ngx_uint_t                 server_names_hash_bucket_size;	//the bucket size for the server names hash tables
@@ -472,6 +472,7 @@ struct ngx_http_core_loc_conf_s {
     ngx_uint_t    client_body_in_file_only; /* client_body_in_file_only */
 
     ngx_flag_t    client_body_in_single_buffer; /* client_body_in_singe_buffer */
+	//Specifies that this location can only be used for internal requests
     ngx_flag_t    internal;                /* internal */
     ngx_flag_t    sendfile;                /* sendfile */
     ngx_flag_t    aio;                     /* aio */

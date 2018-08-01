@@ -201,9 +201,7 @@ ngx_regex_exec_array(ngx_array_t *a, ngx_str_t *s, ngx_log_t *log)
         }
 
         if (n < 0) {
-            ngx_log_error(NGX_LOG_ALERT, log, 0,
-                          ngx_regex_exec_n " failed: %i on \"%V\" using \"%s\"",
-                          n, s, re[i].name);
+            ngx_log_error(NGX_LOG_ALERT, log, 0, ngx_regex_exec_n " failed: %i on \"%V\" using \"%s\"", n, s, re[i].name);
             return NGX_ERROR;
         }
 

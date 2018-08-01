@@ -601,13 +601,17 @@ struct ngx_http_request_s {
     unsigned                          lingering_close:1;
     unsigned                          discard_body:1;
     unsigned                          reading_body:1;
-    unsigned                          internal:1;			//Flag indicating that the current request is internal. To enter the internal state, a request must pass through an internal redirect or be a subrequest. Internal requests are allowed to enter internal locations.
+	//Flag indicating that the current request is internal. 
+	//To enter the internal state, a request must pass through an internal redirect or be a subrequest. 
+	//Internal requests are allowed to enter internal locations.
+    unsigned                          internal:1;			
     unsigned                          error_page:1;
     unsigned                          filter_finalize:1;
     unsigned                          post_action:1;
     unsigned                          request_complete:1;
     unsigned                          request_output:1;
-    unsigned                          header_sent:1;		//Flag indicating that the output header has already been sent by the request.
+	//Flag indicating that the output header has already been sent by the request.
+    unsigned                          header_sent:1;		
     unsigned                          expect_tested:1;
     unsigned                          root_tested:1;
     unsigned                          done:1;

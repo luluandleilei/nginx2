@@ -2391,7 +2391,7 @@ ngx_http_regex_compile(ngx_conf_t *cf, ngx_regex_compile_t *rc)
     size = rc->name_size;
     p = rc->names;
 
-    for (i = 0; i < n; i++) {
+    for (i = 0; i < n; i++) {	//XXX: named caputure ???
         rv[i].capture = 2 * ((p[0] << 8) + p[1]);
 
         name.data = &p[2];
@@ -2447,12 +2447,11 @@ ngx_http_regex_exec(ngx_http_request_t *r, ngx_http_regex_t *re, ngx_str_t *s)
     }
 
     if (rc < 0) {
-        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
-                      ngx_regex_exec_n " failed: %i on \"%V\" using \"%V\"",
-                      rc, s, &re->name);
+        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0, ngx_regex_exec_n " failed: %i on \"%V\" using \"%V\"", rc, s, &re->name);
         return NGX_ERROR;
     }
 
+	//XXX：给对应的named capture 变量赋值
     for (i = 0; i < re->nvariables; i++) {
 
         n = re->variables[i].capture;
@@ -2471,13 +2470,12 @@ ngx_http_regex_exec(ngx_http_request_t *r, ngx_http_regex_t *re, ngx_str_t *s)
 
         v = cmcf->variables.elts;
 
-        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "http regex set $%V to \"%v\"", &v[index].name, vv);
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http regex set $%V to \"%v\"", &v[index].name, vv);
         }
 #endif
     }
 
-    r->ncaptures = rc * 2;
+    r->ncaptures = rc * 2;	//XXX:为什么乘以2
     r->captures_data = s->data;
 
     return NGX_OK;

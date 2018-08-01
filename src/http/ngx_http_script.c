@@ -922,9 +922,7 @@ ngx_http_script_regex_start_code(ngx_http_script_engine_t *e)
 
     if (rc == NGX_DECLINED) {
         if (e->log || (r->connection->log->log_level & NGX_LOG_DEBUG_HTTP)) {
-            ngx_log_error(NGX_LOG_NOTICE, r->connection->log, 0,
-                          "\"%V\" does not match \"%V\"",
-                          &code->name, &e->line);
+            ngx_log_error(NGX_LOG_NOTICE, r->connection->log, 0, "\"%V\" does not match \"%V\"", &code->name, &e->line);
         }
 
         r->ncaptures = 0;

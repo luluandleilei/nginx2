@@ -87,10 +87,8 @@ typedef struct {
 } ngx_http_map_regex_t;
 
 
-ngx_http_regex_t *ngx_http_regex_compile(ngx_conf_t *cf,
-    ngx_regex_compile_t *rc);
-ngx_int_t ngx_http_regex_exec(ngx_http_request_t *r, ngx_http_regex_t *re,
-    ngx_str_t *s);
+ngx_http_regex_t *ngx_http_regex_compile(ngx_conf_t *cf, ngx_regex_compile_t *rc);
+ngx_int_t ngx_http_regex_exec(ngx_http_request_t *r, ngx_http_regex_t *re, ngx_str_t *s);
 
 #endif
 

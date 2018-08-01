@@ -2004,10 +2004,7 @@ ngx_http_set_virtual_server(ngx_http_request_t *r, ngx_str_t *host)
                            host->data, host->len) == 0)
         {
 #if (NGX_PCRE)
-            if (hc->ssl_servername_regex
-                && ngx_http_regex_exec(r, hc->ssl_servername_regex,
-                                          hc->ssl_servername) != NGX_OK)
-            {
+            if (hc->ssl_servername_regex && ngx_http_regex_exec(r, hc->ssl_servername_regex, hc->ssl_servername) != NGX_OK) {
                 ngx_http_close_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
                 return NGX_ERROR;
             }

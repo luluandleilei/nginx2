@@ -22,8 +22,7 @@ typedef struct {
 
 
 static ngx_int_t ngx_http_core_find_location(ngx_http_request_t *r);
-static ngx_int_t ngx_http_core_find_static_location(ngx_http_request_t *r,
-    ngx_http_location_tree_node_t *node);
+static ngx_int_t ngx_http_core_find_static_location(ngx_http_request_t *r, ngx_http_location_tree_node_t *node);
 
 static ngx_int_t ngx_http_core_preconfiguration(ngx_conf_t *cf);
 static ngx_int_t ngx_http_core_postconfiguration(ngx_conf_t *cf);
@@ -1299,12 +1298,15 @@ static ngx_command_t  ngx_http_core_commands[] = {
 	 Syntax:	internal;
 	 Default:	—
 	 Context:	location
+	 
 	 Specifies that a given location can only be used for internal requests. 
-	 For external requests, the client error 404 (Not Found) is returned. Internal requests are the following:
-		requests redirected by the error_page, index, random_index, and try_files directives;
-		requests redirected by the “X-Accel-Redirect” response header field from an upstream server;
-		subrequests formed by the “include virtual” command of the ngx_http_ssi_module module, by the ngx_http_addition_module module directives, and by auth_request and mirror directives;
-		requests changed by the rewrite directive.
+	 For external requests, the client error 404 (Not Found) is returned. 
+	 Internal requests are the following:
+		(1)requests redirected by the error_page, index, random_index, and try_files directives;
+		(2)requests redirected by the “X-Accel-Redirect” response header field from an upstream server;
+		(3)subrequests formed by the “include virtual” command of the ngx_http_ssi_module module, 
+			by the ngx_http_addition_module module directives, and by auth_request and mirror directives;
+		(4)requests changed by the rewrite directive.
 
 	 Example:
 		error_page 404 /404.html;
@@ -1734,8 +1736,7 @@ ngx_http_handler(ngx_http_request_t *r)
             break;
         }
 
-        r->lingering_close = (r->headers_in.content_length_n > 0
-                              || r->headers_in.chunked);
+        r->lingering_close = (r->headers_in.content_length_n > 0 || r->headers_in.chunked);
         r->phase_handler = 0;
 
     } else {
@@ -1911,9 +1912,7 @@ ngx_http_core_find_config_phase(ngx_http_request_t *r, ngx_http_phase_handler_t 
         && clcf->client_max_body_size
         && clcf->client_max_body_size < r->headers_in.content_length_n)
     {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                      "client intended to send too large body: %O bytes",
-                      r->headers_in.content_length_n);
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "client intended to send too large body: %O bytes", r->headers_in.content_length_n);
 
         r->expect_tested = 1;
         (void) ngx_http_discard_request_body(r);
@@ -1964,21 +1963,18 @@ ngx_http_core_find_config_phase(ngx_http_request_t *r, ngx_http_phase_handler_t 
 
 
 ngx_int_t
-ngx_http_core_post_rewrite_phase(ngx_http_request_t *r,
-    ngx_http_phase_handler_t *ph)
+ngx_http_core_post_rewrite_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
 {
     ngx_http_core_srv_conf_t  *cscf;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "post rewrite phase: %ui", r->phase_handler);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "post rewrite phase: %ui", r->phase_handler);
 
     if (!r->uri_changed) {
         r->phase_handler++;
         return NGX_AGAIN;
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "uri changes: %d", r->uri_changes);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "uri changes: %d", r->uri_changes);
 
     /*
      * gcc before 3.3 compiles the broken code for
@@ -2270,8 +2266,7 @@ ngx_http_core_find_location(ngx_http_request_t *r)
 
         for (clcfp = pclcf->regex_locations; *clcfp; clcfp++) {
 
-            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                           "test location: ~ \"%V\"", &(*clcfp)->name);
+            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "test location: ~ \"%V\"", &(*clcfp)->name);
 
             n = ngx_http_regex_exec(r, (*clcfp)->regex, &r->uri);
 
@@ -2335,6 +2330,8 @@ ngx_http_core_find_static_location(ngx_http_request_t *r, ngx_http_location_tree
             continue;
         }
 
+		/* rc == 0 */
+		
         if (len > (size_t) node->len) {
 
             if (node->inclusive) {
@@ -3297,17 +3294,14 @@ ngx_http_subrequest(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *args,
 
 
 ngx_int_t
-ngx_http_internal_redirect(ngx_http_request_t *r,
-    ngx_str_t *uri, ngx_str_t *args)
+ngx_http_internal_redirect(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *args)
 {
     ngx_http_core_srv_conf_t  *cscf;
 
     r->uri_changes--;
 
     if (r->uri_changes == 0) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                      "rewrite or internal redirection cycle "
-                      "while internally redirecting to \"%V\"", uri);
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "rewrite or internal redirection cycle " "while internally redirecting to \"%V\"", uri);
 
         r->main->count++;
         ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
@@ -3323,8 +3317,7 @@ ngx_http_internal_redirect(ngx_http_request_t *r,
         ngx_str_null(&r->args);
     }
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "internal redirect: \"%V?%V\"", uri, &r->args);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "internal redirect: \"%V?%V\"", uri, &r->args);
 
     ngx_http_set_exten(r);
 
