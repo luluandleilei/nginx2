@@ -32,7 +32,8 @@ struct ngx_queue_s {
     (h == (h)->prev)
 
 
-#define ngx_queue_insert_head(h, x)                                           \	//往头部添加节点
+//往头部添加节点
+#define ngx_queue_insert_head(h, x)                                           \
     (x)->next = (h)->next;                                                    \
     (x)->next->prev = x;                                                      \
     (x)->prev = h;                                                            \
@@ -42,18 +43,21 @@ struct ngx_queue_s {
 #define ngx_queue_insert_after   ngx_queue_insert_head
 
 
-#define ngx_queue_insert_tail(h, x)                                           \	//往尾部添加节点
+//往尾部添加节点
+#define ngx_queue_insert_tail(h, x)                                           \	
     (x)->prev = (h)->prev;                                                    \
     (x)->prev->next = x;                                                      \
     (x)->next = h;                                                            \
     (h)->prev = x
 
 
-#define ngx_queue_head(h)                                                     \	//获得头节点
+//获得头节点
+#define ngx_queue_head(h)                                                     \	
     (h)->next
 
 
-#define ngx_queue_last(h)                                                     \	//获得尾节点
+//获得尾节点
+#define ngx_queue_last(h)                                                     \	
     (h)->prev
 
 
@@ -79,7 +83,8 @@ struct ngx_queue_s {
 
 #else
 
-#define ngx_queue_remove(x)                                                   \	//从链表中删除一个数据节点
+//从链表中删除一个数据节点
+#define ngx_queue_remove(x)                                                   \	
     (x)->next->prev = (x)->prev;                                              \
     (x)->prev->next = (x)->next
 
@@ -95,7 +100,8 @@ struct ngx_queue_s {
     (q)->prev = n;
 
 
-#define ngx_queue_add(h, n)                                                   \	//将一个链表添加到另一个链表
+//将一个链表(n)添加到另一个链表(h)的表尾
+#define ngx_queue_add(h, n)                                                   \	
     (h)->prev->next = (n)->next;                                              \
     (n)->next->prev = (h)->prev;                                              \
     (h)->prev = (n)->prev;                                                    \
@@ -107,8 +113,7 @@ struct ngx_queue_s {
 
 
 ngx_queue_t *ngx_queue_middle(ngx_queue_t *queue);
-void ngx_queue_sort(ngx_queue_t *queue,
-    ngx_int_t (*cmp)(const ngx_queue_t *, const ngx_queue_t *));
+void ngx_queue_sort(ngx_queue_t *queue, ngx_int_t (*cmp)(const ngx_queue_t *, const ngx_queue_t *));
 
 
 #endif /* _NGX_QUEUE_H_INCLUDED_ */

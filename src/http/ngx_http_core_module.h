@@ -128,8 +128,8 @@ typedef struct {
 NGX_HTTP_FIND_CONFIG_PHASE
 NGX_HTTP_POST_ACCESS_PHASE
 NGX_HTTP_POST_REWRITE_PHASE
-NGX_HTTP_TRY_FILES_PHASE
-所以其实真正是有7个phase你可以去挂载handler
+//NGX_HTTP_TRY_FILES_PHASE
+所以其实真正是有8个phase你可以去挂载handler
 挂载的动作一般是在模块上下文调用的postconfiguration函数中。
 */
 typedef enum {
@@ -300,7 +300,7 @@ typedef struct {
     unsigned                    captures:1;
 #endif
 
-    ngx_http_core_loc_conf_t  **named_locations;
+    ngx_http_core_loc_conf_t  **named_locations;	//XXX:该server下对应的所有named location
 } ngx_http_core_srv_conf_t;
 
 
@@ -404,7 +404,7 @@ struct ngx_http_core_loc_conf_s {
     unsigned      named:1;			//XXX:the named location
 
     unsigned      exact_match:1;	//XXX:the exact location
-    unsigned      noregex:1;
+    unsigned      noregex:1;		//
 
     unsigned      auto_redirect:1;
 #if (NGX_HTTP_GZIP)
@@ -412,9 +412,9 @@ struct ngx_http_core_loc_conf_s {
     unsigned      gzip_disable_degradation:2;
 #endif
 
-    ngx_http_location_tree_node_t   *static_locations;
+    ngx_http_location_tree_node_t   *static_locations;	//该location下的所有字符串形式的子location的查树
 #if (NGX_PCRE)
-    ngx_http_core_loc_conf_t       **regex_locations;
+    ngx_http_core_loc_conf_t       **regex_locations;	//该location下的所有的正则形式的子location的列表
 #endif
 
     /* pointer to the modules' loc_conf */

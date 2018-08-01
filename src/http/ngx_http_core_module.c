@@ -379,10 +379,15 @@ static ngx_command_t  ngx_http_core_commands[] = {
 	 
 	 Sets configuration depending on a request URI.
 
-	 The matching is performed against a normalized URI, after decoding the text encoded in the “%XX” form, resolving references to relative path components “.” and “..”, and possible compression of two or more adjacent slashes into a single slash.
+	 The matching is performed against a normalized URI, after decoding the text encoded in the “%XX” form, 
+	 resolving references to relative path components “.” and “..”, 
+	 and possible compression of two or more adjacent slashes into a single slash.
 
 	 A location can either be defined by a prefix string, or by a regular expression. 
-	 Regular expressions are specified with the preceding “~*” modifier (for case-insensitive matching), or the “~” modifier (for case-sensitive matching). 
+	 
+	 Regular expressions are specified with the preceding “~*” modifier (for case-insensitive matching), 
+	 or the “~” modifier (for case-sensitive matching). 
+
 	 To find location matching a given request, nginx first checks locations defined using the prefix strings (prefix locations). 
 	 Among them, the location with the longest matching prefix is selected and remembered. 
 	 Then regular expressions are checked, in the order of their appearance in the configuration file. 
@@ -425,13 +430,17 @@ static ngx_command_t  ngx_http_core_commands[] = {
 		location ~* \.(gif|jpg|jpeg)$ {
 		    [ configuration E ]
 		}
-	 The “/” request will match configuration A, the “/index.html” request will match configuration B, the “/documents/document.html” request will match configuration C, the “/images/1.gif” request will match configuration D, and the “/documents/1.jpg” request will match configuration E.
+	 The “/” request will match configuration A, the “/index.html” request will match configuration B, 
+	 the “/documents/document.html” request will match configuration C, the “/images/1.gif” request will match configuration D, 
+	 and the “/documents/1.jpg” request will match configuration E.
 
 	 The “@” prefix defines a named location. 
 	 Such a location is not used for a regular request processing, but instead used for request redirection. 
 	 They cannot be nested, and cannot contain nested locations.
 
-	 If a location is defined by a prefix string that ends with the slash character, and requests are processed by one of proxy_pass, fastcgi_pass, uwsgi_pass, scgi_pass, memcached_pass, or grpc_pass, then the special processing is performed. 
+	 If a location is defined by a prefix string that ends with the slash character, 
+	 and requests are processed by one of proxy_pass, fastcgi_pass, uwsgi_pass, scgi_pass, memcached_pass, or grpc_pass, 
+	 then the special processing is performed. 
 	 In response to a request with URI equal to this string, but without the trailing slash, a permanent redirect with the code 301 will be returned to the requested URI with the slash appended. 
 	 If this is not desired, an exact match of the URI and location could be defined like this: //XXX ??
 		location /user/ {
@@ -1767,7 +1776,22 @@ ngx_http_core_run_phases(ngx_http_request_t *r)
     }
 }
 
-
+/*
+NGX_HTTP_POST_READ_PHASE   NGX_HTTP_PREACCESS_PHASE  NGX_HTTP_LOG_PHASE阶段下HTTP模块的ngx_http_handler_pt方法返回值意义：
+NGX_OK: 	
+	执行下一个ngx_http_phases阶段中的第一个ngx_http_handler_pt处理方法。
+	即使当前阶段中后续还有一曲HTTP模块设置了ngx_http_handler_pt处理方法，返回NGX_OK之后它们也是得不到执行机会的。
+	如果下一个ngx_http_phases阶段中没有任何HTTP模块设置了ngx_http_handler_pt处理方法，将再次寻找之后的阶段，如此循环下去。  
+	
+NGX_DECLINED:	
+	按照顺序执行下一个ngx_http_handler_pt处理方法。
+	这个顺序就是ngx_http_phase_ngine_t中所有ngx_http_phase_handler_t结构体组成的数组的顺序     
+NGX_AGAIN, NGX_DONE:	
+	前的ngx_http_handler_pt处理方法尚未结束，这意味着该处理方法在当前阶段有机会再次被调用。
+	这时一般会把控制权交还给事件模块，当下次可写事件发生时会再次执行到该ngx_http_handler_pt处理方法 
+NGX_ERROR, NGX_HTTP_:
+	需要调用ngx_http_finalize_request结束请求
+*/
 ngx_int_t
 ngx_http_core_generic_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
 {
@@ -1789,11 +1813,14 @@ ngx_http_core_generic_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
         return NGX_AGAIN;
     }
 
+	//如果handler方法返回NGX_DECLINED，那么将进入下一个处理方法，这个处理方法既可能属于当前阶段，也可能属于下一个阶段
+	//注意返回NGX_OK与NGX_DECLINED之间的区别
     if (rc == NGX_DECLINED) {
         r->phase_handler++;
         return NGX_AGAIN;
     }
 
+	//如果handler方法返回NGX_AGAIN或者NGX_DONE，那么当前请求将仍然停留在这一个处理阶段中
     if (rc == NGX_AGAIN || rc == NGX_DONE) {
         return NGX_OK;
     }
@@ -1806,21 +1833,33 @@ ngx_http_core_generic_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
 }
 
 
+/*
+NGX_HTTP_SERVER_REWRITE_PHASE, NGX_HTTP_REWRITE_PHASE阶段下HTTP模块的ngx_http_handler_pt方法返回值意义：
+NGX DONE:
+	当前的ngx_http_handler_pt处理方法尚未结束，这意味着该处理方法在当前阶段中有机会再次被调用。
+NGX DECLINED：
+	ngx_http_handler_pt处理方法执行完毕，按照顺序执行下一个ngx_http_handler_pt处理方法。
+NGX_OK, NGX_AGAIN, NGX_ERROR, NGX_HTTP_：	
+	需要调用ngx_http_finalize_request结束请求
+这个阶段中不存在返回值可以使请求直接跳到下一个阶段执行
+*/
 ngx_int_t
 ngx_http_core_rewrite_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
 {
     ngx_int_t  rc;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "rewrite phase: %ui", r->phase_handler);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "rewrite phase: %ui", r->phase_handler);
 
+	//调用这一阶段中各HTTP模块添加的handler处理方法
     rc = ph->handler(r);
 
+	//如果handler方法返回NGX_DECLINED，那么将进入下一个处理方法，这个处理方法既可能属于当前阶段，也可能属于下一个阶段
     if (rc == NGX_DECLINED) {
         r->phase_handler++;
         return NGX_AGAIN;
     }
 
+	//如果handler方法返回NGX_DONE，那么当前请求将仍然停留在这一个处理阶段中
     if (rc == NGX_DONE) {
         return NGX_OK;
     }
@@ -1833,9 +1872,11 @@ ngx_http_core_rewrite_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
 }
 
 
+/*
+根据NGX_HTTP_SERVER_REWRITE_PHASE阶段重写后的URI检索出匹配的location块
+*/
 ngx_int_t
-ngx_http_core_find_config_phase(ngx_http_request_t *r,
-    ngx_http_phase_handler_t *ph)
+ngx_http_core_find_config_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
 {
     u_char                    *p;
     size_t                     len;
@@ -1859,16 +1900,11 @@ ngx_http_core_find_config_phase(ngx_http_request_t *r,
         return NGX_OK;
     }
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "using configuration \"%s%V\"",
-                   (clcf->noname ? "*" : (clcf->exact_match ? "=" : "")),
-                   &clcf->name);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "using configuration \"%s%V\"", (clcf->noname ? "*" : (clcf->exact_match ? "=" : "")), &clcf->name);
 
     ngx_http_update_location_config(r);
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http cl:%O max:%O",
-                   r->headers_in.content_length_n, clcf->client_max_body_size);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http cl:%O max:%O", r->headers_in.content_length_n, clcf->client_max_body_size);
 
     if (r->headers_in.content_length_n != -1
         && !r->discard_body
@@ -2270,8 +2306,7 @@ ngx_http_core_find_location(ngx_http_request_t *r)
  */
 
 static ngx_int_t
-ngx_http_core_find_static_location(ngx_http_request_t *r,
-    ngx_http_location_tree_node_t *node)
+ngx_http_core_find_static_location(ngx_http_request_t *r, ngx_http_location_tree_node_t *node)
 {
     u_char     *uri;
     size_t      len, n;
@@ -2288,9 +2323,7 @@ ngx_http_core_find_static_location(ngx_http_request_t *r,
             return rv;
         }
 
-        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "test location: \"%*s\"",
-                       (size_t) node->len, node->name);
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "test location: \"%*s\"", (size_t) node->len, node->name);
 
         n = (len <= (size_t) node->len) ? len : node->len;
 
@@ -2337,10 +2370,9 @@ ngx_http_core_find_static_location(ngx_http_request_t *r,
 
         /* len < node->len */
 
-        if (len + 1 == (size_t) node->len && node->auto_redirect) {
+        if (len + 1 == (size_t) node->len && node->auto_redirect) {	//XXX:???
 
-            r->loc_conf = (node->exact) ? node->exact->loc_conf:
-                                          node->inclusive->loc_conf;
+            r->loc_conf = (node->exact) ? node->exact->loc_conf: node->inclusive->loc_conf;
             rv = NGX_DONE;
         }
 
@@ -3713,20 +3745,27 @@ ngx_http_core_location(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
     ngx_http_conf_ctx_t       *ctx, *pctx;
     ngx_http_core_loc_conf_t  *clcf, *pclcf;
 
+	//创建location的ctx
     ctx = ngx_pcalloc(cf->pool, sizeof(ngx_http_conf_ctx_t));
     if (ctx == NULL) {
         return NGX_CONF_ERROR;
     }
 
+	//获取父ctx，可能是server的ctx，也可能是父location的ctx
     pctx = cf->ctx;
+
+	//XXX:初始化ctx的main_conf和srv_conf为父级别的
+	//location级别，无特别的main_conf和srv_conf，直接用父级别的
     ctx->main_conf = pctx->main_conf;
     ctx->srv_conf = pctx->srv_conf;
 
+	//创建loc_conf
     ctx->loc_conf = ngx_pcalloc(cf->pool, sizeof(void *) * ngx_http_max_module);
     if (ctx->loc_conf == NULL) {
         return NGX_CONF_ERROR;
     }
 
+	//初始化loc_conf
     for (i = 0; cf->cycle->modules[i]; i++) {
         if (cf->cycle->modules[i]->type != NGX_HTTP_MODULE) {
             continue;
@@ -3741,6 +3780,7 @@ ngx_http_core_location(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
             }
         }
     }
+
 
     clcf = ctx->loc_conf[ngx_http_core_module.ctx_index];
     clcf->loc_conf = ctx->loc_conf;
