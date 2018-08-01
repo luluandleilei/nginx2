@@ -135,7 +135,7 @@ NGX_HTTP_TRY_FILES_PHASE
 typedef enum {
 	//First phase. The ngx_http_realip_module registers its handler at this phase 
 	//to enable substitution of client addresses before any other module is invoked.
-    NGX_HTTP_POST_READ_PHASE = 0,	//读取请求内容阶段 请求头读取完成之后的阶段
+    NGX_HTTP_POST_READ_PHASE = 0,	//在接收到完整的HTTP头部后处理的HTTP阶段
 
 	//Phase where rewrite directives defined in a server block (but outside a location block) are processed. 
 	//The ngx_http_rewrite_module installs its handler at this phase.
@@ -191,16 +191,32 @@ typedef struct ngx_http_phase_handler_s  ngx_http_phase_handler_t;
 
 typedef ngx_int_t (*ngx_http_phase_handler_pt)(ngx_http_request_t *r, ngx_http_phase_handler_t *ph);
 
+//表示处理阶段中的一个处理方法
 struct ngx_http_phase_handler_s {
-    ngx_http_phase_handler_pt  checker;
+	//HTTP处理阶段中的checker检查方法，仅可以由HTTP框架实现，以此控制HTTP请求的处理流程
+	//在处理到某一个HTTP阶段时，HTTP框架将会在checker方法已实现的前提下首先调用checker方法来处理请求，
+	//而不会直接调用任何阶段中的handler方法，只有在checker方法中才会去调用handler方法。
+	//因此，事实上所有的checker方法都是由框架中的ngx_http_core module模块实现的，
+	//且普通的HTTP模块无 法重定义checker方法
+    ngx_http_phase_handler_pt  checker;	
+	//由HTTP模块实现的handler处理方法
     ngx_http_handler_pt        handler;
+	//将要执行的下一个HTTP处理阶段的序号
+	//next的设计使得处理阶段不必按顺序依次执行，既可以向后跳跃数个阶段继续执行，也可以跳跃到之前曾经执行过的某个阶段重新执行。
+	//通常，next表示下一处理阶段中的第1个ngx_http_phase_handler_t处理方法
     ngx_uint_t                 next;
 };
 
 
 typedef struct {
+	//handlers是由ngx_http_phase_handler_t构成的数组首地址，它表示一个请求可能经历的所有ngx_http_handler_pt处理方法，
+    
     ngx_http_phase_handler_t  *handlers;
+	//表示NGX_HTTP_SERVER_REWRITE_PHASE阶段第1个ngx_http_phase_handler_t处理方法在handlers数组中的序号，
+	//用于在执行HTTP请求的任何阶段中快速跳转到NGX_HTTP_SERVER_REWRITE_PHASE阶段处理请求
     ngx_uint_t                 server_rewrite_index;
+	//表示NGX_HTTP_REWRITE_PHASE阶段第1个ngx_http_phase_handler_t处理方法在handlers数组中的序号，
+	//用于在执行HTTP请求的任何阶段中 快速跳转到NGX_HTTP_REWRITE_PHASE阶段处理请求
     ngx_uint_t                 location_rewrite_index;
 } ngx_http_phase_engine_t;
 
@@ -213,6 +229,10 @@ typedef struct {
 typedef struct {
     ngx_array_t                servers;         /* ngx_http_core_srv_conf_t */ 	//
 
+	//由下面各阶段处理方法构成的phases数组构建的阶段引擎才是流水式处理HTTP请求的实际数据结构
+	//用来控制运行过程中一个HTTP请求所要经过的HTTP处理阶段
+	//它将配合ngx_http_request_t结构体中的phase_handler成员使用（phase_handler指定了当前请求应当执行哪一个HTTP阶段）
+    //注意:每一个阶段中最后加入到handlers[]中的会首先添加到cmcf->phase_engine.handlers中，见ngx_http_init_phase_handlers
     ngx_http_phase_engine_t    phase_engine;
 
     ngx_hash_t                 headers_in_hash;	//XXX: 将ngx_http_headers_in构造的散列表
@@ -234,6 +254,10 @@ typedef struct {
 	//array of ngx_http_conf_port_t //保存http{}配置块下监听的所有ngx_http_conf_port_t端口
     ngx_array_t               *ports;	
 
+	//用于在HTTP框架初始化时帮助各个HTTP模块在任意阶段中添加HTTP处理方法，
+	//并按照11个阶段的概念初始化phase_engine中的handlers数组
+	//它是一个有11个成员的ngx_http_phase_t数组，其中每一个ngx_http_phase_t结构体对应一个HTTP阶段。
+	//在HTTP框架初始化完毕后，运行过程中的phases数组是无用的
     ngx_http_phase_t           phases[NGX_HTTP_LOG_PHASE + 1];
 } ngx_http_core_main_conf_t;
 
@@ -546,12 +570,9 @@ struct ngx_http_location_tree_node_s {
 
 
 void ngx_http_core_run_phases(ngx_http_request_t *r);
-ngx_int_t ngx_http_core_generic_phase(ngx_http_request_t *r,
-    ngx_http_phase_handler_t *ph);
-ngx_int_t ngx_http_core_rewrite_phase(ngx_http_request_t *r,
-    ngx_http_phase_handler_t *ph);
-ngx_int_t ngx_http_core_find_config_phase(ngx_http_request_t *r,
-    ngx_http_phase_handler_t *ph);
+ngx_int_t ngx_http_core_generic_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph);
+ngx_int_t ngx_http_core_rewrite_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph);
+ngx_int_t ngx_http_core_find_config_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph);
 ngx_int_t ngx_http_core_post_rewrite_phase(ngx_http_request_t *r,
     ngx_http_phase_handler_t *ph);
 ngx_int_t ngx_http_core_access_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph);

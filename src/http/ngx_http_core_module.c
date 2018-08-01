@@ -1778,11 +1778,12 @@ ngx_http_core_generic_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
      * used by the post read and pre-access phases
      */
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "generic phase: %ui", r->phase_handler);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "generic phase: %ui", r->phase_handler);
 
+	//调用这一阶段中各HTTP模块添加的handler处理方法
     rc = ph->handler(r);
 
+	//如果handler方法返回NGX OK，之后将进入下一个阶段处理，而不会理会当前阶段中是否还有其他的处理方法
     if (rc == NGX_OK) {
         r->phase_handler = ph->next;
         return NGX_AGAIN;
