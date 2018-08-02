@@ -32,7 +32,124 @@ static ngx_int_t ngx_http_try_files_init(ngx_conf_t *cf);
 
 
 static ngx_command_t  ngx_http_try_files_commands[] = {
+	/*
+	 Syntax:	try_files file ... uri;
+				try_files file ... =code;
+	 Default:	—
+	 Context:	server, location
+	 
+	 Checks the existence of files in the specified order and uses the first found file for request processing; 
+	 the processing is performed in the current context. 
+	 The path to a file is constructed from the file parameter according to the root and alias directives. 
+	 It is possible to check directory’s existence by specifying a slash at the end of a name, e.g. “$uri/”. 
+	 If none of the files were found, an internal redirect to the uri specified in the last parameter is made. 
 
+	 For example:
+
+		location /images/ {
+		    try_files $uri /images/default.gif;
+		}
+
+		location = /images/default.gif {
+		    expires 30s;
+		}
+		
+	 The last parameter can also point to a named location, as shown in examples below. 
+	 Starting from version 0.7.51, the last parameter can also be a code:
+
+		location / {
+		    try_files $uri $uri/index.html $uri.html =404;
+		}
+
+	 Example in proxying Mongrel:
+
+		location / {
+		    try_files /system/maintenance.html
+		              $uri $uri/index.html $uri.html
+		              @mongrel;
+		}
+
+		location @mongrel {
+		    proxy_pass http://mongrel;
+		}
+		
+	 Example for Drupal/FastCGI:
+
+		location / {
+		    try_files $uri $uri/ @drupal;
+		}
+
+		location ~ \.php$ {
+		    try_files $uri @drupal;
+
+		    fastcgi_pass ...;
+
+		    fastcgi_param SCRIPT_FILENAME /path/to$fastcgi_script_name;
+		    fastcgi_param SCRIPT_NAME     $fastcgi_script_name;
+		    fastcgi_param QUERY_STRING    $args;
+
+		    ... other fastcgi_param's
+		}
+
+		location @drupal {
+		    fastcgi_pass ...;
+
+		    fastcgi_param SCRIPT_FILENAME /path/to/index.php;
+		    fastcgi_param SCRIPT_NAME     /index.php;
+		    fastcgi_param QUERY_STRING    q=$uri&$args;
+
+		    ... other fastcgi_param's
+		}
+		
+	 In the following example,
+
+		location / {
+		    try_files $uri $uri/ @drupal;
+		}
+		
+	 the try_files directive is equivalent to
+
+		location / {
+		    error_page 404 = @drupal;
+		    log_not_found off;
+		}
+		
+	 And here,
+
+		location ~ \.php$ {
+		    try_files $uri @drupal;
+
+		    fastcgi_pass ...;
+
+		    fastcgi_param SCRIPT_FILENAME /path/to$fastcgi_script_name;
+
+		    ...
+		}
+		
+	 try_files checks the existence of the PHP file before passing the request to the FastCGI server.
+
+	 Example for Wordpress and Joomla:
+
+		location / {
+		    try_files $uri $uri/ @wordpress;
+		}
+
+		location ~ \.php$ {
+		    try_files $uri @wordpress;
+
+		    fastcgi_pass ...;
+
+		    fastcgi_param SCRIPT_FILENAME /path/to$fastcgi_script_name;
+		    ... other fastcgi_param's
+		}
+
+		location @wordpress {
+		    fastcgi_pass ...;
+
+		    fastcgi_param SCRIPT_FILENAME /path/to/index.php;
+		    ... other fastcgi_param's
+		}
+	*/
     { ngx_string("try_files"),
       NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_2MORE,
       ngx_http_try_files,
@@ -96,8 +213,7 @@ ngx_http_try_files_handler(ngx_http_request_t *r)
         return NGX_DECLINED;
     }
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "try files handler");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "try files handler");
 
     allocated = 0;
     root = 0;
@@ -175,9 +291,7 @@ ngx_http_try_files_handler(ngx_http_request_t *r)
 
             *e.pos = '\0';
 
-            if (alias && alias != NGX_MAX_SIZE_T_VALUE
-                && ngx_strncmp(name, r->uri.data, alias) == 0)
-            {
+            if (alias && alias != NGX_MAX_SIZE_T_VALUE && ngx_strncmp(name, r->uri.data, alias) == 0) {
                 ngx_memmove(name, name + alias, len - alias);
                 path.len -= alias;
             }
@@ -187,9 +301,7 @@ ngx_http_try_files_handler(ngx_http_request_t *r)
 
         tf++;
 
-        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "trying to use %s: \"%s\" \"%s\"",
-                       test_dir ? "dir" : "file", name, path.data);
+        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "trying to use %s: \"%s\" \"%s\"", test_dir ? "dir" : "file", name, path.data);
 
         if (tf->lengths == NULL && tf->name.len == 0) {
 
@@ -227,19 +339,13 @@ ngx_http_try_files_handler(ngx_http_request_t *r)
             return NGX_HTTP_INTERNAL_SERVER_ERROR;
         }
 
-        if (ngx_open_cached_file(clcf->open_file_cache, &path, &of, r->pool)
-            != NGX_OK)
-        {
+        if (ngx_open_cached_file(clcf->open_file_cache, &path, &of, r->pool) != NGX_OK) {
             if (of.err == 0) {
                 return NGX_HTTP_INTERNAL_SERVER_ERROR;
             }
 
-            if (of.err != NGX_ENOENT
-                && of.err != NGX_ENOTDIR
-                && of.err != NGX_ENAMETOOLONG)
-            {
-                ngx_log_error(NGX_LOG_CRIT, r->connection->log, of.err,
-                              "%s \"%s\" failed", of.failed, path.data);
+            if (of.err != NGX_ENOENT && of.err != NGX_ENOTDIR && of.err != NGX_ENAMETOOLONG) {
+                ngx_log_error(NGX_LOG_CRIT, r->connection->log, of.err, "%s \"%s\" failed", of.failed, path.data);
             }
 
             continue;
@@ -277,8 +383,7 @@ ngx_http_try_files_handler(ngx_http_request_t *r)
 
         ngx_http_set_exten(r);
 
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "try file uri: \"%V\"", &r->uri);
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "try file uri: \"%V\"", &r->uri);
 
         return NGX_DECLINED;
     }
@@ -302,7 +407,7 @@ ngx_http_try_files(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return "is duplicate";
     }
 
-    tf = ngx_pcalloc(cf->pool, cf->args->nelts * sizeof(ngx_http_try_file_t));
+    tf = ngx_pcalloc(cf->pool, cf->args->nelts * sizeof(ngx_http_try_file_t));	//最后一个元素作为哨兵
     if (tf == NULL) {
         return NGX_CONF_ERROR;
     }
@@ -315,10 +420,7 @@ ngx_http_try_files(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
         tf[i].name = value[i + 1];
 
-        if (tf[i].name.len > 0
-            && tf[i].name.data[tf[i].name.len - 1] == '/'
-            && i + 2 < cf->args->nelts)
-        {
+        if (tf[i].name.len > 0 && tf[i].name.data[tf[i].name.len - 1] == '/' && i + 2 < cf->args->nelts) {
             tf[i].test_dir = 1;
             tf[i].name.len--;
             tf[i].name.data[tf[i].name.len] = '\0';
@@ -352,9 +454,7 @@ ngx_http_try_files(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         code = ngx_atoi(tf[i - 1].name.data + 1, tf[i - 1].name.len - 2);
 
         if (code == NGX_ERROR || code > 999) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "invalid code \"%*s\"",
-                               tf[i - 1].name.len - 1, tf[i - 1].name.data);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid code \"%*s\"", tf[i - 1].name.len - 1, tf[i - 1].name.data);
             return NGX_CONF_ERROR;
         }
 

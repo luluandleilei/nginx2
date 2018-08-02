@@ -25,14 +25,20 @@ static ngx_int_t ngx_http_mirror_handler(ngx_http_request_t *r);
 static void ngx_http_mirror_body_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_mirror_handler_internal(ngx_http_request_t *r);
 static void *ngx_http_mirror_create_loc_conf(ngx_conf_t *cf);
-static char *ngx_http_mirror_merge_loc_conf(ngx_conf_t *cf, void *parent,
-    void *child);
+static char *ngx_http_mirror_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
 static char *ngx_http_mirror(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static ngx_int_t ngx_http_mirror_init(ngx_conf_t *cf);
 
 
 static ngx_command_t  ngx_http_mirror_commands[] = {
-
+	/*
+	 Syntax:	mirror uri | off;
+	 Default: 	mirror off;
+	 Context:	http, server, location
+	 
+	 Sets the URI to which an original request will be mirrored. 
+	 Several mirrors can be specified on the same level.
+	*/
     { ngx_string("mirror"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_http_mirror,
@@ -40,6 +46,29 @@ static ngx_command_t  ngx_http_mirror_commands[] = {
       0,
       NULL },
 
+	/*
+	 Syntax:	mirror_request_body on | off;
+	 Default: 	mirror_request_body on;
+	 Context:	http, server, location
+	 
+	 Indicates whether the client request body is mirrored. 
+	 When enabled, the client request body will be read prior to creating mirror subrequests. 
+	 In this case, unbuffered client request body proxying set by the proxy_request_buffering, fastcgi_request_buffering, scgi_request_buffering, and uwsgi_request_buffering directives will be disabled.
+
+	location / {
+	    mirror /mirror;
+	    mirror_request_body off;
+	    proxy_pass http://backend;
+	}
+
+	location = /mirror {
+	    internal;
+	    proxy_pass http://log_backend;
+	    proxy_pass_request_body off;
+	    proxy_set_header Content-Length "";
+	    proxy_set_header X-Original-URI $request_uri;
+	}
+	*/
     { ngx_string("mirror_request_body"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
       ngx_conf_set_flag_slot,
@@ -66,6 +95,8 @@ static ngx_http_module_t  ngx_http_mirror_module_ctx = {
 };
 
 
+//The ngx_http_mirror_module module (1.13.4) implements mirroring of an original request by creating background mirror subrequests. 
+//Responses to mirror subrequests are ignored.
 ngx_module_t  ngx_http_mirror_module = {
     NGX_MODULE_V1,
     &ngx_http_mirror_module_ctx,           /* module context */

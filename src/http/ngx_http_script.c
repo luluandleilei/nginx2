@@ -1330,12 +1330,8 @@ ngx_http_script_return_code(ngx_http_script_engine_t *e)
 
     code = (ngx_http_script_return_code_t *) e->ip;
 
-    if (code->status < NGX_HTTP_BAD_REQUEST
-        || code->text.value.len
-        || code->text.lengths)
-    {
-        e->status = ngx_http_send_response(e->request, code->status, NULL,
-                                           &code->text);
+    if (code->status < NGX_HTTP_BAD_REQUEST || code->text.value.len || code->text.lengths) {
+        e->status = ngx_http_send_response(e->request, code->status, NULL, &code->text);
     } else {
         e->status = code->status;
     }

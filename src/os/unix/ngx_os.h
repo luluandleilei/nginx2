@@ -17,11 +17,9 @@
 
 
 typedef ssize_t (*ngx_recv_pt)(ngx_connection_t *c, u_char *buf, size_t size);
-typedef ssize_t (*ngx_recv_chain_pt)(ngx_connection_t *c, ngx_chain_t *in,
-    off_t limit);
+typedef ssize_t (*ngx_recv_chain_pt)(ngx_connection_t *c, ngx_chain_t *in, off_t limit);
 typedef ssize_t (*ngx_send_pt)(ngx_connection_t *c, u_char *buf, size_t size);
-typedef ngx_chain_t *(*ngx_send_chain_pt)(ngx_connection_t *c, ngx_chain_t *in,
-    off_t limit);
+typedef ngx_chain_t *(*ngx_send_chain_pt)(ngx_connection_t *c, ngx_chain_t *in, off_t limit);
 
 typedef struct {
     ngx_recv_pt        recv;
@@ -47,11 +45,9 @@ ssize_t ngx_unix_recv(ngx_connection_t *c, u_char *buf, size_t size);
 ssize_t ngx_readv_chain(ngx_connection_t *c, ngx_chain_t *entry, off_t limit);
 ssize_t ngx_udp_unix_recv(ngx_connection_t *c, u_char *buf, size_t size);
 ssize_t ngx_unix_send(ngx_connection_t *c, u_char *buf, size_t size);
-ngx_chain_t *ngx_writev_chain(ngx_connection_t *c, ngx_chain_t *in,
-    off_t limit);
+ngx_chain_t *ngx_writev_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit);
 ssize_t ngx_udp_unix_send(ngx_connection_t *c, u_char *buf, size_t size);
-ngx_chain_t *ngx_udp_unix_sendmsg_chain(ngx_connection_t *c, ngx_chain_t *in,
-    off_t limit);
+ngx_chain_t *ngx_udp_unix_sendmsg_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit);
 
 
 #if (IOV_MAX > 64)

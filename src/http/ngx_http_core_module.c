@@ -789,6 +789,7 @@ static ngx_command_t  ngx_http_core_commands[] = {
 	 The method parameter can be one of the following: GET, HEAD, POST, PUT, DELETE, MKCOL, COPY, MOVE, OPTIONS, PROPFIND, PROPPATCH, LOCK, UNLOCK, or PATCH. 
 	 Allowing the GET method makes the HEAD method also allowed. 
 	 Access to other methods can be limited using the ngx_http_access_module, ngx_http_auth_basic_module, and ngx_http_auth_jwt_module (1.13.10) modules directives:
+		# Only allow GET, all other methods only allowd by 192.168.1.0/32
 		limit_except GET {
 		    allow 192.168.1.0/32;
 		    deny  all;
@@ -1756,6 +1757,7 @@ ngx_http_handler(ngx_http_request_t *r)
 }
 
 
+//XXX:所有阶段的checker在ngx_http_core_run_phases中调用
 void
 ngx_http_core_run_phases(ngx_http_request_t *r)
 {
@@ -1778,7 +1780,8 @@ ngx_http_core_run_phases(ngx_http_request_t *r)
 }
 
 /*
-NGX_HTTP_POST_READ_PHASE   NGX_HTTP_PREACCESS_PHASE  NGX_HTTP_LOG_PHASE阶段下HTTP模块的ngx_http_handler_pt方法返回值意义：
+NGX_HTTP_POST_READ_PHASE, NGX_HTTP_PREACCESS_PHASE, NGX_HTTP_PRECONTENT_PHASE, NGX_HTTP_LOG_PHASE
+阶段下HTTP模块的ngx_http_handler_pt方法返回值意义：
 NGX_OK: 	
 	执行下一个ngx_http_phases阶段中的第一个ngx_http_handler_pt处理方法。
 	即使当前阶段中后续还有一曲HTTP模块设置了ngx_http_handler_pt处理方法，返回NGX_OK之后它们也是得不到执行机会的。
@@ -1855,13 +1858,16 @@ ngx_http_core_rewrite_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
     rc = ph->handler(r);
 
 	//如果handler方法返回NGX_DECLINED，那么将进入下一个处理方法，这个处理方法既可能属于当前阶段，也可能属于下一个阶段
+	//注意，此时返回的是NGX_AGAIN，HTTP框架不会把控制权交还给事件框架，而是继续执行请求的下一个回调方法。
     if (rc == NGX_DECLINED) {
         r->phase_handler++;
         return NGX_AGAIN;
     }
 
 	//如果handler方法返回NGX_DONE，那么当前请求将仍然停留在这一个处理阶段中
-    if (rc == NGX_DONE) {
+	//如果handler方法返回NGX_DONE，则意味着刚才的handler方法无法在这一次调度中处理完这一个阶段，它需要多次的调度才能完成。
+	//注意，此时返回NGX_OK，HTTP框架立刻把控制权交还给事件模块，不再处理当前请求，唯有这个请求上的事件再次被触发时才会继续执行
+    if (rc == NGX_DONE) {	//phase_handler没有发生变化，因此如果该请求的事件再次触发，还会接着上次的handler执行
         return NGX_OK;
     }
 
@@ -1874,7 +1880,8 @@ ngx_http_core_rewrite_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
 
 
 /*
-根据NGX_HTTP_SERVER_REWRITE_PHASE阶段重写后的URI检索出匹配的location块
+根据NGX_HTTP_SERVER_REWRITE_PHASE阶段重写后的URI检索出匹配的location块(即进行location定位)
+其原理为从location组成的静态二叉查找树中快速检索，
 */
 ngx_int_t
 ngx_http_core_find_config_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
@@ -1884,8 +1891,8 @@ ngx_http_core_find_config_phase(ngx_http_request_t *r, ngx_http_phase_handler_t 
     ngx_int_t                  rc;
     ngx_http_core_loc_conf_t  *clcf;
 
-    r->content_handler = NULL;
-    r->uri_changed = 0;
+    r->content_handler = NULL;	//XXX:
+    r->uri_changed = 0;			//XXX:find_config阶段重置该值，rewrite阶段会修改该值，post_rewrite阶段判断该值
 
     rc = ngx_http_core_find_location(r);
 
@@ -1896,6 +1903,7 @@ ngx_http_core_find_config_phase(ngx_http_request_t *r, ngx_http_phase_handler_t 
 
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
+	//internal location can only be used for internal requests
     if (!r->internal && clcf->internal) {
         ngx_http_finalize_request(r, NGX_HTTP_NOT_FOUND);
         return NGX_OK;
@@ -1907,7 +1915,7 @@ ngx_http_core_find_config_phase(ngx_http_request_t *r, ngx_http_phase_handler_t 
 
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http cl:%O max:%O", r->headers_in.content_length_n, clcf->client_max_body_size);
 
-    if (r->headers_in.content_length_n != -1
+    if (r->headers_in.content_length_n != -1	//XXX: ???
         && !r->discard_body
         && clcf->client_max_body_size
         && clcf->client_max_body_size < r->headers_in.content_length_n)
@@ -1920,8 +1928,10 @@ ngx_http_core_find_config_phase(ngx_http_request_t *r, ngx_http_phase_handler_t 
         return NGX_OK;
     }
 
-    if (rc == NGX_DONE) {
-        ngx_http_clear_location(r);
+    if (rc == NGX_DONE) {	//XXX: auto redirect,需要进行重定向。下面就给客户端返回301，带上正确的location头部
+		//XXX:(1)增加一个location头
+		
+		ngx_http_clear_location(r);
 
         r->headers_out.location = ngx_list_push(&r->headers_out.headers);
         if (r->headers_out.location == NULL) {
@@ -1929,16 +1939,17 @@ ngx_http_core_find_config_phase(ngx_http_request_t *r, ngx_http_phase_handler_t 
             return NGX_OK;
         }
 
+		//XXX:(2)设置location头字段的值
         r->headers_out.location->hash = 1;
         ngx_str_set(&r->headers_out.location->key, "Location");
 
-        if (r->args.len == 0) {
+        if (r->args.len == 0) {	//XXX: 如果客户端请求没用带参数，比如请求是: GET /AAA/BBB/
             r->headers_out.location->value = clcf->name;
 
-        } else {
+        } else {	//XXX:如果客户端请求有带参数，比如请求是: GET /AAA/BBB/?query=word，则需要将参数也带在location后面
             len = clcf->name.len + 1 + r->args.len;
+			
             p = ngx_pnalloc(r->pool, len);
-
             if (p == NULL) {
                 ngx_http_clear_location(r);
                 ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
@@ -1953,15 +1964,21 @@ ngx_http_core_find_config_phase(ngx_http_request_t *r, ngx_http_phase_handler_t 
             ngx_memcpy(p, r->args.data, r->args.len);
         }
 
+		//XXX:(3)发送重定向响应？
         ngx_http_finalize_request(r, NGX_HTTP_MOVED_PERMANENTLY);
         return NGX_OK;
     }
 
-    r->phase_handler++;
+	/* rc == NGX_OK || rc == NGX_AGAIN || rc == NGX_DECLINED */
+
+    r->phase_handler++;	//XXX: rc == NGX_DECLINED 没有匹配的location也继续执行不反回错误么？
     return NGX_AGAIN;
 }
 
 
+//内部重定向是从NGX_HTTP_SERVER_REWRITE_PHASE处继续执行(ngx_http_internal_redirect)，
+//而重新rewrite是从NGX_HTTP_FIND_CONFIG_PHASE处执行(ngx_http_core_post_rewrite_phase)
+//检查rewrite重写URL的次数不可以超过10 次， 以此防止由于rewrite死循环而造成整个Nginx服务都不可用
 ngx_int_t
 ngx_http_core_post_rewrite_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
 {
@@ -1969,6 +1986,7 @@ ngx_http_core_post_rewrite_phase(ngx_http_request_t *r, ngx_http_phase_handler_t
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "post rewrite phase: %ui", r->phase_handler);
 
+	//XXX: NGX_HTTP_REWRITE_PHASE阶段没有改变uri(重定向)，将进入下一个阶段处理
     if (!r->uri_changed) {
         r->phase_handler++;
         return NGX_AGAIN;
@@ -1985,17 +2003,16 @@ ngx_http_core_post_rewrite_phase(ngx_http_request_t *r, ngx_http_phase_handler_t
 
     r->uri_changes--;
 
-    if (r->uri_changes == 0) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                      "rewrite or internal redirection cycle "
-                      "while processing \"%V\"", &r->uri);
+    if (r->uri_changes == 0) {	//XXX: 重定向超过10次了，中断请求
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "rewrite or internal redirection cycle " "while processing \"%V\"", &r->uri);
 
         ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
         return NGX_OK;
     }
 
-    r->phase_handler = ph->next;
+    r->phase_handler = ph->next;	//直接跳转到NGX_HTTP_FIND_CONFIG_PHASE阶段(参看ngx_http_init_phase_handlers)
 
+	//XXX:为什么要修改为server{}的loc配置 ？？？
     cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
     r->loc_conf = cscf->ctx->loc_conf;
 
@@ -2003,12 +2020,30 @@ ngx_http_core_post_rewrite_phase(ngx_http_request_t *r, ngx_http_phase_handler_t
 }
 
 
+/*
+NGX_HTTP_ACCESS_PHASE阶段下HTTP模块的ngx_http_handler_pt方法返回值意义
+NGX_OK:
+	在nginx．conf中配置了satisfy all，那么将按照顺序执行下一个ngx_http_handler_pt处理方法：
+	如果在nginx.conf中配置了satisfy any，那么将执行下一个ngx_http_phases阶段中的第一个ngx_http_handler_pt处理方法
+NGX DECLINED:
+	按照顺序执行下一个ngx_http_handler_pt处理方法
+NGX_AGAIN, NGX DONE:
+	当前的ngx_http_handler_pt处理方法尚未绪束，这意味着该处理方法在当前阶段中有机会再次被调用。
+	这时会把控制权交还给事件模块，下次可写事件发生时会再次执行到该ngx_http_handler_pt处理方法
+NGX HTTP FORBIDDEN, NGX HTTP UNAUTHORIZED:
+	如果在nginx.conf中配置了satisfy any，那么将ngx_http_request_t中的access code成员设为返回值，按照顺序执行下一个ngx_http_handler_pt处理方法；
+	如果在nginx.conf中配置了satisfy all，那么调用ngx_http_finalize_request结束请求 
+NGX ERROR, NGX_HTTP_:
+	调用ngx_http_finalize_request结束请求
+*/
 ngx_int_t
 ngx_http_core_access_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
 {
     ngx_int_t                  rc;
     ngx_http_core_loc_conf_t  *clcf;
 
+	//NGX_HTTP_ACCESS_PHASE阶段用于控制客户端是否有权限访问服务，
+	//子请求时服务内部自己发出的，不必要对其访问权限做检查
     if (r != r->main) {
         r->phase_handler = ph->next;
         return NGX_AGAIN;
@@ -2018,39 +2053,45 @@ ngx_http_core_access_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
 
     rc = ph->handler(r);
 
-    if (rc == NGX_DECLINED) {
+	//如果handler方法返回NGX_DECLINED，那么将进入下一个处理方法，这个处理方法既可能属于当前阶段，也可能属于下一个阶段
+    if (rc == NGX_DECLINED) {	//XXX:返回值NGX_DECLINED什么语义？
         r->phase_handler++;
         return NGX_AGAIN;
     }
 
+	//如果handler方法返回NGX_AGAIN或者NGX_DONE，那么当前请求将仍然停留在这一个处理阶段中
+	//如果handler方法返回NGX_AGAIN或者NGX_DONE，则意味着刚才的handler方法无法在这一次调度中处理完这一个阶段，它需要多次的调度才能完成。
+	//注意，此时返回NGX_OK，HTTP框架立刻把控制权交还给事件模块，不再处理当前请求，唯有这个请求上的事件再次被触发时才会继续执行
     if (rc == NGX_AGAIN || rc == NGX_DONE) {
         return NGX_OK;
     }
 
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
-    if (clcf->satisfy == NGX_HTTP_SATISFY_ALL) {
+    if (clcf->satisfy == NGX_HTTP_SATISFY_ALL) {	//必须NGX_HTTP_ACCESS_PHASE阶段的所有handler都返回NGX_OK才算具有权限访问
 
         if (rc == NGX_OK) {
             r->phase_handler++;
             return NGX_AGAIN;
         }
 
-    } else {
+    } else {	//只要NGX_HTTP_ACCESS_PHASE阶段的handler有一个返回NGX_OK就具有权限访问
         if (rc == NGX_OK) {
+			//如果satisfy为ANY且handler方法返回NGX OK，
+			//之后将进入下一个阶段处理，而不会理会当前阶段中是否还有其他的处理方法
             r->access_code = 0;
 
-            if (r->headers_out.www_authenticate) {
+            if (r->headers_out.www_authenticate) {	//XXX:这是干嘛？
                 r->headers_out.www_authenticate->hash = 0;
             }
 
-            r->phase_handler = ph->next;
+            r->phase_handler = ph->next;	//直接跳转到NGX_HTTP_PRECONTENT_PHASE阶段(参看ngx_http_init_phase_handlers)
             return NGX_AGAIN;
         }
 
         if (rc == NGX_HTTP_FORBIDDEN || rc == NGX_HTTP_UNAUTHORIZED) {
-            if (r->access_code != NGX_HTTP_UNAUTHORIZED) {
-                r->access_code = rc;
+            if (r->access_code != NGX_HTTP_UNAUTHORIZED) {	//XXX: 为什么需要判断，直接赋值不行么？ 优先级比较：NGX_HTTP_UNAUTHORIZED > NGX_HTTP_FORBIDDEN
+                r->access_code = rc;	//XXX：将request的access_code成员设置为handler方法的返回值，用于传递当前HTTP模块的处理结果
             }
 
             r->phase_handler++;
@@ -2065,21 +2106,22 @@ ngx_http_core_access_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
 }
 
 
+/*
+检查ngx_http_request_t请求中的access_code成员，当其不为0时就结束请求（表示没有访问权限），
+否则继续执行下一个ngx_http_handler_pt处理方法
+*/
 ngx_int_t
-ngx_http_core_post_access_phase(ngx_http_request_t *r,
-    ngx_http_phase_handler_t *ph)
+ngx_http_core_post_access_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
 {
     ngx_int_t  access_code;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "post access phase: %ui", r->phase_handler);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "post access phase: %ui", r->phase_handler);
 
     access_code = r->access_code;
 
     if (access_code) {
         if (access_code == NGX_HTTP_FORBIDDEN) {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                          "access forbidden by rule");
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "access forbidden by rule");
         }
 
         r->access_code = 0;
@@ -2206,11 +2248,12 @@ ngx_http_update_location_config(ngx_http_request_t *r)
         r->connection->tcp_nopush = NGX_TCP_NOPUSH_DISABLED;
     }
 
-    if (r->limit_rate == 0) {
+    if (r->limit_rate == 0) {	//XXX:为什么仅在原始limit_rate为0时才做修改
         r->limit_rate = clcf->limit_rate;
     }
 
-    if (clcf->handler) {
+	//XXX:为什么在新的clcf->handler为NULL时不修改原始的r->content_handler，从而可以直接执行content阶段？？？
+    if (clcf->handler) {	
         r->content_handler = clcf->handler;
     }
 }
@@ -2223,7 +2266,6 @@ ngx_http_update_location_config(ngx_http_request_t *r)
  * NGX_ERROR    - regex error
  * NGX_DECLINED - no match
  */
-
 static ngx_int_t
 ngx_http_core_find_location(ngx_http_request_t *r)
 {
@@ -2457,8 +2499,7 @@ ngx_http_set_content_type(ngx_http_request_t *r)
             hash = ngx_hash(hash, c);
         }
 
-        type = ngx_hash_find(&clcf->types_hash, hash,
-                             r->exten.data, r->exten.len);
+        type = ngx_hash_find(&clcf->types_hash, hash, r->exten.data, r->exten.len);
 
         if (type) {
             r->headers_out.content_type_len = type->len;
@@ -2693,6 +2734,7 @@ ngx_http_output_filter(ngx_http_request_t *r, ngx_chain_t *in)
 }
 
 
+//请求的http协议的路径转化成一个文件系统的路径
 u_char *
 ngx_http_map_uri_to_path(ngx_http_request_t *r, ngx_str_t *path, size_t *root_length, size_t reserved)
 {
@@ -2722,7 +2764,7 @@ ngx_http_map_uri_to_path(ngx_http_request_t *r, ngx_str_t *path, size_t *root_le
 
         last = ngx_copy(path->data, clcf->root.data, clcf->root.len);
 
-    } else {
+    } else {	//
 
         if (alias == NGX_MAX_SIZE_T_VALUE) {
             reserved += r->add_uri_to_alias ? r->uri.len + 1 : 1;
@@ -3293,6 +3335,8 @@ ngx_http_subrequest(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *args,
 }
 
 
+//internal redirect(内部重定向)是从NGX_HTTP_SERVER_REWRITE_PHASE处继续执行(ngx_http_internal_redirect)，
+//而重新rewrite是从NGX_HTTP_FIND_CONFIG_PHASE处执行(ngx_http_core_post_rewrite_phase)
 ngx_int_t
 ngx_http_internal_redirect(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *args)
 {
@@ -3355,17 +3399,14 @@ ngx_http_named_location(ngx_http_request_t *r, ngx_str_t *name)
     r->uri_changes--;
 
     if (r->uri_changes == 0) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                      "rewrite or internal redirection cycle "
-                      "while redirect to named location \"%V\"", name);
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "rewrite or internal redirection cycle " "while redirect to named location \"%V\"", name);
 
         ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
         return NGX_DONE;
     }
 
     if (r->uri.len == 0) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                      "empty URI in redirect to named location \"%V\"", name);
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "empty URI in redirect to named location \"%V\"", name);
 
         ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
         return NGX_DONE;
@@ -3377,18 +3418,13 @@ ngx_http_named_location(ngx_http_request_t *r, ngx_str_t *name)
 
         for (clcfp = cscf->named_locations; *clcfp; clcfp++) {
 
-            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                           "test location: \"%V\"", &(*clcfp)->name);
+            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "test location: \"%V\"", &(*clcfp)->name);
 
-            if (name->len != (*clcfp)->name.len
-                || ngx_strncmp(name->data, (*clcfp)->name.data, name->len) != 0)
-            {
+            if (name->len != (*clcfp)->name.len || ngx_strncmp(name->data, (*clcfp)->name.data, name->len) != 0) {
                 continue;
             }
 
-            ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                           "using location: %V \"%V?%V\"",
-                           name, &r->uri, &r->args);
+            ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "using location: %V \"%V?%V\"", name, &r->uri, &r->args);
 
             r->internal = 1;
             r->content_handler = NULL;
@@ -3411,8 +3447,7 @@ ngx_http_named_location(ngx_http_request_t *r, ngx_str_t *name)
         }
     }
 
-    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                  "could not find named location \"%V\"", name);
+    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "could not find named location \"%V\"", name);
 
     ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
 
@@ -4446,9 +4481,7 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_conf_merge_off_value(conf->client_max_body_size,
                               prev->client_max_body_size, 1 * 1024 * 1024);
-    ngx_conf_merge_size_value(conf->client_body_buffer_size,
-                              prev->client_body_buffer_size,
-                              (size_t) 2 * ngx_pagesize);
+    ngx_conf_merge_size_value(conf->client_body_buffer_size, prev->client_body_buffer_size, (size_t) 2 * ngx_pagesize);
     ngx_conf_merge_msec_value(conf->client_body_timeout,
                               prev->client_body_timeout, 60000);
 
@@ -4498,8 +4531,7 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
                               prev->keepalive_timeout, 75000);
     ngx_conf_merge_sec_value(conf->keepalive_header,
                               prev->keepalive_header, 0);
-    ngx_conf_merge_uint_value(conf->keepalive_requests,
-                              prev->keepalive_requests, 100);
+    ngx_conf_merge_uint_value(conf->keepalive_requests, prev->keepalive_requests, 100);
     ngx_conf_merge_uint_value(conf->lingering_close,
                               prev->lingering_close, NGX_HTTP_LINGERING_ON);
     ngx_conf_merge_msec_value(conf->lingering_time,
@@ -5161,14 +5193,14 @@ ngx_http_core_limit_except(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             }
         }
 
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid method \"%V\"", &value[i]);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid method \"%V\"", &value[i]);
         return NGX_CONF_ERROR;
 
     next:
         continue;
     }
 
+	//Allowing the GET method makes the HEAD method also allowed. 
     if (!(pclcf->limit_except & NGX_HTTP_GET)) {
         pclcf->limit_except &= (uint32_t) ~NGX_HTTP_HEAD;
     }

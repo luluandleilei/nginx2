@@ -262,7 +262,7 @@ typedef struct {
     ngx_table_elt_t                  *date;
     ngx_table_elt_t                  *content_length;
     ngx_table_elt_t                  *content_encoding;
-    ngx_table_elt_t                  *location;
+    ngx_table_elt_t                  *location;		//指向headers_out列表中的location元素，便于快速访问
     ngx_table_elt_t                  *refresh;
     ngx_table_elt_t                  *last_modified;
     ngx_table_elt_t                  *content_range;
@@ -473,7 +473,7 @@ struct ngx_http_request_s {
 	//Index of current request phase.
     ngx_int_t                         phase_handler;	
     ngx_http_handler_pt               content_handler;
-    ngx_uint_t                        access_code;
+    ngx_uint_t                        access_code;	//XXX：记录request在NGX_HTTP_ACCESS_PHASE阶段的处理结果
 
     ngx_http_variable_value_t        *variables;	//XXX:缓存所有被索引的变量的值
 
@@ -583,7 +583,7 @@ struct ngx_http_request_s {
      * ngx_http_limit_conn_module and ngx_http_limit_req_module
      * we use the single bits in the request structure
      */
-    unsigned                          limit_conn_set:1;
+    unsigned                          limit_conn_set:1;	//XXX:为什么要这样做？不直接用request context data？是因为重定向后会清除request context data吗？
     unsigned                          limit_req_set:1;
 
 #if 0

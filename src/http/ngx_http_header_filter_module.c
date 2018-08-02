@@ -139,18 +139,13 @@ static ngx_str_t ngx_http_status_lines[] = {
 ngx_http_header_out_t  ngx_http_headers_out[] = {
     { ngx_string("Server"), offsetof(ngx_http_headers_out_t, server) },
     { ngx_string("Date"), offsetof(ngx_http_headers_out_t, date) },
-    { ngx_string("Content-Length"),
-                 offsetof(ngx_http_headers_out_t, content_length) },
-    { ngx_string("Content-Encoding"),
-                 offsetof(ngx_http_headers_out_t, content_encoding) },
+    { ngx_string("Content-Length"), offsetof(ngx_http_headers_out_t, content_length) },
+    { ngx_string("Content-Encoding"), offsetof(ngx_http_headers_out_t, content_encoding) },
     { ngx_string("Location"), offsetof(ngx_http_headers_out_t, location) },
-    { ngx_string("Last-Modified"),
-                 offsetof(ngx_http_headers_out_t, last_modified) },
-    { ngx_string("Accept-Ranges"),
-                 offsetof(ngx_http_headers_out_t, accept_ranges) },
+    { ngx_string("Last-Modified"), offsetof(ngx_http_headers_out_t, last_modified) },
+    { ngx_string("Accept-Ranges"), offsetof(ngx_http_headers_out_t, accept_ranges) },
     { ngx_string("Expires"), offsetof(ngx_http_headers_out_t, expires) },
-    { ngx_string("Cache-Control"),
-                 offsetof(ngx_http_headers_out_t, cache_control) },
+    { ngx_string("Cache-Control"), offsetof(ngx_http_headers_out_t, cache_control) },
     { ngx_string("ETag"), offsetof(ngx_http_headers_out_t, etag) },
 
     { ngx_null_string, 0 }
@@ -519,13 +514,11 @@ ngx_http_header_filter(ngx_http_request_t *r)
     }
 
     if (r->chunked) {
-        b->last = ngx_cpymem(b->last, "Transfer-Encoding: chunked" CRLF,
-                             sizeof("Transfer-Encoding: chunked" CRLF) - 1);
+        b->last = ngx_cpymem(b->last, "Transfer-Encoding: chunked" CRLF, sizeof("Transfer-Encoding: chunked" CRLF) - 1);
     }
 
     if (r->headers_out.status == NGX_HTTP_SWITCHING_PROTOCOLS) {
-        b->last = ngx_cpymem(b->last, "Connection: upgrade" CRLF,
-                             sizeof("Connection: upgrade" CRLF) - 1);
+        b->last = ngx_cpymem(b->last, "Connection: upgrade" CRLF, sizeof("Connection: upgrade" CRLF) - 1);
 
     } else if (r->keepalive) {
         b->last = ngx_cpymem(b->last, "Connection: keep-alive" CRLF,

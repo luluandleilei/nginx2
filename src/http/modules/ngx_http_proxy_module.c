@@ -3396,17 +3396,13 @@ ngx_http_proxy_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_conf_merge_ptr_value(conf->cookie_paths, prev->cookie_paths, NULL);
 
-    ngx_conf_merge_uint_value(conf->http_version, prev->http_version,
-                              NGX_HTTP_VERSION_10);
+    ngx_conf_merge_uint_value(conf->http_version, prev->http_version, NGX_HTTP_VERSION_10);
 
-    ngx_conf_merge_uint_value(conf->headers_hash_max_size,
-                              prev->headers_hash_max_size, 512);
+    ngx_conf_merge_uint_value(conf->headers_hash_max_size, prev->headers_hash_max_size, 512);
 
-    ngx_conf_merge_uint_value(conf->headers_hash_bucket_size,
-                              prev->headers_hash_bucket_size, 64);
+    ngx_conf_merge_uint_value(conf->headers_hash_bucket_size, prev->headers_hash_bucket_size, 64);
 
-    conf->headers_hash_bucket_size = ngx_align(conf->headers_hash_bucket_size,
-                                               ngx_cacheline_size);
+    conf->headers_hash_bucket_size = ngx_align(conf->headers_hash_bucket_size, ngx_cacheline_size);
 
     hash.max_size = conf->headers_hash_max_size;
     hash.bucket_size = conf->headers_hash_bucket_size;
@@ -3421,9 +3417,7 @@ ngx_http_proxy_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
 
-    if (clcf->noname
-        && conf->upstream.upstream == NULL && conf->proxy_lengths == NULL)
-    {
+    if (clcf->noname && conf->upstream.upstream == NULL && conf->proxy_lengths == NULL) {
         conf->upstream.upstream = prev->upstream.upstream;
         conf->location = prev->location;
         conf->vars = prev->vars;
@@ -3436,7 +3430,7 @@ ngx_http_proxy_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 #endif
     }
 
-    if (clcf->lmt_excpt && clcf->handler == NULL && (conf->upstream.upstream || conf->proxy_lengths)) {
+    if (clcf->lmt_excpt && clcf->handler == NULL && (conf->upstream.upstream || conf->proxy_lengths)) {	//XXX： ？
         clcf->handler = ngx_http_proxy_handler;
     }
 
@@ -3472,8 +3466,7 @@ ngx_http_proxy_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
         conf->headers_source = prev->headers_source;
     }
 
-    rc = ngx_http_proxy_init_headers(cf, conf, &conf->headers,
-                                     ngx_http_proxy_headers);
+    rc = ngx_http_proxy_init_headers(cf, conf, &conf->headers, ngx_http_proxy_headers);
     if (rc != NGX_OK) {
         return NGX_CONF_ERROR;
     }

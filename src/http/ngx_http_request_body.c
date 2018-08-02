@@ -90,8 +90,7 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_ha
 
         /* there is the pre-read part of the request body */
 
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "http client request body preread %uz", preread);
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http client request body preread %uz", preread);
 
         out.buf = r->header_in;
         out.next = NULL;
@@ -148,8 +147,7 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_ha
     }
 
     if (rb->rest < 0) {
-        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
-                      "negative request body rest");
+        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0, "negative request body rest");
         rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
         goto done;
     }
@@ -185,9 +183,7 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_ha
 
 done:
 
-    if (r->request_body_no_buffering
-        && (rc == NGX_OK || rc == NGX_AGAIN))
-    {
+    if (r->request_body_no_buffering && (rc == NGX_OK || rc == NGX_AGAIN)) {
         if (rc == NGX_OK) {
             r->request_body_no_buffering = 0;
 
@@ -818,18 +814,14 @@ ngx_http_test_expect(ngx_http_request_t *r)
     expect = &r->headers_in.expect->value;
 
     if (expect->len != sizeof("100-continue") - 1
-        || ngx_strncasecmp(expect->data, (u_char *) "100-continue",
-                           sizeof("100-continue") - 1)
-           != 0)
+			|| ngx_strncasecmp(expect->data, (u_char *) "100-continue", sizeof("100-continue") - 1) != 0)
     {
         return NGX_OK;
     }
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "send 100 Continue");
 
-    n = r->connection->send(r->connection,
-                            (u_char *) "HTTP/1.1 100 Continue" CRLF CRLF,
-                            sizeof("HTTP/1.1 100 Continue" CRLF CRLF) - 1);
+    n = r->connection->send(r->connection, (u_char *) "HTTP/1.1 100 Continue" CRLF CRLF, sizeof("HTTP/1.1 100 Continue" CRLF CRLF) - 1);
 
     if (n == sizeof("HTTP/1.1 100 Continue" CRLF CRLF) - 1) {
         return NGX_OK;

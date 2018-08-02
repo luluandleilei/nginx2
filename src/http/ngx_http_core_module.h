@@ -400,7 +400,7 @@ struct ngx_http_core_loc_conf_s {
 #endif
 
     unsigned      noname:1;   		/* "if () {}" block or limit_except */
-    unsigned      lmt_excpt:1;
+    unsigned      lmt_excpt:1;		//XXX: 表示这是一个limit_except location
     unsigned      named:1;			//XXX:the named location
 
     unsigned      exact_match:1;	//XXX:the exact location
@@ -422,8 +422,8 @@ struct ngx_http_core_loc_conf_s {
 	//它保存着当前location块内所有HTTP模块create_loc_conf方法产生的结构体指针
     void        **loc_conf;		
 
-    uint32_t      limit_except;
-    void        **limit_except_loc_conf;
+    uint32_t      limit_except;	//XXX:表示该location下limit_except 对应的location允许访问的方法
+    void        **limit_except_loc_conf;	//XXX：表示该location下的limit_except对应的location ctx
 
     ngx_http_handler_pt  handler;
 
@@ -443,7 +443,8 @@ struct ngx_http_core_loc_conf_s {
     off_t         directio;                /* directio */
     off_t         directio_alignment;      /* directio_alignment */
 
-    size_t        client_body_buffer_size; /* client_body_buffer_size */	//Sets buffer size for reading client request body.
+	//the buffer size for reading client request body.
+    size_t        client_body_buffer_size; /* client_body_buffer_size */	
     size_t        send_lowat;              /* send_lowat */
     size_t        postpone_output;         /* postpone_output */
     size_t        limit_rate;              /* limit_rate */
@@ -463,8 +464,11 @@ struct ngx_http_core_loc_conf_s {
 
     time_t        keepalive_header;        /* keepalive_timeout */
 
-    ngx_uint_t    keepalive_requests;      /* keepalive_requests */	//Sets the maximum number of requests that can be served through one keep-alive connection
+	//the maximum number of requests that can be served through one keep-alive connection
+    ngx_uint_t    keepalive_requests;      /* keepalive_requests */	
     ngx_uint_t    keepalive_disable;       /* keepalive_disable */
+	//XXX: Allows access if all (all) or at least one (any) of the ngx_http_access_module, 
+	//ngx_http_auth_basic_module, ngx_http_auth_request_module, or ngx_http_auth_jwt_module modules allow access.
     ngx_uint_t    satisfy;                 /* satisfy */
     ngx_uint_t    lingering_close;         /* lingering_close */
     ngx_uint_t    if_modified_since;       /* if_modified_since */
@@ -472,7 +476,7 @@ struct ngx_http_core_loc_conf_s {
     ngx_uint_t    client_body_in_file_only; /* client_body_in_file_only */
 
     ngx_flag_t    client_body_in_single_buffer; /* client_body_in_singe_buffer */
-	//Specifies that this location can only be used for internal requests
+	//specifies that this location can only be used for internal requests
     ngx_flag_t    internal;                /* internal */
     ngx_flag_t    sendfile;                /* sendfile */
     ngx_flag_t    aio;                     /* aio */
@@ -514,9 +518,9 @@ struct ngx_http_core_loc_conf_s {
 #endif
 
     ngx_array_t  *error_pages;             /* error_page */
-
-    ngx_path_t   *client_body_temp_path;   /* client_body_temp_path */ //a directory for storing temporary files holding client request bodies
-
+	
+	//a directory for storing temporary files holding client request bodies
+    ngx_path_t   *client_body_temp_path;   /* client_body_temp_path */ 
     ngx_open_file_cache_t  *open_file_cache;
     time_t        open_file_cache_valid;
     ngx_uint_t    open_file_cache_min_uses;
@@ -525,8 +529,10 @@ struct ngx_http_core_loc_conf_s {
 
     ngx_log_t    *error_log;
 
-    ngx_uint_t    types_hash_max_size;		//Sets the maximum size of the types hash tables.
-    ngx_uint_t    types_hash_bucket_size;	//Sets the bucket size for the types hash tables.
+	//the maximum size of the types hash tables.
+    ngx_uint_t    types_hash_max_size;
+	//the bucket size for the types hash tables.
+    ngx_uint_t    types_hash_bucket_size;	
 
 	//(1)将同一个server块内多个表达location块的ngx_http_core_loc_conf_t结构体以双向链表方式组织起来，
 	//该location指针指向ngx_http_location_queue_t结构体	
@@ -574,8 +580,7 @@ void ngx_http_core_run_phases(ngx_http_request_t *r);
 ngx_int_t ngx_http_core_generic_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph);
 ngx_int_t ngx_http_core_rewrite_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph);
 ngx_int_t ngx_http_core_find_config_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph);
-ngx_int_t ngx_http_core_post_rewrite_phase(ngx_http_request_t *r,
-    ngx_http_phase_handler_t *ph);
+ngx_int_t ngx_http_core_post_rewrite_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph);
 ngx_int_t ngx_http_core_access_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph);
 ngx_int_t ngx_http_core_post_access_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph);
 ngx_int_t ngx_http_core_content_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph);
@@ -586,8 +591,7 @@ ngx_int_t ngx_http_set_content_type(ngx_http_request_t *r);
 void ngx_http_set_exten(ngx_http_request_t *r);
 ngx_int_t ngx_http_set_etag(ngx_http_request_t *r);
 void ngx_http_weak_etag(ngx_http_request_t *r);
-ngx_int_t ngx_http_send_response(ngx_http_request_t *r, ngx_uint_t status,
-    ngx_str_t *ct, ngx_http_complex_value_t *cv);
+ngx_int_t ngx_http_send_response(ngx_http_request_t *r, ngx_uint_t status, ngx_str_t *ct, ngx_http_complex_value_t *cv);
 u_char *ngx_http_map_uri_to_path(ngx_http_request_t *r, ngx_str_t *name,
     size_t *root_length, size_t reserved);
 ngx_int_t ngx_http_auth_basic_user(ngx_http_request_t *r);
@@ -599,8 +603,7 @@ ngx_int_t ngx_http_gzip_ok(ngx_http_request_t *r);
 ngx_int_t ngx_http_subrequest(ngx_http_request_t *r,
     ngx_str_t *uri, ngx_str_t *args, ngx_http_request_t **sr,
     ngx_http_post_subrequest_t *psr, ngx_uint_t flags);
-ngx_int_t ngx_http_internal_redirect(ngx_http_request_t *r,
-    ngx_str_t *uri, ngx_str_t *args);
+ngx_int_t ngx_http_internal_redirect(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *args);
 ngx_int_t ngx_http_named_location(ngx_http_request_t *r, ngx_str_t *name);
 
 

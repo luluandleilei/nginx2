@@ -673,8 +673,7 @@ ngx_http_send_special_response(ngx_http_request_t *r, ngx_http_core_loc_conf_t *
             && r->http_version >= NGX_HTTP_VERSION_10
             && err >= NGX_HTTP_OFF_4XX)
         {
-            r->headers_out.content_length_n +=
-                                         sizeof(ngx_http_msie_padding) - 1;
+            r->headers_out.content_length_n += sizeof(ngx_http_msie_padding) - 1;
             msie_padding = 1;
         }
 

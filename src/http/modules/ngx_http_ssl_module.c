@@ -932,15 +932,12 @@ ngx_http_ssl_session_cache(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             }
 
             if (n < (ngx_int_t) (8 * ngx_pagesize)) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "session cache \"%V\" is too small",
-                                   &value[i]);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "session cache \"%V\" is too small", &value[i]);
 
                 return NGX_CONF_ERROR;
             }
 
-            sscf->shm_zone = ngx_shared_memory_add(cf, &name, n,
-                                                   &ngx_http_ssl_module);
+            sscf->shm_zone = ngx_shared_memory_add(cf, &name, n, &ngx_http_ssl_module);
             if (sscf->shm_zone == NULL) {
                 return NGX_CONF_ERROR;
             }

@@ -1456,9 +1456,7 @@ ngx_conf_check_num_bounds(ngx_conf_t *cf, void *post, void *data)
             return NGX_CONF_OK;
         }
 
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "value must be equal to or greater than %i",
-                           bounds->low);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "value must be equal to or greater than %i", bounds->low);
 
         return NGX_CONF_ERROR;
     }
@@ -1467,9 +1465,7 @@ ngx_conf_check_num_bounds(ngx_conf_t *cf, void *post, void *data)
         return NGX_CONF_OK;
     }
 
-    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                       "value must be between %i and %i",
-                       bounds->low, bounds->high);
+    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "value must be between %i and %i", bounds->low, bounds->high);
 
     return NGX_CONF_ERROR;
 }

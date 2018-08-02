@@ -25,7 +25,7 @@ typedef struct {
 
 
 typedef struct {
-    ngx_rbtree_t              *rbtree;
+    ngx_rbtree_t              *rbtree;	//XXX: 指向共享内存中红黑树的头结点
     ngx_http_complex_value_t   key;
 } ngx_http_limit_conn_ctx_t;
 
@@ -37,24 +37,21 @@ typedef struct {
 
 
 typedef struct {
-    ngx_array_t                limits;
+    ngx_array_t                limits;		/* array of ngx_http_limit_conn_limit_t */
     ngx_uint_t                 log_level;
-    ngx_uint_t                 status_code;
+	//the status code to return in response to rejected requests
+    ngx_uint_t                 status_code;	
 } ngx_http_limit_conn_conf_t;
 
 
-static ngx_rbtree_node_t *ngx_http_limit_conn_lookup(ngx_rbtree_t *rbtree,
-    ngx_str_t *key, uint32_t hash);
+static ngx_rbtree_node_t *ngx_http_limit_conn_lookup(ngx_rbtree_t *rbtree, ngx_str_t *key, uint32_t hash);
 static void ngx_http_limit_conn_cleanup(void *data);
 static ngx_inline void ngx_http_limit_conn_cleanup_all(ngx_pool_t *pool);
 
 static void *ngx_http_limit_conn_create_conf(ngx_conf_t *cf);
-static char *ngx_http_limit_conn_merge_conf(ngx_conf_t *cf, void *parent,
-    void *child);
-static char *ngx_http_limit_conn_zone(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
-static char *ngx_http_limit_conn(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+static char *ngx_http_limit_conn_merge_conf(ngx_conf_t *cf, void *parent, void *child);
+static char *ngx_http_limit_conn_zone(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *ngx_http_limit_conn(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static ngx_int_t ngx_http_limit_conn_init(ngx_conf_t *cf);
 
 
@@ -74,6 +71,30 @@ static ngx_conf_num_bounds_t  ngx_http_limit_conn_status_bounds = {
 
 static ngx_command_t  ngx_http_limit_conn_commands[] = {
 
+	/*
+	 Syntax:	limit_conn_zone key zone=name:size;
+	 Default:	—
+	 Context:	http
+	
+	 Sets parameters for a shared memory zone that will keep states for various keys. 
+	 In particular, the state includes the current number of connections. 
+	 The key can contain text, variables, and their combination. 
+	 Requests with an empty key value are not accounted.
+
+	 Prior to version 1.7.6, a key could contain exactly one variable.
+
+	 Usage example:		
+		limit_conn_zone $binary_remote_addr zone=addr:10m;
+		
+	 Here, a client IP address serves as a key. 
+	 Note that instead of $remote_addr, the $binary_remote_addr variable is used here. 
+	 The $remote_addr variable’s size can vary from 7 to 15 bytes. 
+	 The stored state occupies either 32 or 64 bytes of memory on 32-bit platforms and always 64 bytes on 64-bit platforms. 
+	 The $binary_remote_addr variable’s size is always 4 bytes for IPv4 addresses or 16 bytes for IPv6 addresses. 
+	 The stored state always occupies 32 or 64 bytes on 32-bit platforms and 64 bytes on 64-bit platforms. 
+	 One megabyte zone can keep about 32 thousand 32-byte states or about 16 thousand 64-byte states. 
+	 If the zone storage is exhausted, the server will return the error to all further requests.
+	*/
     { ngx_string("limit_conn_zone"),
       NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE2,
       ngx_http_limit_conn_zone,
@@ -81,6 +102,39 @@ static ngx_command_t  ngx_http_limit_conn_commands[] = {
       0,
       NULL },
 
+	/*
+	 Syntax:	limit_conn zone number;
+	 Default:	—
+	 Context:	http, server, location
+	 
+	 Sets the shared memory zone and the maximum allowed number of connections for a given key value. 
+	 When this limit is exceeded, the server will return the error in reply to a request. 
+
+	 For example, the directives
+		limit_conn_zone $binary_remote_addr zone=addr:10m;
+
+		server {
+		    location /download/ {
+		        limit_conn addr 1;
+		}
+		
+	 allow only one connection per an IP address at a time.
+
+	 In HTTP/2 and SPDY, each concurrent request is considered a separate connection.
+	 
+	 There could be several limit_conn directives. 
+	 For example, the following configuration will limit the number of connections to the server per a client IP and, 
+	 at the same time, the total number of connections to the virtual server:
+		limit_conn_zone $binary_remote_addr zone=perip:10m;
+		limit_conn_zone $server_name zone=perserver:10m;
+
+		server {
+		    ...
+		    limit_conn perip 10;
+		    limit_conn perserver 100;
+		}
+	 These directives are inherited from the previous level if and only if there are no limit_conn directives on the current level.
+	*/
     { ngx_string("limit_conn"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE2,
       ngx_http_limit_conn,
@@ -88,6 +142,14 @@ static ngx_command_t  ngx_http_limit_conn_commands[] = {
       0,
       NULL },
 
+	/*
+	 Syntax:	limit_conn_log_level info | notice | warn | error;
+	 Default: limit_conn_log_level error;
+	 Context:	http, server, location
+	 This directive appeared in version 0.8.18.
+
+	 Sets the desired logging level for cases when the server limits the number of connections.
+	*/
     { ngx_string("limit_conn_log_level"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_enum_slot,
@@ -95,6 +157,14 @@ static ngx_command_t  ngx_http_limit_conn_commands[] = {
       offsetof(ngx_http_limit_conn_conf_t, log_level),
       &ngx_http_limit_conn_log_levels },
 
+	/*
+	 Syntax:	limit_conn_status code;
+	 Default: 	limit_conn_status 503;
+	 Context:	http, server, location
+	 This directive appeared in version 1.3.15.
+
+	 Sets the status code to return in response to rejected requests.
+	*/
     { ngx_string("limit_conn_status"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_num_slot,
@@ -121,6 +191,13 @@ static ngx_http_module_t  ngx_http_limit_conn_module_ctx = {
 };
 
 
+/*
+The ngx_http_limit_conn_module module is used to limit the number of connections per the defined key, 
+in particular, the number of connections from a single IP address.
+
+Not all connections are counted. A connection is counted only if it has a request being processed by 
+the server and the whole request header has already been read.
+*/
 ngx_module_t  ngx_http_limit_conn_module = {
     NGX_MODULE_V1,
     &ngx_http_limit_conn_module_ctx,       /* module context */
@@ -172,10 +249,8 @@ ngx_http_limit_conn_handler(ngx_http_request_t *r)
         }
 
         if (key.len > 255) {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                          "the value of the \"%V\" key "
-                          "is more than 255 bytes: \"%V\"",
-                          &ctx->key.value, &key);
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "the value of the \"%V\" key " 
+				"is more than 255 bytes: \"%V\"", &ctx->key.value, &key);
             continue;
         }
 
@@ -191,9 +266,7 @@ ngx_http_limit_conn_handler(ngx_http_request_t *r)
 
         if (node == NULL) {
 
-            n = offsetof(ngx_rbtree_node_t, color)
-                + offsetof(ngx_http_limit_conn_node_t, data)
-                + key.len;
+            n = offsetof(ngx_rbtree_node_t, color) + offsetof(ngx_http_limit_conn_node_t, data) + key.len;
 
             node = ngx_slab_alloc_locked(shpool, n);
 
@@ -220,9 +293,7 @@ ngx_http_limit_conn_handler(ngx_http_request_t *r)
 
                 ngx_shmtx_unlock(&shpool->mutex);
 
-                ngx_log_error(lccf->log_level, r->connection->log, 0,
-                              "limiting connections by zone \"%V\"",
-                              &limits[i].shm_zone->shm.name);
+                ngx_log_error(lccf->log_level, r->connection->log, 0, "limiting connections by zone \"%V\"", &limits[i].shm_zone->shm.name);
 
                 ngx_http_limit_conn_cleanup_all(r->pool);
                 return lccf->status_code;
@@ -231,13 +302,11 @@ ngx_http_limit_conn_handler(ngx_http_request_t *r)
             lc->conn++;
         }
 
-        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "limit conn: %08Xi %d", node->key, lc->conn);
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "limit conn: %08Xi %d", node->key, lc->conn);
 
         ngx_shmtx_unlock(&shpool->mutex);
 
-        cln = ngx_pool_cleanup_add(r->pool,
-                                   sizeof(ngx_http_limit_conn_cleanup_t));
+        cln = ngx_pool_cleanup_add(r->pool, sizeof(ngx_http_limit_conn_cleanup_t));
         if (cln == NULL) {
             return NGX_HTTP_INTERNAL_SERVER_ERROR;
         }
@@ -393,9 +462,7 @@ ngx_http_limit_conn_init_zone(ngx_shm_zone_t *shm_zone, void *data)
 
     if (octx) {
         if (ctx->key.value.len != octx->key.value.len
-            || ngx_strncmp(ctx->key.value.data, octx->key.value.data,
-                           ctx->key.value.len)
-               != 0)
+            || ngx_strncmp(ctx->key.value.data, octx->key.value.data, ctx->key.value.len) != 0)
         {
             ngx_log_error(NGX_LOG_EMERG, shm_zone->shm.log, 0,
                           "limit_conn_zone \"%V\" uses the \"%V\" key "
@@ -430,8 +497,7 @@ ngx_http_limit_conn_init_zone(ngx_shm_zone_t *shm_zone, void *data)
         return NGX_ERROR;
     }
 
-    ngx_rbtree_init(ctx->rbtree, sentinel,
-                    ngx_http_limit_conn_rbtree_insert_value);
+    ngx_rbtree_init(ctx->rbtree, sentinel, ngx_http_limit_conn_rbtree_insert_value);
 
     len = sizeof(" in limit_conn_zone \"\"") + shm_zone->shm.name.len;
 
@@ -440,8 +506,7 @@ ngx_http_limit_conn_init_zone(ngx_shm_zone_t *shm_zone, void *data)
         return NGX_ERROR;
     }
 
-    ngx_sprintf(shpool->log_ctx, " in limit_conn_zone \"%V\"%Z",
-                &shm_zone->shm.name);
+    ngx_sprintf(shpool->log_ctx, " in limit_conn_zone \"%V\"%Z", &shm_zone->shm.name);
 
     return NGX_OK;
 }
@@ -481,8 +546,7 @@ ngx_http_limit_conn_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     }
 
     ngx_conf_merge_uint_value(conf->log_level, prev->log_level, NGX_LOG_ERR);
-    ngx_conf_merge_uint_value(conf->status_code, prev->status_code,
-                              NGX_HTTP_SERVICE_UNAVAILABLE);
+    ngx_conf_merge_uint_value(conf->status_code, prev->status_code, NGX_HTTP_SERVICE_UNAVAILABLE);
 
     return NGX_CONF_OK;
 }
@@ -528,8 +592,7 @@ ngx_http_limit_conn_zone(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             p = (u_char *) ngx_strchr(name.data, ':');
 
             if (p == NULL) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "invalid zone size \"%V\"", &value[i]);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid zone size \"%V\"", &value[i]);
                 return NGX_CONF_ERROR;
             }
 
@@ -541,34 +604,28 @@ ngx_http_limit_conn_zone(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             size = ngx_parse_size(&s);
 
             if (size == NGX_ERROR) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "invalid zone size \"%V\"", &value[i]);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid zone size \"%V\"", &value[i]);
                 return NGX_CONF_ERROR;
             }
 
             if (size < (ssize_t) (8 * ngx_pagesize)) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "zone \"%V\" is too small", &value[i]);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "zone \"%V\" is too small", &value[i]);
                 return NGX_CONF_ERROR;
             }
 
             continue;
         }
 
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid parameter \"%V\"", &value[i]);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid parameter \"%V\"", &value[i]);
         return NGX_CONF_ERROR;
     }
 
     if (name.len == 0) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "\"%V\" must have \"zone\" parameter",
-                           &cmd->name);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"%V\" must have \"zone\" parameter", &cmd->name);
         return NGX_CONF_ERROR;
     }
 
-    shm_zone = ngx_shared_memory_add(cf, &name, size,
-                                     &ngx_http_limit_conn_module);
+    shm_zone = ngx_shared_memory_add(cf, &name, size, &ngx_http_limit_conn_module);
     if (shm_zone == NULL) {
         return NGX_CONF_ERROR;
     }
@@ -576,9 +633,7 @@ ngx_http_limit_conn_zone(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     if (shm_zone->data) {
         ctx = shm_zone->data;
 
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "%V \"%V\" is already bound to key \"%V\"",
-                           &cmd->name, &name, &ctx->key.value);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "%V \"%V\" is already bound to key \"%V\"", &cmd->name, &name, &ctx->key.value);
         return NGX_CONF_ERROR;
     }
 
@@ -602,8 +657,7 @@ ngx_http_limit_conn(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     value = cf->args->elts;
 
-    shm_zone = ngx_shared_memory_add(cf, &value[1], 0,
-                                     &ngx_http_limit_conn_module);
+    shm_zone = ngx_shared_memory_add(cf, &value[1], 0, &ngx_http_limit_conn_module);
     if (shm_zone == NULL) {
         return NGX_CONF_ERROR;
     }
@@ -611,10 +665,7 @@ ngx_http_limit_conn(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     limits = lccf->limits.elts;
 
     if (limits == NULL) {
-        if (ngx_array_init(&lccf->limits, cf->pool, 1,
-                           sizeof(ngx_http_limit_conn_limit_t))
-            != NGX_OK)
-        {
+        if (ngx_array_init(&lccf->limits, cf->pool, 1, sizeof(ngx_http_limit_conn_limit_t)) != NGX_OK) {
             return NGX_CONF_ERROR;
         }
     }
@@ -627,14 +678,12 @@ ngx_http_limit_conn(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     n = ngx_atoi(value[2].data, value[2].len);
     if (n <= 0) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid number of connections \"%V\"", &value[2]);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid number of connections \"%V\"", &value[2]);
         return NGX_CONF_ERROR;
     }
 
     if (n > 65535) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "connection limit must be less 65536");
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "connection limit must be less 65536");
         return NGX_CONF_ERROR;
     }
 

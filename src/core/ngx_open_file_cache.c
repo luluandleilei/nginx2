@@ -453,9 +453,7 @@ failed:
 
             if (file->fd != NGX_INVALID_FILE) {
                 if (ngx_close_file(file->fd) == NGX_FILE_ERROR) {
-                    ngx_log_error(NGX_LOG_ALERT, pool->log, ngx_errno,
-                                  ngx_close_file_n " \"%s\" failed",
-                                  file->name);
+                    ngx_log_error(NGX_LOG_ALERT, pool->log, ngx_errno, ngx_close_file_n " \"%s\" failed", file->name);
                 }
             }
 
@@ -469,8 +467,7 @@ failed:
 
     if (of->fd != NGX_INVALID_FILE) {
         if (ngx_close_file(of->fd) == NGX_FILE_ERROR) {
-            ngx_log_error(NGX_LOG_ALERT, pool->log, ngx_errno,
-                          ngx_close_file_n " \"%V\" failed", name);
+            ngx_log_error(NGX_LOG_ALERT, pool->log, ngx_errno, ngx_close_file_n " \"%V\" failed", name);
         }
     }
 
@@ -770,8 +767,7 @@ failed:
 
 
 static ngx_int_t
-ngx_file_info_wrapper(ngx_str_t *name, ngx_open_file_info_t *of,
-    ngx_file_info_t *fi, ngx_log_t *log)
+ngx_file_info_wrapper(ngx_str_t *name, ngx_open_file_info_t *of, ngx_file_info_t *fi, ngx_log_t *log)
 {
     ngx_int_t  rc;
 
@@ -819,8 +815,7 @@ ngx_file_info_wrapper(ngx_str_t *name, ngx_open_file_info_t *of,
     }
 
     if (ngx_close_file(fd) == NGX_FILE_ERROR) {
-        ngx_log_error(NGX_LOG_ALERT, log, ngx_errno,
-                      ngx_close_file_n " \"%V\" failed", name);
+        ngx_log_error(NGX_LOG_ALERT, log, ngx_errno, ngx_close_file_n " \"%V\" failed", name);
     }
 
     return rc;

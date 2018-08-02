@@ -1810,9 +1810,7 @@ ngx_http_uwsgi_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 #endif
     }
 
-    if (clcf->lmt_excpt && clcf->handler == NULL
-        && (conf->upstream.upstream || conf->uwsgi_lengths))
-    {
+    if (clcf->lmt_excpt && clcf->handler == NULL && (conf->upstream.upstream || conf->uwsgi_lengths)) {
         clcf->handler = ngx_http_uwsgi_handler;
     }
 

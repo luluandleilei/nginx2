@@ -626,8 +626,7 @@ ngx_mail_ssl_session_cache(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
                 return NGX_CONF_ERROR;
             }
 
-            scf->shm_zone = ngx_shared_memory_add(cf, &name, n,
-                                                   &ngx_mail_ssl_module);
+            scf->shm_zone = ngx_shared_memory_add(cf, &name, n, &ngx_mail_ssl_module);
             if (scf->shm_zone == NULL) {
                 return NGX_CONF_ERROR;
             }

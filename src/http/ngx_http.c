@@ -423,8 +423,8 @@ ngx_http_init_phase_handlers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf)
         return NGX_ERROR;
     }
 
-    cmcf->phase_engine.handlers = ph;	//ph -- 
-    n = 0;	//下一个有效阶段的起始位置索引
+    cmcf->phase_engine.handlers = ph;	//XXX: ph -- 当前可以使用的slot
+    n = 0;								//n -- 下一个有效阶段的起始位置索引
 
     for (i = 0; i < NGX_HTTP_LOG_PHASE; i++) {
         h = cmcf->phases[i].handlers.elts;
@@ -472,7 +472,7 @@ ngx_http_init_phase_handlers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf)
             break;
 
         case NGX_HTTP_POST_ACCESS_PHASE:
-            if (use_access) {
+            if (use_access) {	//仅当有NGX_HTTP_ACCESS_PHASE阶段才添加NGX_HTTP_POST_ACCESS_PHASE阶段
                 ph->checker = ngx_http_core_post_access_phase;
                 ph->next = n;	//NGX_HTTP_POST_ACCESS_PHASE阶段的next指向NGX_HTTP_PRECONTENT_PHASE阶段
                 ph++;
@@ -521,8 +521,9 @@ ngx_http_merge_servers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf, ngx_http
 
         /* merge the server{}s' srv_conf's */
 
-        ctx->srv_conf = cscfp[s]->ctx->srv_conf;
+        ctx->srv_conf = cscfp[s]->ctx->srv_conf; //注意：cf->ctx->srv_conf指向当前处理的server{}的srv配置
 
+		//合并http{}的srv与server{}的srv的配置
         if (module->merge_srv_conf) {
             rv = module->merge_srv_conf(cf, saved.srv_conf[ctx_index], cscfp[s]->ctx->srv_conf[ctx_index]);
             if (rv != NGX_CONF_OK) {
@@ -534,8 +535,9 @@ ngx_http_merge_servers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf, ngx_http
 
             /* merge the server{}'s loc_conf */
 
-            ctx->loc_conf = cscfp[s]->ctx->loc_conf;
+            ctx->loc_conf = cscfp[s]->ctx->loc_conf; //注意：cf->ctx->loc_conf指向当前处理的server{}的loc配置
 
+			//合并http{}的loc与server{}的loc的配置
             rv = module->merge_loc_conf(cf, saved.loc_conf[ctx_index], cscfp[s]->ctx->loc_conf[ctx_index]);
             if (rv != NGX_CONF_OK) {
                 goto failed;
@@ -560,6 +562,10 @@ failed:
 }
 
 
+/*
+loc_conf: 	上级loc配置
+locations: 	下级location的列表
+*/
 static char *
 ngx_http_merge_locations(ngx_conf_t *cf, ngx_queue_t *locations, void **loc_conf, ngx_http_module_t *module, ngx_uint_t ctx_index)
 {
@@ -580,7 +586,7 @@ ngx_http_merge_locations(ngx_conf_t *cf, ngx_queue_t *locations, void **loc_conf
         lq = (ngx_http_location_queue_t *) q;
 
         clcf = lq->exact ? lq->exact : lq->inclusive;
-        ctx->loc_conf = clcf->loc_conf;
+        ctx->loc_conf = clcf->loc_conf;	//注意：cf->ctx->loc_conf指向当前处理的location的loc配置
 
         rv = module->merge_loc_conf(cf, loc_conf[ctx_index], clcf->loc_conf[ctx_index]);
         if (rv != NGX_CONF_OK) {
