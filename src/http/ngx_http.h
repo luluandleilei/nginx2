@@ -95,8 +95,7 @@ ngx_int_t ngx_http_parse_status_line(ngx_http_request_t *r, ngx_buf_t *b,
     ngx_http_status_t *status);
 ngx_int_t ngx_http_parse_unsafe_uri(ngx_http_request_t *r, ngx_str_t *uri,
     ngx_str_t *args, ngx_uint_t *flags);
-ngx_int_t ngx_http_parse_header_line(ngx_http_request_t *r, ngx_buf_t *b,
-    ngx_uint_t allow_underscores);
+ngx_int_t ngx_http_parse_header_line(ngx_http_request_t *r, ngx_buf_t *b, ngx_uint_t allow_underscores);
 ngx_int_t ngx_http_parse_multi_header_lines(ngx_array_t *headers,
     ngx_str_t *name, ngx_str_t *value);
 ngx_int_t ngx_http_parse_set_cookie_lines(ngx_array_t *headers,

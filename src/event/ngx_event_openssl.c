@@ -1353,8 +1353,7 @@ ngx_ssl_handshake(ngx_connection_t *c)
     c->read->eof = 1;
 
     if (sslerr == SSL_ERROR_ZERO_RETURN || ERR_peek_error() == 0) {
-        ngx_connection_error(c, err,
-                             "peer closed connection in SSL handshake");
+        ngx_connection_error(c, err, "peer closed connection in SSL handshake");
 
         return NGX_ERROR;
     }

@@ -99,7 +99,13 @@ static uint32_t  usual[] = {
 
 
 /* gcc, icc, msvc and others compile these switches as an jump table */
+/*
+用状态机解析请求行
 
+NGX_OK:	表示成功地解析到完整的HTTP请求行；
+NGX AGAIN:表示目前接收到的字符流不足以构成完成的请求行，还需要接收更多的字符流；
+NGX_HTTP_PARSE_INVALID_*:	表示接收到非法的请求行
+*/
 ngx_int_t
 ngx_http_parse_request_line(ngx_http_request_t *r, ngx_buf_t *b)
 {
@@ -837,6 +843,10 @@ done:
 }
 
 
+/*
+解析头部行(请求头部)
+
+*/
 ngx_int_t
 ngx_http_parse_header_line(ngx_http_request_t *r, ngx_buf_t *b, ngx_uint_t allow_underscores)
 {

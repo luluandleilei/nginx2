@@ -235,6 +235,8 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             }
         }
 
+		/* merge the server{}s' srv_conf's and its location{}s' loc_conf's */
+		
         rv = ngx_http_merge_servers(cf, cmcf, module, mi);
         if (rv != NGX_CONF_OK) {
             goto failed;

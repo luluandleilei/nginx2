@@ -2134,6 +2134,22 @@ ngx_http_core_post_access_phase(ngx_http_request_t *r, ngx_http_phase_handler_t 
 }
 
 
+/*
+NGX_HTTP_CONTENT_PHASE阶段与其他阶段都不相同的是，它向HTTP模块提供了两种介入该阶段的方式：第一种与其他10个阶段一样，
+通过向全局的ngx_http_core_main_conf_t结构体的phases数组中添加ngx_http_handler_pt赴理方法来实现，
+而第二种是本阶段独有的，把希望处理请求的 ngx_http_handler_pt方法设置到location相关的ngx_http_core_loc_conf_t结构体的handler指针中
+
+当HTTP模块实现了某个ngx_http_handler_pt处理方法并希望介入NGX_HTTP_CONTENT_PHASE阶段来处理用户请求时，
+如果希望这个ngx_http_handler_pt方法应用于所有的用户请求，则应该在ngx_http_module_t接口的postconfiguration方法中，
+向ngx_http_core_main_conf_t结构体的phases[NGX_HTTP_CONTENT_PHASE]动态数组中添加ngx_http_handler_pt处理方法；
+反之，如果希望这个方式仅应用于URI匹配了某些location的用户请求，则应该在一个location下配置项的回调方法中，
+把ngx_http_handler_pt方法设置到ngx_http_core_loc_conf_t 结构体的handler中。
+
+注意ngx_http_core_loc_conf_t结构体中仅有一个handler指针，它不是数组，这也就意味着如果采用上述的第二种方法添加ngx_http_handler_pt处理方法，
+那么每个请求在NGX_HTTP_CONTENT PHASE阶段只能有一个ngx_http_handler_pt处理方法。而使用第一种方法时是没有这个限制的，NGX_HTTP_CONTENT_PHASE阶
+段可以经由任意个HTTP模块处理。
+
+*/
 ngx_int_t
 ngx_http_core_content_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
 {
@@ -2141,7 +2157,10 @@ ngx_http_core_content_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
     ngx_int_t  rc;
     ngx_str_t  path;
 
-    if (r->content_handler) {
+	//检测ngx_http_request_t结构体的content_handler成员是否为空，
+	//其实就是看在NGX_HTTP_FIND_CONFIG_PHASE阶段匹配了URI请求的location内，
+	//是否有HTTP模块把处理方法设置到了ngx_http_core_loc_conf_t结构体的handler成员中
+    if (r->content_handler) {	 //如果在clcf->handler中设置了方法，则直接从这里进去执行该方法，然后返回，就不会执行content阶段的其他任何方法了
         r->write_event_handler = ngx_http_request_empty_handler;
         ngx_http_finalize_request(r, r->content_handler(r));
         return NGX_OK;
@@ -2158,6 +2177,7 @@ ngx_http_core_content_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
 
     /* rc == NGX_DECLINED */
 
+	//XXX:如果handler方法返回NGX_DECLINED，如果当前阶段还存在handler,那么将进入下一个处理方法
     ph++;
 
     if (ph->checker) {
@@ -2174,13 +2194,13 @@ ngx_http_core_content_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
         }
 
         ngx_http_finalize_request(r, NGX_HTTP_FORBIDDEN);
-        return NGX_OK;
+        return NGX_OK;	//表示交还控制权给事件模块
     }
 
     ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "no handler found");
 
     ngx_http_finalize_request(r, NGX_HTTP_NOT_FOUND);
-    return NGX_OK;
+    return NGX_OK;	//表示交还控制权给事件模块
 }
 
 

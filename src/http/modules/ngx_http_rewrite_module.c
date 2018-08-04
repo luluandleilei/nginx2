@@ -228,7 +228,9 @@ ngx_http_rewrite_handler(ngx_http_request_t *r)
     cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
     index = cmcf->phase_engine.location_rewrite_index;
 
-    if (r->phase_handler == index && r->loc_conf == cscf->ctx->loc_conf) {	//XXX：rewrite模块一定是cmcf->phase_engine.location_rewrite_index？？添加新的rewrite模块不会对该模块位置有影响么？
+	//XXX：rewrite模块一定是cmcf->phase_engine.location_rewrite_index？？
+	//添加新的rewrite模块不会对该模块位置有影响么？
+    if (r->phase_handler == index && r->loc_conf == cscf->ctx->loc_conf) {	
         /* skipping location rewrite phase for server null location */
         return NGX_DECLINED;
     }
