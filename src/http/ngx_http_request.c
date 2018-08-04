@@ -275,7 +275,7 @@ ngx_http_init_connection(ngx_connection_t *c)
 
     rev = c->read;
     rev->handler = ngx_http_wait_request_handler;
-    c->write->handler = ngx_http_empty_handler;	//XXX:后面没有添加读事件，为什么还要添加读事件处理函数？
+    c->write->handler = ngx_http_empty_handler;	//XXX:后面没有添加读事件，为什么还要添加读事件处理函数？??
 
 #if (NGX_HTTP_V2)
     if (hc->addr_conf->http2) {
@@ -351,13 +351,15 @@ ngx_http_wait_request_handler(ngx_event_t *rev)
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0, "http wait request handler");
 
-    if (rev->timedout) { //Timeout for reading client request header 
+	//Timeout for reading client request header 
+    if (rev->timedout) { 
         ngx_log_error(NGX_LOG_INFO, c->log, NGX_ETIMEDOUT, "client timed out");
         ngx_http_close_connection(c);
         return;
     }
 
-    if (c->close) {	//The connection is being reused and needs to be closed.
+	//The connection is being reused and needs to be closed.
+    if (c->close) {	
         ngx_http_close_connection(c);
         return;
     }
@@ -379,7 +381,7 @@ ngx_http_wait_request_handler(ngx_event_t *rev)
 
         c->buffer = b;
 
-    } else if (b->start == NULL) {	//XXX：什么时候回发生？参看后面的ngx_pfree函数调用
+    } else if (b->start == NULL) {	//XXX：什么时候会发生？参看后面的ngx_pfree函数调用
 
         b->start = ngx_palloc(c->pool, size);
         if (b->start == NULL) {
@@ -605,8 +607,7 @@ ngx_http_ssl_handshake(ngx_event_t *rev)
     c = rev->data;
     hc = c->data;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, rev->log, 0,
-                   "http check ssl handshake");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, rev->log, 0, "http check ssl handshake");
 
     if (rev->timedout) {
         ngx_log_error(NGX_LOG_INFO, c->log, NGX_ETIMEDOUT, "client timed out");
@@ -679,23 +680,18 @@ ngx_http_ssl_handshake(ngx_event_t *rev)
 
     if (n == 1) {
         if (buf[0] & 0x80 /* SSLv2 */ || buf[0] == 0x16 /* SSLv3/TLSv1 */) {
-            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, rev->log, 0,
-                           "https ssl handshake: 0x%02Xd", buf[0]);
+            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, rev->log, 0, "https ssl handshake: 0x%02Xd", buf[0]);
 
-            clcf = ngx_http_get_module_loc_conf(hc->conf_ctx,
-                                                ngx_http_core_module);
+            clcf = ngx_http_get_module_loc_conf(hc->conf_ctx, ngx_http_core_module);
 
             if (clcf->tcp_nodelay && ngx_tcp_nodelay(c) != NGX_OK) {
                 ngx_http_close_connection(c);
                 return;
             }
 
-            sscf = ngx_http_get_module_srv_conf(hc->conf_ctx,
-                                                ngx_http_ssl_module);
+            sscf = ngx_http_get_module_srv_conf(hc->conf_ctx, ngx_http_ssl_module);
 
-            if (ngx_ssl_create_connection(&sscf->ssl, c, NGX_SSL_BUFFER)
-                != NGX_OK)
-            {
+            if (ngx_ssl_create_connection(&sscf->ssl, c, NGX_SSL_BUFFER) != NGX_OK) {
                 ngx_http_close_connection(c);
                 return;
             }
@@ -911,9 +907,10 @@ ngx_http_process_request_line(ngx_event_t *rev)
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, rev->log, 0, "http process request line");
 
-    if (rev->timedout) {	//Timeout for reading client request header 
+	//Timeout for reading client request header 
+    if (rev->timedout) {	
         ngx_log_error(NGX_LOG_INFO, c->log, NGX_ETIMEDOUT, "client timed out");
-        c->timedout = 1;
+        c->timedout = 1;	//XXX: 为什么要将连接的超时位置位？？？
         ngx_http_close_request(r, NGX_HTTP_REQUEST_TIME_OUT);
         return;
     }
@@ -1364,7 +1361,7 @@ ngx_http_read_request_header(ngx_http_request_t *r)
     }
 
     if (rev->ready) {
-        n = c->recv(c, r->header_in->last, r->header_in->end - r->header_in->last);
+        n = c->recv(c, r->header_in->last, r->header_in->end - r->header_in->last);	//XXX： recv返回值？
     } else {
         n = NGX_AGAIN;
     }
@@ -1824,8 +1821,7 @@ ngx_http_process_request(ngx_http_request_t *r)
         ngx_http_ssl_srv_conf_t  *sscf;
 
         if (c->ssl == NULL) {
-            ngx_log_error(NGX_LOG_INFO, c->log, 0,
-                          "client sent plain HTTP request to HTTPS port");
+            ngx_log_error(NGX_LOG_INFO, c->log, 0, "client sent plain HTTP request to HTTPS port");
             ngx_http_finalize_request(r, NGX_HTTP_TO_HTTPS);
             return;
         }
@@ -1835,15 +1831,10 @@ ngx_http_process_request(ngx_http_request_t *r)
         if (sscf->verify) {
             rc = SSL_get_verify_result(c->ssl->connection);
 
-            if (rc != X509_V_OK
-                && (sscf->verify != 3 || !ngx_ssl_verify_error_optional(rc)))
-            {
-                ngx_log_error(NGX_LOG_INFO, c->log, 0,
-                              "client SSL certificate verify error: (%l:%s)",
-                              rc, X509_verify_cert_error_string(rc));
+            if (rc != X509_V_OK && (sscf->verify != 3 || !ngx_ssl_verify_error_optional(rc))) {
+                ngx_log_error(NGX_LOG_INFO, c->log, 0, "client SSL certificate verify error: (%l:%s)", rc, X509_verify_cert_error_string(rc));
 
-                ngx_ssl_remove_cached_session(c->ssl->session_ctx,
-                                       (SSL_get0_session(c->ssl->connection)));
+                ngx_ssl_remove_cached_session(c->ssl->session_ctx, (SSL_get0_session(c->ssl->connection)));
 
                 ngx_http_finalize_request(r, NGX_HTTPS_CERT_ERROR);
                 return;
@@ -1853,11 +1844,9 @@ ngx_http_process_request(ngx_http_request_t *r)
                 cert = SSL_get_peer_certificate(c->ssl->connection);
 
                 if (cert == NULL) {
-                    ngx_log_error(NGX_LOG_INFO, c->log, 0,
-                                  "client sent no required SSL certificate");
+                    ngx_log_error(NGX_LOG_INFO, c->log, 0, "client sent no required SSL certificate");
 
-                    ngx_ssl_remove_cached_session(c->ssl->session_ctx,
-                                       (SSL_get0_session(c->ssl->connection)));
+                    ngx_ssl_remove_cached_session(c->ssl->session_ctx, (SSL_get0_session(c->ssl->connection)));
 
                     ngx_http_finalize_request(r, NGX_HTTPS_NO_CERT);
                     return;

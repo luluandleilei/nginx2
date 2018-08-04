@@ -410,7 +410,7 @@ struct ngx_http_request_s {
                                          /* of ngx_http_upstream_state_t */
 
 	//Request pool. 
-	//The request object itself is allocated in this pool, which is destroyed when the request is deleted. 
+	//The request object itself is allocated in this pool, which is destroyed when the request is deleted(ngx_http_free_request). 
 	//For allocations that need to be available throughout the client connection's lifetime, use ngx_connection_t's pool instead.
     ngx_pool_t                       *pool;
 	//Buffer into which the client HTTP request header is read.
@@ -426,7 +426,7 @@ struct ngx_http_request_s {
 	//Client request body object.
     ngx_http_request_body_t          *request_body;
 
-    time_t                            lingering_time;
+    time_t                            lingering_time;	//延迟关闭连接到时间
 	//start_sec, start_msec — Time point when the request was created, used for tracking request duration.
     time_t                            start_sec;
     ngx_msec_t                        start_msec;
@@ -443,8 +443,17 @@ struct ngx_http_request_s {
 	//The URI value here might differ from the original URI sent by the client due to normalization. 
 	//Throughout request processing, these values can change as internal redirects are performed.
     ngx_str_t                         uri;
+	//XXX：arg指向用户请求中的URL参数。  http://10.135.10.167/mytest?abc?ttt中的abc?ttt   
+    //同时"GET /mytest?abc?ttt HTTP/1.1"中的mytest?abc?ttt和uri中的一样    
+	/*把请求中GET /download/nginx-1.9.2.rar?st=xhWL03HbtjrojpEAfiD6Mw&e=1452139931 HTTP/1.1的st和e形成变量$arg_st #arg_e，value分别
+为xhWL03HbtjrojpEAfiD6Mw 1452139931即$arg_st=xhWL03HbtjrojpEAfiD6Mw，#arg_e=1452139931，见ngx_http_arg */
     ngx_str_t                         args;
-    ngx_str_t                         exten;
+	/*
+    XXX：ngx_str_t类型的extern成员指向用户请求的文件扩展名。例如，在访问“GET /a.txt HTTP/1.1”时，extern的值是{len = 3, data = "txt"}，
+    而在访问“GET /a HTTP/1.1”时，extern的值为空，也就是{len = 0, data = 0x0}。
+    uri_ext指针指向的地址与extern.data相同。
+    */
+    ngx_str_t                         exten;	//XXX: http://10.135.10.167/mytest/ac.txt中的txt
 	//URI in the original client request
     ngx_str_t                         unparsed_uri;	
 
@@ -454,7 +463,10 @@ struct ngx_http_request_s {
     ngx_str_t                         http_protocol;	
     ngx_str_t                         schema;
 
-    ngx_chain_t                      *out;
+	/* XXX:当ngx_http_header_filter方法无法一次性发送HTTP头部时，将会有以下两个现象同时发生:请求的out成员中将会保存剩余的响应头部,见ngx_http_header_filter */    
+	/* XXX:表示需要发送给客户端的HTTP响应。out中保存着由headers_out中序列化后的表示HTTP头部的TCP流。在调用ngx_http_output_filter方法后， out中还会保存待发送的HTTP包体，它是实现异步发送HTTP响应的关键 */
+	/* XXX:ngx_http_write_filter把in中的数据拼接到out后面，然后调用writev发送，没有发送完 */
+	ngx_chain_t                      *out;	
 	//Pointer to a main request object. 
 	//This object is created to process a client HTTP request, as opposed to subrequests, 
 	//which are created to perform a specific subtask within the main request.
