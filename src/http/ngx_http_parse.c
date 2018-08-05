@@ -151,6 +151,7 @@ ngx_http_parse_request_line(ngx_http_request_t *r, ngx_buf_t *b)
         case sw_start:
             r->request_start = p;
 
+			//跳过开头的'\r', '\n'
             if (ch == CR || ch == LF) {
                 break;
             }
@@ -287,7 +288,7 @@ ngx_http_parse_request_line(ngx_http_request_t *r, ngx_buf_t *b)
                 break;
             }
 
-            c = (u_char) (ch | 0x20);
+            c = (u_char) (ch | 0x20);		//XXX:这种情况下请求头是什么格式？
             if (c >= 'a' && c <= 'z') {
                 r->schema_start = p;
                 state = sw_schema;

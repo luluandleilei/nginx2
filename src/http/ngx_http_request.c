@@ -935,7 +935,7 @@ ngx_http_process_request_line(ngx_event_t *rev)
 
             r->request_line.len = r->request_end - r->request_start;
             r->request_line.data = r->request_start;
-            r->request_length = r->header_in->pos - r->request_start;
+            r->request_length = r->header_in->pos - r->request_start;	//XXX:这里怎么不是r->request_end - r->request_start ???
 
             ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0, "http request line: \"%V\"", &r->request_line);
 
@@ -946,7 +946,7 @@ ngx_http_process_request_line(ngx_event_t *rev)
                 r->http_protocol.len = r->request_end - r->http_protocol.data;
             }
 
-            if (ngx_http_process_request_uri(r) != NGX_OK) {
+            if (ngx_http_process_request_uri(r) != NGX_OK) {	//TODO:
                 return;
             }
 
@@ -1022,6 +1022,7 @@ ngx_http_process_request_line(ngx_event_t *rev)
 
         /* NGX_AGAIN: a request line parsing is still incomplete */
 
+		//XXX: 如果检查r->header_in缓冲区没有空闲的内存，则分配更大的接收缓冲区
         if (r->header_in->pos == r->header_in->end) {	//XXX: 存储请求行的缓冲区大小不够
 
             rv = ngx_http_alloc_large_header_buffer(r, 1);
@@ -1069,8 +1070,7 @@ ngx_http_process_request_uri(ngx_http_request_t *r)
         if (ngx_http_parse_complex_uri(r, cscf->merge_slashes) != NGX_OK) {
             r->uri.len = 0;
 
-            ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
-                          "client sent invalid request");
+            ngx_log_error(NGX_LOG_INFO, r->connection->log, 0, "client sent invalid request");
             ngx_http_finalize_request(r, NGX_HTTP_BAD_REQUEST);
             return NGX_ERROR;
         }
@@ -1149,14 +1149,11 @@ ngx_http_process_request_uri(ngx_http_request_t *r)
     }
 #endif
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http uri: \"%V\"", &r->uri);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http uri: \"%V\"", &r->uri);
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http args: \"%V\"", &r->args);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http args: \"%V\"", &r->args);
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http exten: \"%V\"", &r->exten);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http exten: \"%V\"", &r->exten);
 
     return NGX_OK;
 }
@@ -1459,6 +1456,7 @@ ngx_http_alloc_large_header_buffer(ngx_http_request_t *r, ngx_uint_t request_lin
         return NGX_DECLINED;
     }
 
+	//将新的chain node链入busy链表
     cl->next = hc->busy;
     hc->busy = cl;
     hc->nbusy++;
@@ -1988,10 +1986,7 @@ ngx_http_set_virtual_server(ngx_http_request_t *r, ngx_str_t *host)
 #if (NGX_HTTP_SSL && defined SSL_CTRL_SET_TLSEXT_HOSTNAME)
 
     if (hc->ssl_servername) {
-        if (hc->ssl_servername->len == host->len
-            && ngx_strncmp(hc->ssl_servername->data,
-                           host->data, host->len) == 0)
-        {
+        if (hc->ssl_servername->len == host->len && ngx_strncmp(hc->ssl_servername->data, host->data, host->len) == 0) {
 #if (NGX_PCRE)
             if (hc->ssl_servername_regex && ngx_http_regex_exec(r, hc->ssl_servername_regex, hc->ssl_servername) != NGX_OK) {
                 ngx_http_close_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
@@ -2011,7 +2006,7 @@ ngx_http_set_virtual_server(ngx_http_request_t *r, ngx_str_t *host)
         return NGX_ERROR;
     }
 
-#if (NGX_HTTP_SSL && defined SSL_CTRL_SET_TLSEXT_HOSTNAME)
+#if (NGX_HTTP_SSL && defined SSL_CTRL_SET_TLSEXT_HOSTNAME)	//XXX: 这种C宏语法，好奇怪？？？
 
     if (hc->ssl_servername) {
         ngx_http_ssl_srv_conf_t  *sscf;
@@ -2024,9 +2019,7 @@ ngx_http_set_virtual_server(ngx_http_request_t *r, ngx_str_t *host)
         sscf = ngx_http_get_module_srv_conf(cscf->ctx, ngx_http_ssl_module);
 
         if (sscf->verify) {
-            ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
-                          "client attempted to request the server name "
-                          "different from the one that was negotiated");
+            ngx_log_error(NGX_LOG_INFO, r->connection->log, 0, "client attempted to request the server name " "different from the one that was negotiated");
             ngx_http_finalize_request(r, NGX_HTTP_MISDIRECTED_REQUEST);
             return NGX_ERROR;
         }

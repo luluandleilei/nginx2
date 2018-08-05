@@ -317,10 +317,10 @@ typedef struct {
 #endif
 #endif
 
-    ngx_chain_t                      *busy;
-    ngx_int_t                         nbusy;
+    ngx_chain_t                      *busy;		//XXX: 当前使用的buf的链表
+    ngx_int_t                         nbusy;	//XXX：busy链表中的buf的个数
 
-    ngx_chain_t                      *free;
+    ngx_chain_t                      *free;		//XXX：当前释放的buf的链表
 
     unsigned                          ssl:1;
     unsigned                          proxy_protocol:1;
