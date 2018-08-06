@@ -76,10 +76,8 @@ typedef struct {
 
 typedef struct ngx_http_upstream_srv_conf_s  ngx_http_upstream_srv_conf_t;
 
-typedef ngx_int_t (*ngx_http_upstream_init_pt)(ngx_conf_t *cf,
-    ngx_http_upstream_srv_conf_t *us);
-typedef ngx_int_t (*ngx_http_upstream_init_peer_pt)(ngx_http_request_t *r,
-    ngx_http_upstream_srv_conf_t *us);
+typedef ngx_int_t (*ngx_http_upstream_init_pt)(ngx_conf_t *cf, ngx_http_upstream_srv_conf_t *us);
+typedef ngx_int_t (*ngx_http_upstream_init_peer_pt)(ngx_http_request_t *r, ngx_http_upstream_srv_conf_t *us);
 
 
 typedef struct {

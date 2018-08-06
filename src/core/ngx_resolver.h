@@ -40,16 +40,17 @@
 typedef struct ngx_resolver_s  ngx_resolver_t;
 
 
+//描述了一个用于进行域名解析的的连接
 typedef struct {
     ngx_connection_t         *udp;
     ngx_connection_t         *tcp;
-    struct sockaddr          *sockaddr;
-    socklen_t                 socklen;
-    ngx_str_t                 server;
-    ngx_log_t                 log;
-    ngx_buf_t                *read_buf;
-    ngx_buf_t                *write_buf;
-    ngx_resolver_t           *resolver;
+    struct sockaddr          *sockaddr;	//DNS服务器套接字地址结构
+    socklen_t                 socklen;	//
+    ngx_str_t                 server;	//DNS服务器ip:port字符串表示
+    ngx_log_t                 log;		//
+    ngx_buf_t                *read_buf;	//tcp对象使用
+    ngx_buf_t                *write_buf;//tcp对象使用
+    ngx_resolver_t           *resolver;	//该连接所属于的resolver对象
 } ngx_resolver_connection_t;
 
 
@@ -101,12 +102,12 @@ typedef struct {
     struct in6_addr           addr6;
 #endif
 
-    u_short                   nlen;
-    u_short                   qlen;
+    u_short                   nlen;		//查询的name的长度
+    u_short                   qlen;		//dns的ipv4|ipv6的name查询报文(长度是一样的，仅仅某些字段的值不一样)
 
-    u_char                   *query;
+    u_char                   *query;	//dns的ipv4的name查询报文(malloc分配)
 #if (NGX_HAVE_INET6)
-    u_char                   *query6;
+    u_char                   *query6;	//dns的ipv6的name查询报文
 #endif
 
     union {
@@ -134,14 +135,14 @@ typedef struct {
     time_t                    valid;
     uint32_t                  ttl;
 
-    unsigned                  tcp:1;
+    unsigned                  tcp:1;	//表示使用tcp进行域名的Ipv4地址查询
 #if (NGX_HAVE_INET6)
-    unsigned                  tcp6:1;
+    unsigned                  tcp6:1;	//表示使用tcp进行域名的ipv6地址查询
 #endif
 
-    ngx_uint_t                last_connection;
+    ngx_uint_t                last_connection;	//使用ngx_resolver_t->connections的连接对象的索引
 
-    ngx_resolver_ctx_t       *waiting;
+    ngx_resolver_ctx_t       *waiting;	//等待此node的ctx
 } ngx_resolver_node_t;
 
 
@@ -155,12 +156,15 @@ struct ngx_resolver_s {
     ngx_int_t                 ident;
 
     /* simple round robin DNS peers balancer */
-    ngx_array_t               connections;
+	//array of ngx_resolver_connection_t
+    ngx_array_t               connections;	
     ngx_uint_t                last_connection;
 
-    ngx_rbtree_t              name_rbtree;
+	//XXX:dns name的缓存？？？
+    ngx_rbtree_t              name_rbtree;	
     ngx_rbtree_node_t         name_sentinel;
 
+	//XXX:srv的缓存？？？
     ngx_rbtree_t              srv_rbtree;
     ngx_rbtree_node_t         srv_sentinel;
 
@@ -176,7 +180,8 @@ struct ngx_resolver_s {
     ngx_queue_t               addr_expire_queue;
 
 #if (NGX_HAVE_INET6)
-    ngx_uint_t                ipv6;                 /* unsigned  ipv6:1; */
+	//XXX:enable looking up of IPv6 addressess
+    ngx_uint_t                ipv6;              
     ngx_rbtree_t              addr6_rbtree;
     ngx_rbtree_node_t         addr6_sentinel;
     ngx_queue_t               addr6_resend_queue;
@@ -184,14 +189,16 @@ struct ngx_resolver_s {
 #endif
 
     time_t                    resend_timeout;
-    time_t                    tcp_timeout;
+    time_t                    tcp_timeout;	//tcp连接在tcp_timeout时间内至少要有数据发送，不然认为超时
     time_t                    expire;
-    time_t                    valid;
+	//XXX:time of cacheing answers
+    time_t                    valid;	
 
     ngx_uint_t                log_level;
 };
 
 
+//进行域名解析时的上下文
 struct ngx_resolver_ctx_s {
     ngx_resolver_ctx_t       *next;
     ngx_resolver_t           *resolver;
@@ -200,29 +207,29 @@ struct ngx_resolver_ctx_s {
     /* event ident must be after 3 pointers as in ngx_connection_t */
     ngx_int_t                 ident;
 
-    ngx_int_t                 state;
-    ngx_str_t                 name;
-    ngx_str_t                 service;
+    ngx_int_t                 state;	//域名解析结果状态	NGX_AGAIN， NGX_RESOLVE_TIMEDOUT, NGX_RESOLVE_NXDOMAIN
+    ngx_str_t                 name;		//需要解析的域名name
+    ngx_str_t                 service;	//需要XXX的service？？？
 
     time_t                    valid;
-    ngx_uint_t                naddrs;
-    ngx_resolver_addr_t      *addrs;
-    ngx_resolver_addr_t       addr;
+    ngx_uint_t                naddrs;	//存储name解析的结果的数组元素个数
+    ngx_resolver_addr_t      *addrs;	//存储name解析的结果的数组
+    ngx_resolver_addr_t       addr;		//存储将地址解析为域名时的要解析的地址
     struct sockaddr_in        sin;
 
     ngx_uint_t                count;
     ngx_uint_t                nsrvs;
     ngx_resolver_srv_name_t  *srvs;
 
-    ngx_resolver_handler_pt   handler;
+    ngx_resolver_handler_pt   handler;	//域名解析完成后的回调函数
     void                     *data;
-    ngx_msec_t                timeout;
+    ngx_msec_t                timeout;	//超时时间
 
     unsigned                  quick:1;
     unsigned                  async:1;
-    unsigned                  cancelable:1;
+    unsigned                  cancelable:1;	//超时事件的cancelable标识
     ngx_uint_t                recursion;
-    ngx_event_t              *event;
+    ngx_event_t              *event;	//超时事件
 };
 
 

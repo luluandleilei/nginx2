@@ -3549,8 +3549,7 @@ ngx_http_cleanup_add(ngx_http_request_t *r, size_t size)
 
     r->cleanup = cln;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http cleanup add: %p", cln);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http cleanup add: %p", cln);
 
     return cln;
 }

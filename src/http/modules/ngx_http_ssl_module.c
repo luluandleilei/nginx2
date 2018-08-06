@@ -800,10 +800,7 @@ ngx_http_ssl_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
 
     if (conf->stapling) {
 
-        if (ngx_ssl_stapling(cf, &conf->ssl, &conf->stapling_file,
-                             &conf->stapling_responder, conf->stapling_verify)
-            != NGX_OK)
-        {
+        if (ngx_ssl_stapling(cf, &conf->ssl, &conf->stapling_file, &conf->stapling_responder, conf->stapling_verify) != NGX_OK) {
             return NGX_CONF_ERROR;
         }
 
@@ -989,10 +986,7 @@ ngx_http_ssl_init(ngx_conf_t *cf)
 
         clcf = cscfp[s]->ctx->loc_conf[ngx_http_core_module.ctx_index];
 
-        if (ngx_ssl_stapling_resolver(cf, &sscf->ssl, clcf->resolver,
-                                      clcf->resolver_timeout)
-            != NGX_OK)
-        {
+        if (ngx_ssl_stapling_resolver(cf, &sscf->ssl, clcf->resolver, clcf->resolver_timeout) != NGX_OK) {
             return NGX_ERROR;
         }
     }

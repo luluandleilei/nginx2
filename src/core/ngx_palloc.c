@@ -320,6 +320,7 @@ ngx_pool_cleanup_add(ngx_pool_t *p, size_t size)
 {
     ngx_pool_cleanup_t  *c;
 
+	//创建一个XXX节点
     c = ngx_palloc(p, sizeof(ngx_pool_cleanup_t));
     if (c == NULL) {
         return NULL;
@@ -335,6 +336,7 @@ ngx_pool_cleanup_add(ngx_pool_t *p, size_t size)
         c->data = NULL;
     }
 
+	//将XXX节点添加到XXX链表的表头
     c->handler = NULL;
     c->next = p->cleanup;
 
@@ -342,6 +344,7 @@ ngx_pool_cleanup_add(ngx_pool_t *p, size_t size)
 
     ngx_log_debug1(NGX_LOG_DEBUG_ALLOC, p->log, 0, "add cleanup: %p", c);
 
+	//返回新建的XXX节点对象指针
     return c;
 }
 

@@ -325,6 +325,32 @@ static ngx_http_upstream_header_t  ngx_http_upstream_headers_in[] = {
 
 static ngx_command_t  ngx_http_upstream_commands[] = {
 
+	/*
+	 Syntax:	upstream name { ... }
+	 Default:	—
+	 Context:	http
+	 
+	 Defines a group of servers. Servers can listen on different ports. 
+	 In addition, servers listening on TCP and UNIX-domain sockets can be mixed.
+
+	 Example:
+
+		upstream backend {
+		    server backend1.example.com weight=5;
+		    server 127.0.0.1:8080       max_fails=3 fail_timeout=30s;
+		    server unix:/tmp/backend3;
+
+		    server backup1.example.com  backup;
+		}
+			
+	 By default, requests are distributed between the servers using a weighted round-robin balancing method. 
+	 In the above example, each 7 requests will be distributed as follows: 
+	 	5 requests go to backend1.example.com and one request to each of the second and third servers. 
+	 If an error occurs during communication with a server, the request will be passed to the next server, 
+	 and so on until all of the functioning servers will be tried. 
+	 If a successful response could not be obtained from any of the servers, 
+	 the client will receive the result of the communication with the last server.
+	*/
     { ngx_string("upstream"),
       NGX_HTTP_MAIN_CONF|NGX_CONF_BLOCK|NGX_CONF_TAKE1,
       ngx_http_upstream,
@@ -520,6 +546,8 @@ ngx_http_upstream_init(ngx_http_request_t *r)
         ngx_del_timer(c->read);
     }
 
+	//XXX：添加写事件？？
+	//XXX: 为什么仅在ngx_event_flags & NGX_USE_CLEAR_EVENT时添加？？？
     if (ngx_event_flags & NGX_USE_CLEAR_EVENT) {
 
         if (!c->write->active) {
@@ -684,8 +712,7 @@ ngx_http_upstream_init_request(ngx_http_request_t *r)
             uscf = uscfp[i];
 
             if (uscf->host.len == host->len
-                && ((uscf->port == 0 && u->resolved->no_port)
-                     || uscf->port == u->resolved->port)
+                && ((uscf->port == 0 && u->resolved->no_port) || uscf->port == u->resolved->port)
                 && ngx_strncasecmp(uscf->host.data, host->data, host->len) == 0)
             {
                 goto found;
@@ -750,10 +777,8 @@ ngx_http_upstream_init_request(ngx_http_request_t *r)
 found:
 
     if (uscf == NULL) {
-        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
-                      "no upstream configuration");
-        ngx_http_upstream_finalize_request(r, u,
-                                           NGX_HTTP_INTERNAL_SERVER_ERROR);
+        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0, "no upstream configuration");
+        ngx_http_upstream_finalize_request(r, u, NGX_HTTP_INTERNAL_SERVER_ERROR);
         return;
     }
 
@@ -764,16 +789,13 @@ found:
 #endif
 
     if (uscf->peer.init(r, uscf) != NGX_OK) {
-        ngx_http_upstream_finalize_request(r, u,
-                                           NGX_HTTP_INTERNAL_SERVER_ERROR);
+        ngx_http_upstream_finalize_request(r, u, NGX_HTTP_INTERNAL_SERVER_ERROR);
         return;
     }
 
     u->peer.start_time = ngx_current_msec;
 
-    if (u->conf->next_upstream_tries
-        && u->peer.tries > u->conf->next_upstream_tries)
-    {
+    if (u->conf->next_upstream_tries && u->peer.tries > u->conf->next_upstream_tries) {
         u->peer.tries = u->conf->next_upstream_tries;
     }
 
@@ -1198,9 +1220,7 @@ ngx_http_upstream_resolve_handler(ngx_resolver_ctx_t *ctx)
 
     u->peer.start_time = ngx_current_msec;
 
-    if (u->conf->next_upstream_tries
-        && u->peer.tries > u->conf->next_upstream_tries)
-    {
+    if (u->conf->next_upstream_tries && u->peer.tries > u->conf->next_upstream_tries) {
         u->peer.tries = u->conf->next_upstream_tries;
     }
 
@@ -5643,8 +5663,7 @@ ngx_http_upstream(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
         }
     }
 
-    uscf->servers = ngx_array_create(cf->pool, 4,
-                                     sizeof(ngx_http_upstream_server_t));
+    uscf->servers = ngx_array_create(cf->pool, 4, sizeof(ngx_http_upstream_server_t));
     if (uscf->servers == NULL) {
         return NGX_CONF_ERROR;
     }
@@ -5665,8 +5684,7 @@ ngx_http_upstream(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
     }
 
     if (uscf->servers->nelts == 0) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "no servers are inside upstream");
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "no servers are inside upstream");
         return NGX_CONF_ERROR;
     }
 
@@ -5856,39 +5874,26 @@ ngx_http_upstream_add(ngx_conf_t *cf, ngx_url_t *u, ngx_uint_t flags)
 
     for (i = 0; i < umcf->upstreams.nelts; i++) {
 
-        if (uscfp[i]->host.len != u->host.len
-            || ngx_strncasecmp(uscfp[i]->host.data, u->host.data, u->host.len)
-               != 0)
-        {
+        if (uscfp[i]->host.len != u->host.len || ngx_strncasecmp(uscfp[i]->host.data, u->host.data, u->host.len) != 0) {
             continue;
         }
 
-        if ((flags & NGX_HTTP_UPSTREAM_CREATE)
-             && (uscfp[i]->flags & NGX_HTTP_UPSTREAM_CREATE))
-        {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "duplicate upstream \"%V\"", &u->host);
+        if ((flags & NGX_HTTP_UPSTREAM_CREATE) && (uscfp[i]->flags & NGX_HTTP_UPSTREAM_CREATE)) {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "duplicate upstream \"%V\"", &u->host);
             return NULL;
         }
 
         if ((uscfp[i]->flags & NGX_HTTP_UPSTREAM_CREATE) && !u->no_port) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "upstream \"%V\" may not have port %d",
-                               &u->host, u->port);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "upstream \"%V\" may not have port %d", &u->host, u->port);
             return NULL;
         }
 
         if ((flags & NGX_HTTP_UPSTREAM_CREATE) && !uscfp[i]->no_port) {
-            ngx_log_error(NGX_LOG_EMERG, cf->log, 0,
-                          "upstream \"%V\" may not have port %d in %s:%ui",
-                          &u->host, uscfp[i]->port,
-                          uscfp[i]->file_name, uscfp[i]->line);
+            ngx_log_error(NGX_LOG_EMERG, cf->log, 0, "upstream \"%V\" may not have port %d in %s:%ui", &u->host, uscfp[i]->port, uscfp[i]->file_name, uscfp[i]->line);
             return NULL;
         }
 
-        if (uscfp[i]->port && u->port
-            && uscfp[i]->port != u->port)
-        {
+        if (uscfp[i]->port && u->port && uscfp[i]->port != u->port) {
             continue;
         }
 
@@ -5913,8 +5918,7 @@ ngx_http_upstream_add(ngx_conf_t *cf, ngx_url_t *u, ngx_uint_t flags)
     uscf->no_port = u->no_port;
 
     if (u->naddrs == 1 && (u->port || u->family == AF_UNIX)) {
-        uscf->servers = ngx_array_create(cf->pool, 1,
-                                         sizeof(ngx_http_upstream_server_t));
+        uscf->servers = ngx_array_create(cf->pool, 1, sizeof(ngx_http_upstream_server_t));
         if (uscf->servers == NULL) {
             return NULL;
         }
@@ -6042,8 +6046,7 @@ ngx_http_upstream_bind_set_slot(ngx_conf_t *cf, ngx_command_t *cmd,
 
 
 static ngx_int_t
-ngx_http_upstream_set_local(ngx_http_request_t *r, ngx_http_upstream_t *u,
-    ngx_http_upstream_local_t *local)
+ngx_http_upstream_set_local(ngx_http_request_t *r, ngx_http_upstream_t *u, ngx_http_upstream_local_t *local)
 {
     ngx_int_t    rc;
     ngx_str_t    val;
@@ -6082,8 +6085,7 @@ ngx_http_upstream_set_local(ngx_http_request_t *r, ngx_http_upstream_t *u,
     }
 
     if (rc != NGX_OK) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                      "invalid local address \"%V\"", &val);
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "invalid local address \"%V\"", &val);
         return NGX_OK;
     }
 
@@ -6271,10 +6273,7 @@ ngx_http_upstream_create_main_conf(ngx_conf_t *cf)
         return NULL;
     }
 
-    if (ngx_array_init(&umcf->upstreams, cf->pool, 4,
-                       sizeof(ngx_http_upstream_srv_conf_t *))
-        != NGX_OK)
-    {
+    if (ngx_array_init(&umcf->upstreams, cf->pool, 4, sizeof(ngx_http_upstream_srv_conf_t *)) != NGX_OK) {
         return NULL;
     }
 
@@ -6299,8 +6298,7 @@ ngx_http_upstream_init_main_conf(ngx_conf_t *cf, void *conf)
 
     for (i = 0; i < umcf->upstreams.nelts; i++) {
 
-        init = uscfp[i]->peer.init_upstream ? uscfp[i]->peer.init_upstream:
-                                            ngx_http_upstream_init_round_robin;
+        init = uscfp[i]->peer.init_upstream ? uscfp[i]->peer.init_upstream: ngx_http_upstream_init_round_robin;
 
         if (init(cf, uscfp[i]) != NGX_OK) {
             return NGX_CONF_ERROR;
@@ -6310,9 +6308,7 @@ ngx_http_upstream_init_main_conf(ngx_conf_t *cf, void *conf)
 
     /* upstream_headers_in_hash */
 
-    if (ngx_array_init(&headers_in, cf->temp_pool, 32, sizeof(ngx_hash_key_t))
-        != NGX_OK)
-    {
+    if (ngx_array_init(&headers_in, cf->temp_pool, 32, sizeof(ngx_hash_key_t)) != NGX_OK) {
         return NGX_CONF_ERROR;
     }
 

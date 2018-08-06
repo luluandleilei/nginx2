@@ -104,10 +104,7 @@ ngx_mail_smtp_resolve_addr_handler(ngx_resolver_ctx_t *ctx)
     c = s->connection;
 
     if (ctx->state) {
-        ngx_log_error(NGX_LOG_ERR, c->log, 0,
-                      "%V could not be resolved (%i: %s)",
-                      &c->addr_text, ctx->state,
-                      ngx_resolver_strerror(ctx->state));
+        ngx_log_error(NGX_LOG_ERR, c->log, 0, "%V could not be resolved (%i: %s)", &c->addr_text, ctx->state, ngx_resolver_strerror(ctx->state));
 
         if (ctx->state == NGX_RESOLVE_NXDOMAIN) {
             s->host = smtp_unavailable;
@@ -136,8 +133,7 @@ ngx_mail_smtp_resolve_addr_handler(ngx_resolver_ctx_t *ctx)
 
     ngx_resolve_addr_done(ctx);
 
-    ngx_log_debug1(NGX_LOG_DEBUG_MAIL, c->log, 0,
-                   "address resolved: %V", &s->host);
+    ngx_log_debug1(NGX_LOG_DEBUG_MAIL, c->log, 0, "address resolved: %V", &s->host);
 
     c->read->handler = ngx_mail_smtp_resolve_name;
 
@@ -186,10 +182,7 @@ ngx_mail_smtp_resolve_name_handler(ngx_resolver_ctx_t *ctx)
     c = s->connection;
 
     if (ctx->state) {
-        ngx_log_error(NGX_LOG_ERR, c->log, 0,
-                      "\"%V\" could not be resolved (%i: %s)",
-                      &ctx->name, ctx->state,
-                      ngx_resolver_strerror(ctx->state));
+        ngx_log_error(NGX_LOG_ERR, c->log, 0, "\"%V\" could not be resolved (%i: %s)", &ctx->name, ctx->state, ngx_resolver_strerror(ctx->state));
 
         if (ctx->state == NGX_RESOLVE_NXDOMAIN) {
             s->host = smtp_unavailable;
@@ -219,10 +212,7 @@ ngx_mail_smtp_resolve_name_handler(ngx_resolver_ctx_t *ctx)
 #endif
 
         for (i = 0; i < ctx->naddrs; i++) {
-            if (ngx_cmp_sockaddr(ctx->addrs[i].sockaddr, ctx->addrs[i].socklen,
-                                 c->sockaddr, c->socklen, 0)
-                == NGX_OK)
-            {
+            if (ngx_cmp_sockaddr(ctx->addrs[i].sockaddr, ctx->addrs[i].socklen, c->sockaddr, c->socklen, 0) == NGX_OK) {
                 goto found;
             }
         }

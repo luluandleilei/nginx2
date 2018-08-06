@@ -146,8 +146,7 @@ ngx_http_upstream_init_hash_peer(ngx_http_request_t *r,
         return NGX_ERROR;
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "upstream hash key:\"%V\"", &hp->key);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "upstream hash key:\"%V\"", &hp->key);
 
     hp->conf = hcf;
     hp->tries = 0;

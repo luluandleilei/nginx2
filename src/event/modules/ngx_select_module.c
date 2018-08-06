@@ -12,8 +12,7 @@
 
 static ngx_int_t ngx_select_init(ngx_cycle_t *cycle, ngx_msec_t timer);
 static void ngx_select_done(ngx_cycle_t *cycle);
-static ngx_int_t ngx_select_add_event(ngx_event_t *ev, ngx_int_t event,
-    ngx_uint_t flags);
+static ngx_int_t ngx_select_add_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags);
 static ngx_int_t ngx_select_del_event(ngx_event_t *ev, ngx_int_t event,
     ngx_uint_t flags);
 static ngx_int_t ngx_select_process_events(ngx_cycle_t *cycle, ngx_msec_t timer,

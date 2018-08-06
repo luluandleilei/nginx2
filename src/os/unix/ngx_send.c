@@ -22,8 +22,7 @@ ngx_unix_send(ngx_connection_t *c, u_char *buf, size_t size)
 #if (NGX_HAVE_KQUEUE)
 
     if ((ngx_event_flags & NGX_USE_KQUEUE_EVENT) && wev->pending_eof) {
-        (void) ngx_connection_error(c, wev->kq_errno,
-                               "kevent() reported about an closed connection");
+        (void) ngx_connection_error(c, wev->kq_errno, "kevent() reported about an closed connection");
         wev->error = 1;
         return NGX_ERROR;
     }

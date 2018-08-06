@@ -90,7 +90,7 @@ struct ngx_event_s {
     unsigned         closed:1;	
     /* to test on worker exit */
     unsigned         channel:1;		//表明这是channel描述符对应的事件
-    unsigned         resolver:1;	//
+    unsigned         resolver:1;	//表明这是一个resolver(域名解析)描述符对应的事件
 	//Timer event flag indicating that the event should be ignored while shutting down the worker. 
 	//Graceful worker shutdown is delayed until there are no non-cancelable timer events scheduled.
     unsigned         cancelable:1;	

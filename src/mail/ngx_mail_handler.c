@@ -140,8 +140,7 @@ ngx_mail_init_connection(ngx_connection_t *c)
 
     len = ngx_sock_ntop(c->sockaddr, c->socklen, text, NGX_SOCKADDR_STRLEN, 1);
 
-    ngx_log_error(NGX_LOG_INFO, c->log, 0, "*%uA client %*s connected to %V",
-                  c->number, len, text, s->addr_text);
+    ngx_log_error(NGX_LOG_INFO, c->log, 0, "*%uA client %*s connected to %V", c->number, len, text, s->addr_text);
 
     ctx = ngx_palloc(c->pool, sizeof(ngx_mail_log_ctx_t));
     if (ctx == NULL) {
@@ -807,8 +806,7 @@ ngx_mail_close_connection(ngx_connection_t *c)
 {
     ngx_pool_t  *pool;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_MAIL, c->log, 0,
-                   "close mail connection: %d", c->fd);
+    ngx_log_debug1(NGX_LOG_DEBUG_MAIL, c->log, 0, "close mail connection: %d", c->fd);
 
 #if (NGX_MAIL_SSL)
 

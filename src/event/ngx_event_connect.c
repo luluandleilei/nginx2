@@ -92,16 +92,11 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
             static int  bind_address_no_port = 1;
 
             if (bind_address_no_port) {
-                if (setsockopt(s, IPPROTO_IP, IP_BIND_ADDRESS_NO_PORT,
-                               (const void *) &bind_address_no_port,
-                               sizeof(int)) == -1)
-                {
-                    err = ngx_socket_errno;
+                if (setsockopt(s, IPPROTO_IP, IP_BIND_ADDRESS_NO_PORT, (const void *) &bind_address_no_port, sizeof(int)) == -1) {
+					err = ngx_socket_errno;
 
                     if (err != NGX_EOPNOTSUPP && err != NGX_ENOPROTOOPT) {
-                        ngx_log_error(NGX_LOG_ALERT, pc->log, err,
-                                      "setsockopt(IP_BIND_ADDRESS_NO_PORT) "
-                                      "failed, ignored");
+                        ngx_log_error(NGX_LOG_ALERT, pc->log, err, "setsockopt(IP_BIND_ADDRESS_NO_PORT) " "failed, ignored");
 
                     } else {
                         bind_address_no_port = 0;
@@ -117,12 +112,8 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
         if (pc->type == SOCK_DGRAM && port != 0) {
             int  reuse_addr = 1;
 
-            if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR,
-                           (const void *) &reuse_addr, sizeof(int))
-                 == -1)
-            {
-                ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno,
-                              "setsockopt(SO_REUSEADDR) failed");
+            if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (const void *) &reuse_addr, sizeof(int)) == -1) {
+                ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno, "setsockopt(SO_REUSEADDR) failed");
                 goto failed;
             }
         }
@@ -130,8 +121,7 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
 #endif
 
         if (bind(s, pc->local->sockaddr, pc->local->socklen) == -1) {
-            ngx_log_error(NGX_LOG_CRIT, pc->log, ngx_socket_errno,
-                          "bind(%V) failed", &pc->local->name);
+            ngx_log_error(NGX_LOG_CRIT, pc->log, ngx_socket_errno, "bind(%V) failed", &pc->local->name);
 
             goto failed;
         }

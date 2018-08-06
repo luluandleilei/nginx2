@@ -119,8 +119,7 @@ typedef struct {
 } ngx_http_proxy_ctx_t;
 
 
-static ngx_int_t ngx_http_proxy_eval(ngx_http_request_t *r,
-    ngx_http_proxy_ctx_t *ctx, ngx_http_proxy_loc_conf_t *plcf);
+static ngx_int_t ngx_http_proxy_eval(ngx_http_request_t *r, ngx_http_proxy_ctx_t *ctx, ngx_http_proxy_loc_conf_t *plcf);
 #if (NGX_HTTP_CACHE)
 static ngx_int_t ngx_http_proxy_create_key(ngx_http_request_t *r);
 #endif
@@ -171,8 +170,7 @@ static ngx_int_t ngx_http_proxy_init_headers(ngx_conf_t *cf,
     ngx_http_proxy_loc_conf_t *conf, ngx_http_proxy_headers_t *headers,
     ngx_keyval_t *default_headers);
 
-static char *ngx_http_proxy_pass(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+static char *ngx_http_proxy_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_http_proxy_redirect(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 static char *ngx_http_proxy_cookie_domain(ngx_conf_t *cf, ngx_command_t *cmd,
@@ -252,6 +250,62 @@ ngx_module_t  ngx_http_proxy_module;
 
 static ngx_command_t  ngx_http_proxy_commands[] = {
 
+	/*
+	 Syntax:	proxy_pass URL;
+	 Default:	—
+	 Context:	location, if in location, limit_except
+	 
+	 Sets the protocol and address of a proxied server and an optional URI to which a location should be mapped. 
+	 As a protocol, “http” or “https” can be specified. 
+	 The address can be specified as a domain name or IP address, and an optional port:
+		proxy_pass http://localhost:8000/uri/;
+	 or as a UNIX-domain socket path specified after the word “unix” and enclosed in colons:
+		proxy_pass http://unix:/tmp/backend.socket:/uri/;
+		
+	 If a domain name resolves to several addresses, all of them will be used in a round-robin fashion. 
+	 In addition, an address can be specified as a 'server group'.
+
+	 Parameter value can contain variables. In this case, if an address is specified as a domain name, 
+	 the name is searched among the described server groups, and, if not found, is determined using a resolver.
+
+	 A request URI is passed to the server as follows:
+
+	 	If the proxy_pass directive is specified with a URI, then when a request is passed to the server, 
+		the part of a normalized request URI matching the location is replaced by a URI specified in the directive:
+			location /name/ {
+			    proxy_pass http://127.0.0.1/remote/;
+			}
+			
+		If proxy_pass is specified without a URI, the request URI is passed to the server in the same form as sent by a client 
+		when the original request is processed, or the full normalized request URI is passed when processing the changed URI:
+			location /some/path/ {
+			    proxy_pass http://127.0.0.1;
+			}
+			
+		Before version 1.1.12, if proxy_pass is specified without a URI, 
+		the original request URI might be passed instead of the changed URI in some cases.
+
+	 In some cases, the part of a request URI to be replaced cannot be determined:
+
+		When location is specified using a regular expression, and also inside named locations.
+		In these cases, proxy_pass should be specified without a URI.
+
+		When the URI is changed inside a proxied location using the rewrite directive, 
+		and this same configuration will be used to process a request (break):
+			location /name/ {
+			    rewrite    /name/([^/]+) /users?name=$1 break;
+			    proxy_pass http://127.0.0.1;
+			}
+		In this case, the URI specified in the directive is ignored and the full changed request URI is passed to the server.
+
+		When variables are used in proxy_pass:
+			location /name/ {
+			    proxy_pass http://127.0.0.1$request_uri;
+			}
+		In this case, if URI is specified in the directive, it is passed to the server as is, replacing the original request URI.
+		
+	 WebSocket proxying requires special configuration and is supported since version 1.3.13.
+	*/
     { ngx_string("proxy_pass"),
       NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF|NGX_HTTP_LMT_CONF|NGX_CONF_TAKE1,
       ngx_http_proxy_pass,
@@ -1071,8 +1125,7 @@ ngx_http_proxy_handler(ngx_http_request_t *r)
 
 
 static ngx_int_t
-ngx_http_proxy_eval(ngx_http_request_t *r, ngx_http_proxy_ctx_t *ctx,
-    ngx_http_proxy_loc_conf_t *plcf)
+ngx_http_proxy_eval(ngx_http_request_t *r, ngx_http_proxy_ctx_t *ctx, ngx_http_proxy_loc_conf_t *plcf)
 {
     u_char               *p;
     size_t                add;
@@ -1081,24 +1134,17 @@ ngx_http_proxy_eval(ngx_http_request_t *r, ngx_http_proxy_ctx_t *ctx,
     ngx_url_t             url;
     ngx_http_upstream_t  *u;
 
-    if (ngx_http_script_run(r, &proxy, plcf->proxy_lengths->elts, 0,
-                            plcf->proxy_values->elts)
-        == NULL)
-    {
+    if (ngx_http_script_run(r, &proxy, plcf->proxy_lengths->elts, 0, plcf->proxy_values->elts) == NULL) {
         return NGX_ERROR;
     }
 
-    if (proxy.len > 7
-        && ngx_strncasecmp(proxy.data, (u_char *) "http://", 7) == 0)
-    {
+    if (proxy.len > 7 && ngx_strncasecmp(proxy.data, (u_char *) "http://", 7) == 0) {
         add = 7;
         port = 80;
 
 #if (NGX_HTTP_SSL)
 
-    } else if (proxy.len > 8
-               && ngx_strncasecmp(proxy.data, (u_char *) "https://", 8) == 0)
-    {
+    } else if (proxy.len > 8 && ngx_strncasecmp(proxy.data, (u_char *) "https://", 8) == 0) {
         add = 8;
         port = 443;
         r->upstream->ssl = 1;
@@ -1106,8 +1152,7 @@ ngx_http_proxy_eval(ngx_http_request_t *r, ngx_http_proxy_ctx_t *ctx,
 #endif
 
     } else {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                      "invalid URL prefix in \"%V\"", &proxy);
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "invalid URL prefix in \"%V\"", &proxy);
         return NGX_ERROR;
     }
 
@@ -1126,8 +1171,7 @@ ngx_http_proxy_eval(ngx_http_request_t *r, ngx_http_proxy_ctx_t *ctx,
 
     if (ngx_parse_url(r->pool, &url) != NGX_OK) {
         if (url.err) {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                          "%s in upstream \"%V\"", url.err, &url.url);
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "%s in upstream \"%V\"", url.err, &url.url);
         }
 
         return NGX_ERROR;
@@ -3342,8 +3386,7 @@ ngx_http_proxy_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
         if (conf->redirects == NULL && conf->url.data) {
 
-            conf->redirects = ngx_array_create(cf->pool, 1,
-                                             sizeof(ngx_http_proxy_rewrite_t));
+            conf->redirects = ngx_array_create(cf->pool, 1, sizeof(ngx_http_proxy_rewrite_t));
             if (conf->redirects == NULL) {
                 return NGX_CONF_ERROR;
             }
@@ -3680,6 +3723,7 @@ ngx_http_proxy_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     clcf->handler = ngx_http_proxy_handler;
 
+	//XXX:
     if (clcf->name.data[clcf->name.len - 1] == '/') {
         clcf->auto_redirect = 1;
     }

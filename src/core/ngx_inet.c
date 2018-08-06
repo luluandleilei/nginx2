@@ -1392,8 +1392,7 @@ ngx_inet_resolve_host(ngx_pool_t *pool, ngx_url_t *u)
                 return NGX_ERROR;
             }
 
-            len = ngx_sock_ntop((struct sockaddr *) sin,
-                                sizeof(struct sockaddr_in), p, len, 1);
+            len = ngx_sock_ntop((struct sockaddr *) sin, sizeof(struct sockaddr_in), p, len, 1);
 
             u->addrs[i].name.len = len;
             u->addrs[i].name.data = p;
