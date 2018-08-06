@@ -76,8 +76,7 @@ static ngx_uint_t ngx_resolver_resend_empty(ngx_resolver_t *r);
 static void ngx_resolver_udp_read(ngx_event_t *rev);
 static void ngx_resolver_tcp_write(ngx_event_t *wev);
 static void ngx_resolver_tcp_read(ngx_event_t *rev);
-static void ngx_resolver_process_response(ngx_resolver_t *r, u_char *buf,
-    size_t n, ngx_uint_t tcp);
+static void ngx_resolver_process_response(ngx_resolver_t *r, u_char *buf, size_t n, ngx_uint_t tcp);
 static void ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
     ngx_uint_t ident, ngx_uint_t code, ngx_uint_t qtype,
     ngx_uint_t nan, ngx_uint_t trunc, ngx_uint_t ans);
@@ -747,11 +746,13 @@ ngx_resolve_name_locked(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx, ngx_str_t *n
 
     } else {
 
+		//XXX:分配一个新的缓存结点
         rn = ngx_resolver_alloc(r, sizeof(ngx_resolver_node_t));
         if (rn == NULL) {
             return NGX_ERROR;
         }
 
+		//XXX:初始化缓存结点必要的字段
         rn->name = ngx_resolver_dup(r, name->data, name->len);
         if (rn->name == NULL) {
             ngx_resolver_free(r, rn);
@@ -760,14 +761,16 @@ ngx_resolve_name_locked(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx, ngx_str_t *n
 
         rn->node.key = hash;
         rn->nlen = (u_short) name->len;
+		//XXX: 有什么必要初始化query和query6字段 ？？？
         rn->query = NULL;
 #if (NGX_HAVE_INET6)
         rn->query6 = NULL;
 #endif
-
+		//XXX：缓存结点插入到对应的缓存表中
         ngx_rbtree_insert(tree, &rn->node);
     }
 
+	//XXX: 创建对应的dns查询请求报文
     if (ctx->service.len) {
         rc = ngx_resolver_create_srv_query(r, rn, name);
 
@@ -775,11 +778,13 @@ ngx_resolve_name_locked(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx, ngx_str_t *n
         rc = ngx_resolver_create_name_query(r, rn, name);
     }
 
-    if (rc == NGX_ERROR) {
+	//XXX: 创建dns查询请求报文失败，返回错误
+    if (rc == NGX_ERROR) {	
         goto failed;
     }
 
-    if (rc == NGX_DECLINED) {
+	//XXX: 请求的域名格式不对，设置NGX_RESOLVE_NXDOMAIN状态，调用回调
+    if (rc == NGX_DECLINED) {	
         ngx_rbtree_delete(tree, &rn->node);
 
         ngx_resolver_free(r, rn->query);
@@ -798,11 +803,13 @@ ngx_resolve_name_locked(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx, ngx_str_t *n
         return NGX_OK;
     }
 
+	//XXX：获取此次查询使用的dns server的连接对象的索引
     rn->last_connection = r->last_connection++;
     if (r->last_connection == r->connections.nelts) {
         r->last_connection = 0;
     }
 
+	//发送查询请求
     rn->naddrs = (u_short) -1;
     rn->tcp = 0;
 #if (NGX_HAVE_INET6)
@@ -811,10 +818,12 @@ ngx_resolve_name_locked(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx, ngx_str_t *n
 #endif
     rn->nsrvs = 0;
 
+	//XXX: 发送dns查询请求
     if (ngx_resolver_send_query(r, rn) != NGX_OK) {
         goto failed;
     }
 
+	//XXX：设置上层请求dns查询对象的超时事件
     if (ngx_resolver_set_timeout(r, ctx) != NGX_OK) {
         goto failed;
     }
@@ -1216,8 +1225,8 @@ ngx_resolver_send_query(ngx_resolver_t *r, ngx_resolver_node_t *rn)
 
 	//XXX:发送ipv4域名地址查询
     if (rn->naddrs == (u_short) -1) {
-        rc = rn->tcp ? ngx_resolver_send_tcp_query(r, rec, rn->query, rn->qlen)
-                     : ngx_resolver_send_udp_query(r, rec, rn->query, rn->qlen);
+        rc = rn->tcp ? ngx_resolver_send_tcp_query(r, rec, rn->query, rn->qlen) 
+				: ngx_resolver_send_udp_query(r, rec, rn->query, rn->qlen);
 
         if (rc != NGX_OK) {
             return rc;
@@ -1229,7 +1238,7 @@ ngx_resolver_send_query(ngx_resolver_t *r, ngx_resolver_node_t *rn)
 	//XXX:发送ipv6域名地址查询
     if (rn->query6 && rn->naddrs6 == (u_short) -1) {
         rc = rn->tcp6 ? ngx_resolver_send_tcp_query(r, rec, rn->query6, rn->qlen)
-                      : ngx_resolver_send_udp_query(r, rec, rn->query6, rn->qlen);
+				: ngx_resolver_send_udp_query(r, rec, rn->query6, rn->qlen);
 
         if (rc != NGX_OK) {
             return rc;
@@ -1510,6 +1519,7 @@ ngx_resolver_udp_read(ngx_event_t *rev)
     c = rev->data;
     rec = c->data;
 
+	//XXX:为什么是先读而不是像ngx_resolver_tcp_read一样先判断rev->ready? 会有什么区别么？
     do {
         n = ngx_udp_recv(c, buf, NGX_RESOLVER_UDP_SIZE);
 
@@ -1538,6 +1548,7 @@ ngx_resolver_tcp_write(ngx_event_t *wev)
     b = rec->write_buf;
     r = rec->resolver;
 
+	//发送DNS查询超时
     if (wev->timedout) {
         goto failed;
     }
@@ -1607,7 +1618,7 @@ ngx_resolver_tcp_read(ngx_event_t *rev)
             break;
         }
 
-        if (n == NGX_ERROR || n == 0) {
+        if (n == NGX_ERROR || n == 0) {	//XXX: 对端关闭连接??
             goto failed;
         }
 
@@ -1615,7 +1626,7 @@ ngx_resolver_tcp_read(ngx_event_t *rev)
 
         for ( ;; ) {
             p = b->pos;
-            size = b->last - p;
+            size = b->last - p;	
 
             if (size < 2) {
                 break;
@@ -1686,9 +1697,7 @@ ngx_resolver_process_response(ngx_resolver_t *r, u_char *buf, size_t n, ngx_uint
 
     /* response to a standard query */
     if ((flags & 0xf870) != 0x8000 || (trunc && tcp)) {
-        ngx_log_error(r->log_level, r->log, 0,
-                      "invalid %s DNS response %ui fl:%04Xi",
-                      tcp ? "TCP" : "UDP", ident, flags);
+        ngx_log_error(r->log_level, r->log, 0, "invalid %s DNS response %ui fl:%04Xi", tcp ? "TCP" : "UDP", ident, flags);
         return;
     }
 
@@ -1751,8 +1760,7 @@ found:
         goto done;
     }
 
-    if (i + sizeof(ngx_resolver_qs_t) + nan * (2 + sizeof(ngx_resolver_an_t))
-        > (ngx_uint_t) n)
+    if (i + sizeof(ngx_resolver_qs_t) + nan * (2 + sizeof(ngx_resolver_an_t)) > (ngx_uint_t) n)
     {
         goto short_response;
     }
@@ -1762,12 +1770,10 @@ found:
     qtype = (qs->type_hi << 8) + qs->type_lo;
     qclass = (qs->class_hi << 8) + qs->class_lo;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_CORE, r->log, 0,
-                   "resolver DNS response qt:%ui cl:%ui", qtype, qclass);
+    ngx_log_debug2(NGX_LOG_DEBUG_CORE, r->log, 0, "resolver DNS response qt:%ui cl:%ui", qtype, qclass);
 
     if (qclass != 1) {
-        ngx_log_error(r->log_level, r->log, 0,
-                      "unknown query class %ui in DNS response", qclass);
+        ngx_log_error(r->log_level, r->log, 0, "unknown query class %ui in DNS response", qclass);
         return;
     }
 
@@ -1813,17 +1819,12 @@ done:
 
 dns_error_name:
 
-    ngx_log_error(r->log_level, r->log, 0,
-                  "DNS error (%ui: %s), query id:%ui, name:\"%*s\"",
-                  code, ngx_resolver_strerror(code), ident,
-                  (size_t) rn->nlen, rn->name);
+    ngx_log_error(r->log_level, r->log, 0, "DNS error (%ui: %s), query id:%ui, name:\"%*s\"", code, ngx_resolver_strerror(code), ident, (size_t) rn->nlen, rn->name);
     return;
 
 dns_error:
 
-    ngx_log_error(r->log_level, r->log, 0,
-                  "DNS error (%ui: %s), query id:%ui",
-                  code, ngx_resolver_strerror(code), ident);
+    ngx_log_error(r->log_level, r->log, 0, "DNS error (%ui: %s), query id:%ui", code, ngx_resolver_strerror(code), ident);
     return;
 }
 
@@ -3992,6 +3993,7 @@ ngx_resolver_timeout_handler(ngx_event_t *ev)
 }
 
 
+/*释放rn结点内部所分配到内存，及rn结点的内存*/
 static void
 ngx_resolver_free_node(ngx_resolver_t *r, ngx_resolver_node_t *rn)
 {

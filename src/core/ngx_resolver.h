@@ -102,7 +102,7 @@ typedef struct {
     struct in6_addr           addr6;
 #endif
 
-    u_short                   nlen;		//查询的name的长度
+    u_short                   nlen;		//name的长度
     u_short                   qlen;		//dns的ipv4|ipv6的name查询报文(长度是一样的，仅仅某些字段的值不一样)
 
     u_char                   *query;	//dns的ipv4的name查询报文(malloc分配)
@@ -112,15 +112,15 @@ typedef struct {
 
     union {
         in_addr_t             addr;
-        in_addr_t            *addrs;
-        u_char               *cname;
-        ngx_resolver_srv_t   *srvs;
+        in_addr_t            *addrs;	//XXX: name查询结果
+        u_char               *cname;	
+        ngx_resolver_srv_t   *srvs;		//XXX:service查询结果
     } u;
 
     u_char                    code;
-    u_short                   naddrs;
-    u_short                   nsrvs;
-    u_short                   cnlen;
+    u_short                   naddrs;	//addrs的个数
+    u_short                   nsrvs;	//srvs的个数
+    u_short                   cnlen;	//cname的长度
 
 #if (NGX_HAVE_INET6)
     union {
@@ -128,11 +128,11 @@ typedef struct {
         struct in6_addr      *addrs6;
     } u6;
 
-    u_short                   naddrs6;
+    u_short                   naddrs6;	//addrs6的个数
 #endif
 
-    time_t                    expire;
-    time_t                    valid;
+    time_t                    expire;	//重新请求的时间
+    time_t                    valid;	//过期时间点
     uint32_t                  ttl;
 
     unsigned                  tcp:1;	//表示使用tcp进行域名的Ipv4地址查询
@@ -160,14 +160,15 @@ struct ngx_resolver_s {
     ngx_array_t               connections;	
     ngx_uint_t                last_connection;
 
-	//XXX:dns name的缓存？？？
+	//XXX:name查询的缓存？？？
     ngx_rbtree_t              name_rbtree;	
     ngx_rbtree_node_t         name_sentinel;
 
-	//XXX:srv的缓存？？？
+	//XXX:srv查询的缓存？？？
     ngx_rbtree_t              srv_rbtree;
     ngx_rbtree_node_t         srv_sentinel;
 
+	//XXX:addr查询的缓存
     ngx_rbtree_t              addr_rbtree;
     ngx_rbtree_node_t         addr_sentinel;
 
@@ -181,7 +182,8 @@ struct ngx_resolver_s {
 
 #if (NGX_HAVE_INET6)
 	//XXX:enable looking up of IPv6 addressess
-    ngx_uint_t                ipv6;              
+    ngx_uint_t                ipv6;  
+	//XXX:addr6查询的缓存
     ngx_rbtree_t              addr6_rbtree;
     ngx_rbtree_node_t         addr6_sentinel;
     ngx_queue_t               addr6_resend_queue;
@@ -214,7 +216,7 @@ struct ngx_resolver_ctx_s {
     time_t                    valid;
     ngx_uint_t                naddrs;	//存储name解析的结果的数组元素个数
     ngx_resolver_addr_t      *addrs;	//存储name解析的结果的数组
-    ngx_resolver_addr_t       addr;		//存储将地址解析为域名时的要解析的地址
+    ngx_resolver_addr_t       addr;		//需要解析的地址
     struct sockaddr_in        sin;
 
     ngx_uint_t                count;
