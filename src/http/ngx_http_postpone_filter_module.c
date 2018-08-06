@@ -67,6 +67,9 @@ ngx_http_postpone_filter(ngx_http_request_t *r, ngx_chain_t *in)
         return ngx_http_postpone_filter_in_memory(r, in);
     }
 
+	//c->data指向当前可以向out chain输出数据的请求
+	//当前请求不能往out chain发送数据，如果产生了数据，新建一个节点，
+    //将它保存在当前request的postponed队尾。这样就保证了数据按序发到客户端 
     if (r != c->data) {
 
         if (in) {
@@ -84,48 +87,56 @@ ngx_http_postpone_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
         return NGX_OK;
     }
-
+	
+	//当前请求可以往out chain发送数据，如果它的postponed链表中没有子请求，也没有数据，
+    //则直接发送当前产生的数据in或者继续发送out chain中之前没有发送完成的数据 
     if (r->postponed == NULL) {
 
         if (in || c->buffered) {
-            return ngx_http_next_body_filter(r->main, in);
+            return ngx_http_next_body_filter(r->main, in);	//XXX: 为什么是 r->main ???
         }
 
+		//当前请求没有需要发送的数据
         return NGX_OK;
     }
 
+	//当前请求的postponed链表中之前就存在需要处理的节点，则新建一个节点，
+	//保存当前产生的数据in， 并将它插入到postponed队尾 
     if (in) {
         if (ngx_http_postpone_filter_add(r, in) != NGX_OK) {
             return NGX_ERROR;
         }
     }
 
+	//处理postponed链表中的节点
     do {
         pr = r->postponed;
 
+		//如果该节点保存的是一个子请求，则将它加到主请求的posted_requests链表中，
+        //以便下次调用ngx_http_run_posted_requests函数，处理该子节点
         if (pr->request) {
 
-            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                           "http postpone filter wake \"%V?%V\"",
-                           &pr->request->uri, &pr->request->args);
+            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0, "http postpone filter wake \"%V?%V\"", &pr->request->uri, &pr->request->args);
 
             r->postponed = pr->next;
 
+			//按照后序遍历产生的序列，因为当前请求（节点）有未处理的子请求(节点)，
+            //必须先处理完改子请求，才能继续处理后面的子节点。
+            //这里将该子请求设置为可以往out chain发送数据的请求
             c->data = pr->request;
 
+			//将该子请求加入主请求的posted_requests链表
             return ngx_http_post_request(pr->request, NULL);
         }
 
+		//如果该节点保存的是数据，可以直接处理该节点，将它发送到out chain
         if (pr->out == NULL) {
-            ngx_log_error(NGX_LOG_ALERT, c->log, 0,
-                          "http postpone filter NULL output");
+            ngx_log_error(NGX_LOG_ALERT, c->log, 0, "http postpone filter NULL output");
 
         } else {
-            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                           "http postpone filter output \"%V?%V\"",
-                           &r->uri, &r->args);
+            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0, "http postpone filter output \"%V?%V\"", &r->uri, &r->args);
 
-            if (ngx_http_next_body_filter(r->main, pr->out) == NGX_ERROR) {
+            if (ngx_http_next_body_filter(r->main, pr->out) == NGX_ERROR) {	//XXX: 为什么是r->main ???
                 return NGX_ERROR;
             }
         }
@@ -138,14 +149,19 @@ ngx_http_postpone_filter(ngx_http_request_t *r, ngx_chain_t *in)
 }
 
 
+/*
+将in中的数据链入r->postponed的最后
+*/
 static ngx_int_t
 ngx_http_postpone_filter_add(ngx_http_request_t *r, ngx_chain_t *in)
 {
     ngx_http_postponed_request_t  *pr, **ppr;
 
+	//XXX: (1)查找r->postponed的最后一个节点
     if (r->postponed) {
         for (pr = r->postponed; pr->next; pr = pr->next) { /* void */ }
 
+		//(1.2)最后一个结点是数据结点，累加数据到该结点中
         if (pr->request == NULL) {
             goto found;
         }
@@ -156,6 +172,7 @@ ngx_http_postpone_filter_add(ngx_http_request_t *r, ngx_chain_t *in)
         ppr = &r->postponed;
     }
 
+	//XXX:(2)分配一个新的ngx_http_postponed_request_t节点添加到r->postponed的链表末尾
     pr = ngx_palloc(r->pool, sizeof(ngx_http_postponed_request_t));
     if (pr == NULL) {
         return NGX_ERROR;
@@ -169,6 +186,7 @@ ngx_http_postpone_filter_add(ngx_http_request_t *r, ngx_chain_t *in)
 
 found:
 
+	//XXX:累加数据到最后的数据结点，或者新的数据结点
     if (ngx_chain_add_copy(r->pool, &pr->out, in) == NGX_OK) {
         return NGX_OK;
     }
@@ -231,13 +249,11 @@ ngx_http_postpone_filter_in_memory(ngx_http_request_t *r, ngx_chain_t *in)
         len = in->buf->last - in->buf->pos;
 
         if (len > (size_t) (b->end - b->last)) {
-            ngx_log_error(NGX_LOG_ERR, c->log, 0,
-                          "too big subrequest response");
+            ngx_log_error(NGX_LOG_ERR, c->log, 0, "too big subrequest response");
             return NGX_ERROR;
         }
 
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                       "http postpone filter in memory %uz bytes", len);
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0, "http postpone filter in memory %uz bytes", len);
 
         b->last = ngx_cpymem(b->last, in->buf->pos, len);
         in->buf->pos = in->buf->last;

@@ -1317,14 +1317,11 @@ ngx_http_proxy_create_request(ngx_http_request_t *r)
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_proxy_module);
 
-    if (method.len == 4
-        && ngx_strncasecmp(method.data, (u_char *) "HEAD", 4) == 0)
-    {
+    if (method.len == 4 && ngx_strncasecmp(method.data, (u_char *) "HEAD", 4) == 0) {
         ctx->head = 1;
     }
 
-    len = method.len + 1 + sizeof(ngx_http_proxy_version) - 1
-          + sizeof(CRLF) - 1;
+    len = method.len + 1 + sizeof(ngx_http_proxy_version) - 1 + sizeof(CRLF) - 1;
 
     escape = 0;
     loc_len = 0;
@@ -1348,8 +1345,7 @@ ngx_http_proxy_create_request(ngx_http_request_t *r)
     }
 
     if (uri_len == 0) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                      "zero length URI to proxy");
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "zero length URI to proxy");
         return NGX_ERROR;
     }
 
@@ -1420,9 +1416,7 @@ ngx_http_proxy_create_request(ngx_http_request_t *r)
                 i = 0;
             }
 
-            if (ngx_hash_find(&headers->hash, header[i].hash,
-                              header[i].lowcase_key, header[i].key.len))
-            {
+            if (ngx_hash_find(&headers->hash, header[i].hash, header[i].lowcase_key, header[i].key.len)) {
                 continue;
             }
 
@@ -1464,8 +1458,7 @@ ngx_http_proxy_create_request(ngx_http_request_t *r)
         }
 
         if (escape) {
-            ngx_escape_uri(b->last, r->uri.data + loc_len,
-                           r->uri.len - loc_len, NGX_ESCAPE_URI);
+            ngx_escape_uri(b->last, r->uri.data + loc_len, r->uri.len - loc_len, NGX_ESCAPE_URI);
             b->last += r->uri.len - loc_len + escape;
 
         } else {
@@ -1482,12 +1475,10 @@ ngx_http_proxy_create_request(ngx_http_request_t *r)
     u->uri.len = b->last - u->uri.data;
 
     if (plcf->http_version == NGX_HTTP_VERSION_11) {
-        b->last = ngx_cpymem(b->last, ngx_http_proxy_version_11,
-                             sizeof(ngx_http_proxy_version_11) - 1);
+        b->last = ngx_cpymem(b->last, ngx_http_proxy_version_11, sizeof(ngx_http_proxy_version_11) - 1);
 
     } else {
-        b->last = ngx_cpymem(b->last, ngx_http_proxy_version,
-                             sizeof(ngx_http_proxy_version) - 1);
+        b->last = ngx_cpymem(b->last, ngx_http_proxy_version, sizeof(ngx_http_proxy_version) - 1);
     }
 
     ngx_memzero(&e, sizeof(ngx_http_script_engine_t));

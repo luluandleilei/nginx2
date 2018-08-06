@@ -61,8 +61,17 @@
 
 
 /* unused                                  1 */
+//Output is not sent to the client, but rather stored in memory. 
+//The flag only affects subrequests which are processed by one of the proxying modules. 
+//After a subrequest is finalized its output is available in a r->upstream->buffer of type ngx_buf_t.
 #define NGX_HTTP_SUBREQUEST_IN_MEMORY      2
-#define NGX_HTTP_SUBREQUEST_WAITED         4	//表示如果该子请求提前完成(按后续遍历的顺序)，是否设置将它的状态设为done，当设置该参数时，提前完成就会设置done，不设时，会让该子请求等待它之前的子请求处理完毕才会将状态设置为done
+//表示如果该子请求提前完成(按后续遍历的顺序)，是否设置将它的状态设为done，
+//当设置该参数时，提前完成就会设置done，不设时，会让该子请求等待它之前的子请求处理完毕才会将状态设置为done
+//The subrequest's done flag is set even if the subrequest is not active when it is finalized. 
+//This subrequest flag is used by the SSI filter.
+#define NGX_HTTP_SUBREQUEST_WAITED         4	
+//The subrequest is created as a clone of its parent. 
+//It is started at the same location and proceeds from the same phase as the parent request.
 #define NGX_HTTP_SUBREQUEST_CLONE          8
 #define NGX_HTTP_SUBREQUEST_BACKGROUND     16
 
@@ -236,7 +245,7 @@ typedef struct {
     ngx_array_t                       cookies;
 
     ngx_str_t                         server;
-    off_t                             content_length_n;
+    off_t                             content_length_n;		//XXX: 请求头中content_length字段指定的请求体大小
     time_t                            keep_alive_n;
 
     unsigned                          connection_type:2;
@@ -292,14 +301,20 @@ typedef struct {
 typedef void (*ngx_http_client_body_handler_pt)(ngx_http_request_t *r);
 
 typedef struct {
-    ngx_temp_file_t                  *temp_file;
+	//存放HTTP包体的临时文件
+    ngx_temp_file_t                  *temp_file;	
+	//接收HTTP包体的缓冲区链表。
+	//当包体需要全部存放在内存中时，如果一块ngx_buf_t缓冲区无法存放完，这时就需要使用ngx_chain_t链表来存放
     ngx_chain_t                      *bufs;
+	//直接接收HTTP包体的缓存
     ngx_buf_t                        *buf;
+	//根据content-length头部和已接收到的包体长度，计算出的还需要接收的包体长度
     off_t                             rest;
     off_t                             received;
-    ngx_chain_t                      *free;
+    ngx_chain_t                      *free;	//XXX: free  busy 和bufs链表的关系可以参考ngx_http_request_body_length_filter
     ngx_chain_t                      *busy;
     ngx_http_chunked_t               *chunked;
+	//HTTP包体接收完毕后执行的回调方法
     ngx_http_client_body_handler_pt   post_handler;
 } ngx_http_request_body_t;
 
@@ -342,16 +357,16 @@ typedef ngx_int_t (*ngx_http_post_subrequest_pt)(ngx_http_request_t *r, void *da
 
 typedef struct {
     ngx_http_post_subrequest_pt       handler;
-    void                             *data;
+    void                             *data;		//传递给handler的参数
 } ngx_http_post_subrequest_t;
 
 
 typedef struct ngx_http_postponed_request_s  ngx_http_postponed_request_t;
 
 struct ngx_http_postponed_request_s {
-    ngx_http_request_t               *request;	//保存了subrequest
-    ngx_chain_t                      *out;		//保存了所需要发送的chain
-    ngx_http_postponed_request_t     *next;		//保存了下一个postpone_request. 
+    ngx_http_request_t               *request;	//保存了该请求的子请求
+    ngx_chain_t                      *out;		//保存了该请求自己产生的数据(所需要发送的chain)
+    ngx_http_postponed_request_t     *next;		//
 };
 
 
@@ -473,13 +488,14 @@ struct ngx_http_request_s {
     ngx_http_request_t               *main;		
 	//Pointer to the parent request of a subrequest.
     ngx_http_request_t               *parent;		
-    //List of output buffers and subrequests, in the order in which they are sent and created. 
+    //List of output buffers and subrequests (of this request), in the order in which they are sent and created. 
     //The list is used by the postpone filter to provide consistent request output when parts of it are created by subrequests.
     ngx_http_postponed_request_t     *postponed;	
 	//Pointer to a handler with the context to be called when a subrequest gets finalized. Unused for main requests.
 	ngx_http_post_subrequest_t       *post_subrequest;	
 	//List of requests to be started or resumed, which is done by calling the request's write_event_handler. 
 	//Normally, this handler holds the request main function, which at first runs request phases and then produces the output.
+	//Only used by main request.
 	ngx_http_posted_request_t        *posted_requests;	
 
 	//Index of current request phase.
@@ -507,15 +523,20 @@ struct ngx_http_request_s {
     /* used to learn the Apache compatible response length without a header */
     size_t                            header_size;
 
-    off_t                             request_length;
+    off_t                             request_length;	//XXX:HTTP请求的全部长度，包括HTTP包体
 
-    ngx_uint_t                        err_status;
+    ngx_uint_t                        err_status;		//XXX:错误码，取值为NGX_HTTP_BAD_REQUEST等
 
     ngx_http_connection_t            *http_connection;	//XXX：该请求所属的http_connection
     ngx_http_v2_stream_t             *stream;
 
     ngx_http_log_handler_pt           log_handler;
 
+	//XXX:在这个请求中如果打开了某些资源，并需要在请求结束时释放，那么都需要在把定义的释放资源方法添加到cleanup成员中
+    /* 
+    XXX:如果没有需要清理的资源，则cleanup为空指针，否则HTTP模块可以向cleanup中以单链表的形式无限制地添加ngx_http_cleanup_t结构体，
+    用以在请求结束时释放资源 
+    */
     ngx_http_cleanup_t               *cleanup;
 
 	//Request reference counter. 
@@ -550,7 +571,7 @@ struct ngx_http_request_s {
     /* URI with " " */
     unsigned                          space_in_uri:1;
 
-    unsigned                          invalid_header:1;
+    unsigned                          invalid_header:1;	//在解析HTTP请求头时，用于标识当前处理的请求头是否有效
 
     unsigned                          add_uri_to_alias:1;
     unsigned                          valid_location:1;
@@ -624,7 +645,7 @@ struct ngx_http_request_s {
     unsigned                          request_output:1;
 	//Flag indicating that the output header has already been sent by the request.
     unsigned                          header_sent:1;		
-    unsigned                          expect_tested:1;
+    unsigned                          expect_tested:1;	//表示已经调用了ngx_http_test_expect()函数
     unsigned                          root_tested:1;
     unsigned                          done:1;
     unsigned                          logged:1;

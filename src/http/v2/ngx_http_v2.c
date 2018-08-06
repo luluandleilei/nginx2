@@ -1623,8 +1623,7 @@ ngx_http_v2_state_process_header(ngx_http_v2_connection_t *h2c, u_char *pos,
         cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
 
         if (cscf->ignore_invalid_headers) {
-            ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
-                          "client sent invalid header: \"%V\"", &header->name);
+            ngx_log_error(NGX_LOG_INFO, r->connection->log, 0, "client sent invalid header: \"%V\"", &header->name);
 
             return ngx_http_v2_state_header_complete(h2c, pos, end);
         }

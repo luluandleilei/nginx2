@@ -11,8 +11,7 @@
 #include <ngx_md5.h>
 
 
-static ngx_int_t ngx_http_file_cache_lock(ngx_http_request_t *r,
-    ngx_http_cache_t *c);
+static ngx_int_t ngx_http_file_cache_lock(ngx_http_request_t *r, ngx_http_cache_t *c);
 static void ngx_http_file_cache_lock_wait_handler(ngx_event_t *ev);
 static void ngx_http_file_cache_lock_wait(ngx_http_request_t *r,
     ngx_http_cache_t *c);
@@ -289,8 +288,7 @@ ngx_http_file_cache_open(ngx_http_request_t *r)
 
     rc = ngx_http_file_cache_exists(cache, c);
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http file cache exists: %i e:%d", rc, c->exists);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http file cache exists: %i e:%d", rc, c->exists);
 
     if (rc == NGX_ERROR) {
         return rc;
@@ -419,9 +417,7 @@ ngx_http_file_cache_lock(ngx_http_request_t *r, ngx_http_cache_t *c)
 
     ngx_shmtx_unlock(&cache->shpool->mutex);
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http file cache lock u:%d wt:%M",
-                   c->updating, c->wait_time);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http file cache lock u:%d wt:%M", c->updating, c->wait_time);
 
     if (c->updating) {
         return NGX_DECLINED;
@@ -462,8 +458,7 @@ ngx_http_file_cache_lock_wait_handler(ngx_event_t *ev)
 
     ngx_http_set_log_request(c->log, r);
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "http file cache wait: \"%V?%V\"", &r->uri, &r->args);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0, "http file cache wait: \"%V?%V\"", &r->uri, &r->args);
 
     ngx_http_file_cache_lock_wait(r, r->cache);
 

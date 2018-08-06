@@ -89,10 +89,8 @@ int ngx_http_ssl_servername(ngx_ssl_conn_t *ssl_conn, int *ad, void *arg);
 
 ngx_int_t ngx_http_parse_request_line(ngx_http_request_t *r, ngx_buf_t *b);
 ngx_int_t ngx_http_parse_uri(ngx_http_request_t *r);
-ngx_int_t ngx_http_parse_complex_uri(ngx_http_request_t *r,
-    ngx_uint_t merge_slashes);
-ngx_int_t ngx_http_parse_status_line(ngx_http_request_t *r, ngx_buf_t *b,
-    ngx_http_status_t *status);
+ngx_int_t ngx_http_parse_complex_uri(ngx_http_request_t *r, ngx_uint_t merge_slashes);
+ngx_int_t ngx_http_parse_status_line(ngx_http_request_t *r, ngx_buf_t *b, ngx_http_status_t *status);
 ngx_int_t ngx_http_parse_unsafe_uri(ngx_http_request_t *r, ngx_str_t *uri,
     ngx_str_t *args, ngx_uint_t *flags);
 ngx_int_t ngx_http_parse_header_line(ngx_http_request_t *r, ngx_buf_t *b, ngx_uint_t allow_underscores);
@@ -115,8 +113,7 @@ void ngx_http_process_request(ngx_http_request_t *r);
 void ngx_http_update_location_config(ngx_http_request_t *r);
 void ngx_http_handler(ngx_http_request_t *r);
 void ngx_http_run_posted_requests(ngx_connection_t *c);
-ngx_int_t ngx_http_post_request(ngx_http_request_t *r,
-    ngx_http_posted_request_t *pr);
+ngx_int_t ngx_http_post_request(ngx_http_request_t *r, ngx_http_posted_request_t *pr);
 void ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc);
 void ngx_http_free_request(ngx_http_request_t *r, ngx_int_t rc);
 

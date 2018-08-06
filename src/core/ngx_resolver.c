@@ -157,14 +157,11 @@ ngx_resolver_create(ngx_conf_t *cf, ngx_str_t *names, ngx_uint_t n)
     cln->handler = ngx_resolver_cleanup;
     cln->data = r;
 
-    ngx_rbtree_init(&r->name_rbtree, &r->name_sentinel,
-                    ngx_resolver_rbtree_insert_value);
+    ngx_rbtree_init(&r->name_rbtree, &r->name_sentinel, ngx_resolver_rbtree_insert_value);
 
-    ngx_rbtree_init(&r->srv_rbtree, &r->srv_sentinel,
-                    ngx_resolver_rbtree_insert_value);
+    ngx_rbtree_init(&r->srv_rbtree, &r->srv_sentinel, ngx_resolver_rbtree_insert_value);
 
-    ngx_rbtree_init(&r->addr_rbtree, &r->addr_sentinel,
-                    ngx_rbtree_insert_value);
+    ngx_rbtree_init(&r->addr_rbtree, &r->addr_sentinel, ngx_rbtree_insert_value);
 
     ngx_queue_init(&r->name_resend_queue);
     ngx_queue_init(&r->srv_resend_queue);
@@ -177,8 +174,7 @@ ngx_resolver_create(ngx_conf_t *cf, ngx_str_t *names, ngx_uint_t n)
 #if (NGX_HAVE_INET6)
     r->ipv6 = 1;
 
-    ngx_rbtree_init(&r->addr6_rbtree, &r->addr6_sentinel,
-                    ngx_resolver_rbtree_insert_addr6_value);
+    ngx_rbtree_init(&r->addr6_rbtree, &r->addr6_sentinel, ngx_resolver_rbtree_insert_addr6_value);
 
     ngx_queue_init(&r->addr6_resend_queue);
 
@@ -234,8 +230,7 @@ ngx_resolver_create(ngx_conf_t *cf, ngx_str_t *names, ngx_uint_t n)
                 r->ipv6 = 0;
 
             } else {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "invalid parameter: %V", &names[i]);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid parameter: %V", &names[i]);
                 return NULL;
             }
 
@@ -250,9 +245,7 @@ ngx_resolver_create(ngx_conf_t *cf, ngx_str_t *names, ngx_uint_t n)
 
         if (ngx_parse_url(cf->pool, &u) != NGX_OK) {
             if (u.err) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "%s in resolver \"%V\"",
-                                   u.err, &u.url);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "%s in resolver \"%V\"", u.err, &u.url);
             }
 
             return NULL;
@@ -416,8 +409,7 @@ ngx_resolve_name(ngx_resolver_ctx_t *ctx)
         ctx->name.len--;
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_CORE, r->log, 0,
-                   "resolve: \"%V\"", &ctx->name);
+    ngx_log_debug1(NGX_LOG_DEBUG_CORE, r->log, 0, "resolve: \"%V\"", &ctx->name);
 
     if (ctx->quick) {
         ctx->handler(ctx);

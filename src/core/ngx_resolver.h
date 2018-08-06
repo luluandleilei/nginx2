@@ -226,10 +226,8 @@ struct ngx_resolver_ctx_s {
 };
 
 
-ngx_resolver_t *ngx_resolver_create(ngx_conf_t *cf, ngx_str_t *names,
-    ngx_uint_t n);
-ngx_resolver_ctx_t *ngx_resolve_start(ngx_resolver_t *r,
-    ngx_resolver_ctx_t *temp);
+ngx_resolver_t *ngx_resolver_create(ngx_conf_t *cf, ngx_str_t *names, ngx_uint_t n);
+ngx_resolver_ctx_t *ngx_resolve_start(ngx_resolver_t *r, ngx_resolver_ctx_t *temp);
 ngx_int_t ngx_resolve_name(ngx_resolver_ctx_t *ctx);
 void ngx_resolve_name_done(ngx_resolver_ctx_t *ctx);
 ngx_int_t ngx_resolve_addr(ngx_resolver_ctx_t *ctx);

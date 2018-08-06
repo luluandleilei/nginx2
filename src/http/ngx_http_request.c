@@ -14,17 +14,14 @@ static void ngx_http_wait_request_handler(ngx_event_t *ev);
 static void ngx_http_process_request_line(ngx_event_t *rev);
 static void ngx_http_process_request_headers(ngx_event_t *rev);
 static ssize_t ngx_http_read_request_header(ngx_http_request_t *r);
-static ngx_int_t ngx_http_alloc_large_header_buffer(ngx_http_request_t *r,
-    ngx_uint_t request_line);
+static ngx_int_t ngx_http_alloc_large_header_buffer(ngx_http_request_t *r, ngx_uint_t request_line);
 
-static ngx_int_t ngx_http_process_header_line(ngx_http_request_t *r,
-    ngx_table_elt_t *h, ngx_uint_t offset);
+static ngx_int_t ngx_http_process_header_line(ngx_http_request_t *r, ngx_table_elt_t *h, ngx_uint_t offset);
 static ngx_int_t ngx_http_process_unique_header_line(ngx_http_request_t *r,
     ngx_table_elt_t *h, ngx_uint_t offset);
 static ngx_int_t ngx_http_process_multi_header_lines(ngx_http_request_t *r,
     ngx_table_elt_t *h, ngx_uint_t offset);
-static ngx_int_t ngx_http_process_host(ngx_http_request_t *r,
-    ngx_table_elt_t *h, ngx_uint_t offset);
+static ngx_int_t ngx_http_process_host(ngx_http_request_t *r, ngx_table_elt_t *h, ngx_uint_t offset);
 static ngx_int_t ngx_http_process_connection(ngx_http_request_t *r,
     ngx_table_elt_t *h, ngx_uint_t offset);
 static ngx_int_t ngx_http_process_user_agent(ngx_http_request_t *r,
@@ -1116,8 +1113,7 @@ ngx_http_process_request_uri(ngx_http_request_t *r)
              */
 
             if (p < last && *p == '$') {
-                ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
-                              "client sent unsafe win32 URI");
+                ngx_log_error(NGX_LOG_INFO, r->connection->log, 0, "client sent unsafe win32 URI");
                 ngx_http_finalize_request(r, NGX_HTTP_BAD_REQUEST);
                 return NGX_ERROR;
             }
@@ -1176,9 +1172,9 @@ ngx_http_process_request_headers(ngx_event_t *rev)
     c = rev->data;
     r = c->data;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, rev->log, 0,
-                   "http process request header line");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, rev->log, 0, "http process request header line");
 
+	//Timeout for reading client request header
     if (rev->timedout) {
         ngx_log_error(NGX_LOG_INFO, c->log, NGX_ETIMEDOUT, "client timed out");
         c->timedout = 1;
@@ -1206,7 +1202,7 @@ ngx_http_process_request_headers(ngx_event_t *rev)
                 if (rv == NGX_DECLINED) {
                     p = r->header_name_start;
 
-                    r->lingering_close = 1;
+                    r->lingering_close = 1;	//XXX: 这是干嘛???
 
                     if (p == NULL) {
                         ngx_log_error(NGX_LOG_INFO, c->log, 0, "client sent too large request");
@@ -1220,12 +1216,9 @@ ngx_http_process_request_headers(ngx_event_t *rev)
                         len = NGX_MAX_ERROR_STR - 300;
                     }
 
-                    ngx_log_error(NGX_LOG_INFO, c->log, 0,
-                                "client sent too long header line: \"%*s...\"",
-                                len, r->header_name_start);
+                    ngx_log_error(NGX_LOG_INFO, c->log, 0, "client sent too long header line: \"%*s...\"", len, r->header_name_start);
 
-                    ngx_http_finalize_request(r,
-                                            NGX_HTTP_REQUEST_HEADER_TOO_LARGE);
+                    ngx_http_finalize_request(r, NGX_HTTP_REQUEST_HEADER_TOO_LARGE);
                     return;
                 }
             }
@@ -1240,10 +1233,9 @@ ngx_http_process_request_headers(ngx_event_t *rev)
         /* the host header could change the server configuration context */
         cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
 
-        rc = ngx_http_parse_header_line(r, r->header_in,
-                                        cscf->underscores_in_headers);
+        rc = ngx_http_parse_header_line(r, r->header_in, cscf->underscores_in_headers);
 
-        if (rc == NGX_OK) {
+        if (rc == NGX_OK) {	
 
             r->request_length += r->header_in->pos - r->header_name_start;
 
@@ -1251,10 +1243,7 @@ ngx_http_process_request_headers(ngx_event_t *rev)
 
                 /* there was error while a header line parsing */
 
-                ngx_log_error(NGX_LOG_INFO, c->log, 0,
-                              "client sent invalid header line: \"%*s\"",
-                              r->header_end - r->header_name_start,
-                              r->header_name_start);
+                ngx_log_error(NGX_LOG_INFO, c->log, 0, "client sent invalid header line: \"%*s\"", r->header_end - r->header_name_start, r->header_name_start);
                 continue;
             }
 
@@ -1262,7 +1251,8 @@ ngx_http_process_request_headers(ngx_event_t *rev)
 
             h = ngx_list_push(&r->headers_in.headers);
             if (h == NULL) {
-                ngx_http_close_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
+				//XXX：为什么不调用ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR); ？？？
+                ngx_http_close_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);	
                 return;
             }
 
@@ -1278,11 +1268,12 @@ ngx_http_process_request_headers(ngx_event_t *rev)
 
             h->lowcase_key = ngx_pnalloc(r->pool, h->key.len);
             if (h->lowcase_key == NULL) {
+				//XXX：为什么不调用ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR); ？？？
                 ngx_http_close_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
                 return;
             }
 
-            if (h->key.len == r->lowcase_index) {
+            if (h->key.len == r->lowcase_index) {	//XXX: lowcase_header中最多容纳NGX_HTTP_LC_HEADER_LEN个字符
                 ngx_memcpy(h->lowcase_key, r->lowcase_header, h->key.len);
 
             } else {
@@ -1292,7 +1283,7 @@ ngx_http_process_request_headers(ngx_event_t *rev)
             hh = ngx_hash_find(&cmcf->headers_in_hash, h->hash, h->lowcase_key, h->key.len);
 
             if (hh && hh->handler(r, h, hh->offset) != NGX_OK) {
-                return;
+                return;	//XXX: 这里直接返回了 ？？？
             }
 
             ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http header: \"%V: %V\"", &h->key, &h->value);
@@ -1304,8 +1295,7 @@ ngx_http_process_request_headers(ngx_event_t *rev)
 
             /* a whole header has been parsed successfully */
 
-            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                           "http header done");
+            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http header done");
 
             r->request_length += r->header_in->pos - r->header_name_start;
 
@@ -1331,8 +1321,7 @@ ngx_http_process_request_headers(ngx_event_t *rev)
 
         /* rc == NGX_HTTP_PARSE_INVALID_HEADER */
 
-        ngx_log_error(NGX_LOG_INFO, c->log, 0,
-                      "client sent invalid header line");
+        ngx_log_error(NGX_LOG_INFO, c->log, 0, "client sent invalid header line");
 
         ngx_http_finalize_request(r, NGX_HTTP_BAD_REQUEST);
         return;
@@ -1358,7 +1347,9 @@ ngx_http_read_request_header(ngx_http_request_t *r)
     }
 
     if (rev->ready) {
-        n = c->recv(c, r->header_in->last, r->header_in->end - r->header_in->last);	//XXX： recv返回值？
+		//XXX： recv返回值？??
+		//r->header_in->end - r->header_in->last == 0   ???
+        n = c->recv(c, r->header_in->last, r->header_in->end - r->header_in->last);	
     } else {
         n = NGX_AGAIN;
     }
@@ -1396,6 +1387,12 @@ ngx_http_read_request_header(ngx_http_request_t *r)
 }
 
 
+/*
+NGX_OK:			表示成功分配到更大的缓冲区
+NGX_DECLINED: 	表示已经达到缓冲区大小的上线，无法分配更大的缓冲区，或者请求行或者一个请求头超出了最大大小
+NGX_ERROR: 		表示出现了错误
+
+*/
 static ngx_int_t
 ngx_http_alloc_large_header_buffer(ngx_http_request_t *r, ngx_uint_t request_line)
 {
@@ -1407,6 +1404,7 @@ ngx_http_alloc_large_header_buffer(ngx_http_request_t *r, ngx_uint_t request_lin
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http alloc large header buffer");
 
+	//1.特殊处理请求行的情况
     if (request_line && r->state == 0) {
 
         /* the client fills up the buffer with "\r\n" */
@@ -1417,18 +1415,19 @@ ngx_http_alloc_large_header_buffer(ngx_http_request_t *r, ngx_uint_t request_lin
         return NGX_OK;
     }
 
+	//2.检查请求行或者一个请求头的大小是否已经超过了允许的最大大小
     old = request_line ? r->request_start : r->header_name_start;
 
     cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
 
-	//当前缓冲区大小已经超过了最大大小
     if (r->state != 0 && (size_t) (r->header_in->pos - old) >= cscf->large_client_header_buffers.size) {
         return NGX_DECLINED;
     }
 
+	//3.分配一个最大大小的buffer
     hc = r->http_connection;
 
-    if (hc->free) {
+    if (hc->free) {	//什么时候hc->free会不为空？
         cl = hc->free;
         hc->free = cl->next;
 
@@ -1456,11 +1455,12 @@ ngx_http_alloc_large_header_buffer(ngx_http_request_t *r, ngx_uint_t request_lin
         return NGX_DECLINED;
     }
 
-	//将新的chain node链入busy链表
+	//4.将新的buf链入busy链表
     cl->next = hc->busy;
     hc->busy = cl;
     hc->nbusy++;
 
+	//5.拷贝请求行或者请求头到新的buf中，并更新相应字段
     if (r->state == 0) {
         /*
          * r->state == 0 means that a header line was parsed successfully
@@ -1537,8 +1537,7 @@ ngx_http_alloc_large_header_buffer(ngx_http_request_t *r, ngx_uint_t request_lin
 
 
 static ngx_int_t
-ngx_http_process_header_line(ngx_http_request_t *r, ngx_table_elt_t *h,
-    ngx_uint_t offset)
+ngx_http_process_header_line(ngx_http_request_t *r, ngx_table_elt_t *h, ngx_uint_t offset)
 {
     ngx_table_elt_t  **ph;
 
@@ -1577,8 +1576,7 @@ ngx_http_process_unique_header_line(ngx_http_request_t *r, ngx_table_elt_t *h,
 
 
 static ngx_int_t
-ngx_http_process_host(ngx_http_request_t *r, ngx_table_elt_t *h,
-    ngx_uint_t offset)
+ngx_http_process_host(ngx_http_request_t *r, ngx_table_elt_t *h, ngx_uint_t offset)
 {
     ngx_int_t  rc;
     ngx_str_t  host;
@@ -1592,8 +1590,7 @@ ngx_http_process_host(ngx_http_request_t *r, ngx_table_elt_t *h,
     rc = ngx_http_validate_host(&host, r->pool, 0);
 
     if (rc == NGX_DECLINED) {
-        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
-                      "client sent invalid host header");
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0, "client sent invalid host header");
         ngx_http_finalize_request(r, NGX_HTTP_BAD_REQUEST);
         return NGX_ERROR;
     }
@@ -1618,8 +1615,7 @@ ngx_http_process_host(ngx_http_request_t *r, ngx_table_elt_t *h,
 
 
 static ngx_int_t
-ngx_http_process_connection(ngx_http_request_t *r, ngx_table_elt_t *h,
-    ngx_uint_t offset)
+ngx_http_process_connection(ngx_http_request_t *r, ngx_table_elt_t *h, ngx_uint_t offset)
 {
     if (ngx_strcasestrn(h->value.data, "close", 5 - 1)) {
         r->headers_in.connection_type = NGX_HTTP_CONNECTION_CLOSE;
@@ -1737,56 +1733,47 @@ ngx_http_process_multi_header_lines(ngx_http_request_t *r, ngx_table_elt_t *h,
 ngx_int_t
 ngx_http_process_request_header(ngx_http_request_t *r)
 {
-    if (r->headers_in.server.len == 0
-        && ngx_http_set_virtual_server(r, &r->headers_in.server)
-           == NGX_ERROR)
-    {
+	//XXX: 长度为0，设置有什么用？？
+    if (r->headers_in.server.len == 0 && ngx_http_set_virtual_server(r, &r->headers_in.server) == NGX_ERROR) {
         return NGX_ERROR;
     }
 
+	//如果HTTP版本为1.1，则host头部不可以为空
     if (r->headers_in.host == NULL && r->http_version > NGX_HTTP_VERSION_10) {
-        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
-                   "client sent HTTP/1.1 request without \"Host\" header");
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0, "client sent HTTP/1.1 request without \"Host\" header");
         ngx_http_finalize_request(r, NGX_HTTP_BAD_REQUEST);
         return NGX_ERROR;
     }
 
+	//如果传递了Content-Length头部，那么它必须是合法的数字
     if (r->headers_in.content_length) {
-        r->headers_in.content_length_n =
-                            ngx_atoof(r->headers_in.content_length->value.data,
-                                      r->headers_in.content_length->value.len);
+        r->headers_in.content_length_n = ngx_atoof(r->headers_in.content_length->value.data, r->headers_in.content_length->value.len);
 
         if (r->headers_in.content_length_n == NGX_ERROR) {
-            ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
-                          "client sent invalid \"Content-Length\" header");
+            ngx_log_error(NGX_LOG_INFO, r->connection->log, 0, "client sent invalid \"Content-Length\" header");
             ngx_http_finalize_request(r, NGX_HTTP_BAD_REQUEST);
             return NGX_ERROR;
         }
     }
 
     if (r->method == NGX_HTTP_TRACE) {
-        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
-                      "client sent TRACE method");
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0, "client sent TRACE method");
         ngx_http_finalize_request(r, NGX_HTTP_NOT_ALLOWED);
         return NGX_ERROR;
     }
 
     if (r->headers_in.transfer_encoding) {
         if (r->headers_in.transfer_encoding->value.len == 7
-            && ngx_strncasecmp(r->headers_in.transfer_encoding->value.data,
-                               (u_char *) "chunked", 7) == 0)
+            && ngx_strncasecmp(r->headers_in.transfer_encoding->value.data, (u_char *) "chunked", 7) == 0)
         {
             r->headers_in.content_length = NULL;
             r->headers_in.content_length_n = -1;
             r->headers_in.chunked = 1;
 
         } else if (r->headers_in.transfer_encoding->value.len != 8
-            || ngx_strncasecmp(r->headers_in.transfer_encoding->value.data,
-                               (u_char *) "identity", 8) != 0)
+            || ngx_strncasecmp(r->headers_in.transfer_encoding->value.data, (u_char *) "identity", 8) != 0)
         {
-            ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
-                          "client sent unknown \"Transfer-Encoding\": \"%V\"",
-                          &r->headers_in.transfer_encoding->value);
+            ngx_log_error(NGX_LOG_INFO, r->connection->log, 0, "client sent unknown \"Transfer-Encoding\": \"%V\"", &r->headers_in.transfer_encoding->value);
             ngx_http_finalize_request(r, NGX_HTTP_NOT_IMPLEMENTED);
             return NGX_ERROR;
         }
@@ -1794,9 +1781,7 @@ ngx_http_process_request_header(ngx_http_request_t *r)
 
     if (r->headers_in.connection_type == NGX_HTTP_CONNECTION_KEEP_ALIVE) {
         if (r->headers_in.keep_alive) {
-            r->headers_in.keep_alive_n =
-                            ngx_atotm(r->headers_in.keep_alive->value.data,
-                                      r->headers_in.keep_alive->value.len);
+            r->headers_in.keep_alive_n = ngx_atotm(r->headers_in.keep_alive->value.data, r->headers_in.keep_alive->value.len);
         }
     }
 
@@ -1857,6 +1842,10 @@ ngx_http_process_request(ngx_http_request_t *r)
 
 #endif
 
+	//delete timer for reading client request header 
+	//XXX: 如果读事件在定时器中，将读事件从定时器中移除
+	//XXX: 什么时候timer_set会为0 ？？？
+	//由于defer选项，并且后续数据持续可读，那么事件根本就没有添加到定时器中
     if (c->read->timer_set) {
         ngx_del_timer(c->read);
     }
@@ -1868,9 +1857,14 @@ ngx_http_process_request(ngx_http_request_t *r)
     r->stat_writing = 1;
 #endif
 
+	//XXX:HTTP框架已经完成了请求行和请求头的处理，
+	//设置event(事件)的读写函数为ngx_http_request_handler
+	//使得其他HTTP模块可以通过request的read_event_handler和write_event_handler介入请求的读写处理
     c->read->handler = ngx_http_request_handler;
     c->write->handler = ngx_http_request_handler;
-    r->read_event_handler = ngx_http_block_reading;
+	//这个方法可认为不做任何事，它的意义在于，目前已经开始处理HTTP请求，除非某个HTTP模块重新
+	//设置了read_event_handler方法，否则任何读事件都将得不到处理，也可似认为读事件被阻塞了。
+    r->read_event_handler = ngx_http_block_reading;	
 
     ngx_http_handler(r);
 
@@ -2043,9 +2037,8 @@ ngx_http_set_virtual_server(ngx_http_request_t *r, ngx_str_t *host)
 
 
 static ngx_int_t
-ngx_http_find_virtual_server(ngx_connection_t *c,
-    ngx_http_virtual_names_t *virtual_names, ngx_str_t *host,
-    ngx_http_request_t *r, ngx_http_core_srv_conf_t **cscfp)
+ngx_http_find_virtual_server(ngx_connection_t *c, ngx_http_virtual_names_t *virtual_names, 
+	ngx_str_t *host, ngx_http_request_t *r, ngx_http_core_srv_conf_t **cscfp)
 {
     ngx_http_core_srv_conf_t  *cscf;
 
@@ -2053,9 +2046,7 @@ ngx_http_find_virtual_server(ngx_connection_t *c,
         return NGX_DECLINED;
     }
 
-    cscf = ngx_hash_find_combined(&virtual_names->names,
-                                  ngx_hash_key(host->data, host->len),
-                                  host->data, host->len);
+    cscf = ngx_hash_find_combined(&virtual_names->names, ngx_hash_key(host->data, host->len), host->data, host->len);
 
     if (cscf) {
         *cscfp = cscf;
@@ -2092,10 +2083,7 @@ ngx_http_find_virtual_server(ngx_connection_t *c,
                     return NGX_OK;
                 }
 
-                ngx_log_error(NGX_LOG_ALERT, c->log, 0,
-                              ngx_regex_exec_n " failed: %i "
-                              "on \"%V\" using \"%V\"",
-                              n, host, &sn[i].regex->name);
+                ngx_log_error(NGX_LOG_ALERT, c->log, 0, ngx_regex_exec_n " failed: %i " "on \"%V\" using \"%V\"", n, host, &sn[i].regex->name);
 
                 return NGX_ERROR;
             }
@@ -2141,7 +2129,7 @@ ngx_http_request_handler(ngx_event_t *ev)
 
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0, "http run request: \"%V?%V\"", &r->uri, &r->args);
 
-    if (c->close) {
+    if (c->close) {		//XXX: 这里为什么要判断？？
         r->main->count++;
         ngx_http_terminate_request(r, 0);
         ngx_http_run_posted_requests(c);
@@ -2164,6 +2152,9 @@ ngx_http_request_handler(ngx_event_t *ev)
 }
 
 
+/*
+顺序的遍历主请求的posted_requests链表, 调用每个子请求的write_event_handler函数
+*/
 void
 ngx_http_run_posted_requests(ngx_connection_t *c)
 {
@@ -2172,7 +2163,7 @@ ngx_http_run_posted_requests(ngx_connection_t *c)
 
     for ( ;; ) {
 
-        if (c->destroyed) {	//连接已经断开，直接返回
+        if (c->destroyed) {	//XXX：连接已经被断开(销毁)，直接返回
             return;
         }
 
@@ -2196,6 +2187,9 @@ ngx_http_run_posted_requests(ngx_connection_t *c)
 }
 
 
+/*
+XXX:将请求r放入到该请求的主请求的posted_requests链表的最后
+*/
 ngx_int_t
 ngx_http_post_request(ngx_http_request_t *r, ngx_http_posted_request_t *pr)
 {
@@ -2257,9 +2251,7 @@ ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
         rc = r->post_subrequest->handler(r, r->post_subrequest->data, rc);
     }
 
-    if (rc == NGX_ERROR || rc == NGX_HTTP_REQUEST_TIME_OUT
-        || rc == NGX_HTTP_CLIENT_CLOSED_REQUEST || c->error)
-    {
+    if (rc == NGX_ERROR || rc == NGX_HTTP_REQUEST_TIME_OUT || rc == NGX_HTTP_CLIENT_CLOSED_REQUEST || c->error) {
         if (ngx_http_post_action(r) == NGX_OK) {
             return;
         }
@@ -2291,6 +2283,7 @@ ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
         return;
     }
 
+	//子请求 
     if (r != r->main) {
         clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
@@ -2311,8 +2304,12 @@ ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
             return;
         }
 
+		//该子请求还有未处理完的数据或者子请求
         if (r->buffered || r->postponed) {
 
+			//添加一个该子请求的写事件，并设置合适的write event hander，
+			//写事件来的时候继续处理，实际上下次执行时会调用ngx_http_output_filter函数，
+			//还是会进入ngx_http_postpone_filter进行处理
             if (ngx_http_set_write_handler(r) != NGX_OK) {
                 ngx_http_terminate_request(r, 0);
             }
@@ -2322,6 +2319,7 @@ ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
 
         pr = r->parent;
 
+		//该子请求已经处理完毕，如果它拥有发送数据的权利，则将权利移交给父请求
         if (r == c->data) {
 
             r->main->count--;
@@ -2334,24 +2332,26 @@ ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
                 r->logged = 1;
 
             } else {
-                ngx_log_error(NGX_LOG_ALERT, c->log, 0,
-                              "subrequest: \"%V?%V\" logged again",
-                              &r->uri, &r->args);
+                ngx_log_error(NGX_LOG_ALERT, c->log, 0, "subrequest: \"%V?%V\" logged again", &r->uri, &r->args);
             }
 
             r->done = 1;
 
+			//如果该子请求不是提前完成，则从父请求的postponed链表中删除
             if (pr->postponed && pr->postponed->request == r) {
                 pr->postponed = pr->postponed->next;
             }
 
+			//将发送权利移交给父请求，父请求下次执行的时候会发送它的postponed链表中
+			//可以发送的数据节点，或者将发送权利移交给它的下一个子请求
             c->data = pr;
 
         } else {
-
-            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                           "http finalize non-active request: \"%V?%V\"",
-                           &r->uri, &r->args);
+			//该子请求提前执行完成，而且它没有产生任何数据，则它下次再次获得执行机会时，
+			//将会执行ngx_http_request_finalzier函数，它实际上是执行ngx_http_finalzie_request（r,0），
+			//也就是什么都不干，直到轮到它发送数据时，ngx_http_finalzie_request函数会将它从父请求的postponed链表中删除
+			
+            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0, "http finalize non-active request: \"%V?%V\"", &r->uri, &r->args);
 
             r->write_event_handler = ngx_http_request_finalizer;
 
@@ -2360,19 +2360,20 @@ ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
             }
         }
 
+		//将父请求加入posted_request队尾，获得一次运行机会
         if (ngx_http_post_request(pr, NULL) != NGX_OK) {
             r->main->count++;
             ngx_http_terminate_request(r, 0);
             return;
         }
 
-        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                       "http wake parent request: \"%V?%V\"",
-                       &pr->uri, &pr->args);
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0, "http wake parent request: \"%V?%V\"", &pr->uri, &pr->args);
 
         return;
     }
 
+	//这里是处理主请求结束的逻辑，如果主请求有未发送的数据或者未处理的子请求，
+    //则给主请求添加写事件，并设置合适的write event hander，以便下次写事件来的时候继续处理
     if (r->buffered || c->buffered || r->postponed) {
 
         if (ngx_http_set_write_handler(r) != NGX_OK) {
@@ -2427,8 +2428,7 @@ ngx_http_terminate_request(ngx_http_request_t *r, ngx_int_t rc)
 
     mr = r->main;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http terminate request count:%d", mr->count);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http terminate request count:%d", mr->count);
 
     if (rc > 0 && (mr->headers_out.status == 0 || mr->connection->sent == 0)) {
         mr->headers_out.status = rc;
@@ -2445,9 +2445,7 @@ ngx_http_terminate_request(ngx_http_request_t *r, ngx_int_t rc)
         cln = cln->next;
     }
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http terminate cleanup count:%d blk:%d",
-                   mr->count, mr->blocked);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http terminate cleanup count:%d blk:%d", mr->count, mr->blocked);
 
     if (mr->write_event_handler) {
 
@@ -2544,9 +2542,7 @@ ngx_http_set_write_handler(ngx_http_request_t *r)
 
     r->http_state = NGX_HTTP_WRITING_REQUEST_STATE;
 
-    r->read_event_handler = r->discard_body ?
-                                ngx_http_discarded_request_body_handler:
-                                ngx_http_test_reading;
+    r->read_event_handler = r->discard_body ? ngx_http_discarded_request_body_handler: ngx_http_test_reading;
     r->write_event_handler = ngx_http_writer;
 
     wev = r->connection->write;
@@ -2580,14 +2576,12 @@ ngx_http_writer(ngx_http_request_t *r)
     c = r->connection;
     wev = c->write;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, wev->log, 0,
-                   "http writer handler: \"%V?%V\"", &r->uri, &r->args);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, wev->log, 0, "http writer handler: \"%V?%V\"", &r->uri, &r->args);
 
     clcf = ngx_http_get_module_loc_conf(r->main, ngx_http_core_module);
 
     if (wev->timedout) {
-        ngx_log_error(NGX_LOG_INFO, c->log, NGX_ETIMEDOUT,
-                      "client timed out");
+        ngx_log_error(NGX_LOG_INFO, c->log, NGX_ETIMEDOUT, "client timed out");
         c->timedout = 1;
 
         ngx_http_finalize_request(r, NGX_HTTP_REQUEST_TIME_OUT);
@@ -2595,8 +2589,7 @@ ngx_http_writer(ngx_http_request_t *r)
     }
 
     if (wev->delayed || r->aio) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, wev->log, 0,
-                       "http writer delayed");
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, wev->log, 0, "http writer delayed");
 
         if (!wev->delayed) {
             ngx_add_timer(wev, clcf->send_timeout);
@@ -2611,9 +2604,7 @@ ngx_http_writer(ngx_http_request_t *r)
 
     rc = ngx_http_output_filter(r, NULL);
 
-    ngx_log_debug3(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "http writer output filter: %i, \"%V?%V\"",
-                   rc, &r->uri, &r->args);
+    ngx_log_debug3(NGX_LOG_DEBUG_HTTP, c->log, 0, "http writer output filter: %i, \"%V?%V\"", rc, &r->uri, &r->args);
 
     if (rc == NGX_ERROR) {
         ngx_http_finalize_request(r, rc);
@@ -2633,8 +2624,7 @@ ngx_http_writer(ngx_http_request_t *r)
         return;
     }
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, wev->log, 0,
-                   "http writer done: \"%V?%V\"", &r->uri, &r->args);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, wev->log, 0, "http writer done: \"%V?%V\"", &r->uri, &r->args);
 
     r->write_event_handler = ngx_http_request_empty_handler;
 
@@ -2645,8 +2635,7 @@ ngx_http_writer(ngx_http_request_t *r)
 static void
 ngx_http_request_finalizer(ngx_http_request_t *r)
 {
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http finalizer done: \"%V?%V\"", &r->uri, &r->args);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http finalizer done: \"%V?%V\"", &r->uri, &r->args);
 
     ngx_http_finalize_request(r, 0);
 }
@@ -2659,7 +2648,7 @@ ngx_http_block_reading(ngx_http_request_t *r)
 
     /* aio does not call this handler */
 
-    if ((ngx_event_flags & NGX_USE_LEVEL_EVENT) && r->connection->read->active) {
+    if ((ngx_event_flags & NGX_USE_LEVEL_EVENT) && r->connection->read->active) {	//XXX：如果是水平触发，将读事件从事件驱动机制中移除，以免持续触发
         if (ngx_del_event(r->connection->read, NGX_READ_EVENT, 0) != NGX_OK) {
             ngx_http_close_request(r, 0);
         }

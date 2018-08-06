@@ -1620,6 +1620,31 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_loc_conf_t, open_file_cache_events),
       NULL },
 
+	/*
+	Syntax:	resolver address ... [valid=time] [ipv6=on|off];
+	Default:	—
+	Context:	http, server, location
+	
+	Configures name servers used to resolve names of upstream servers into addresses, for example:
+		resolver 127.0.0.1 [::1]:5353;
+		
+	An address can be specified as a domain name or IP address, and an optional port (1.3.1, 1.2.2). 
+	If port is not specified, the port 53 is used. Name servers are queried in a round-robin fashion.
+
+	Before version 1.1.7, only a single name server could be configured. 
+	Specifying name servers using IPv6 addresses is supported starting from versions 1.3.1 and 1.2.2.
+	
+	By default, nginx will look up both IPv4 and IPv6 addresses while resolving. 
+	If looking up of IPv6 addresses is not desired, the ipv6=off parameter can be specified.
+	Resolving of names into IPv6 addresses is supported starting from version 1.5.8.
+	
+	By default, nginx caches answers using the TTL value of a response. 
+	An optional valid parameter allows overriding it:
+		resolver 127.0.0.1 [::1]:5353 valid=30s;
+	Before version 1.1.9, tuning of caching time was not possible, and nginx always cached answers for the duration of 5 minutes.
+	
+	To prevent DNS spoofing, it is recommended configuring DNS servers in a properly secured trusted local network.
+	*/
     { ngx_string("resolver"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_1MORE,
       ngx_http_core_resolver,
@@ -1627,6 +1652,14 @@ static ngx_command_t  ngx_http_core_commands[] = {
       0,
       NULL },
 
+	/*
+	 Syntax:	resolver_timeout time;
+	 Default: resolver_timeout 30s;
+	 Context:	http, server, location
+
+	 Sets a timeout for name resolution, for example:
+		resolver_timeout 5s;
+	*/
     { ngx_string("resolver_timeout"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_msec_slot,
@@ -1929,8 +1962,7 @@ ngx_http_core_find_config_phase(ngx_http_request_t *r, ngx_http_phase_handler_t 
     }
 
     if (rc == NGX_DONE) {	//XXX: auto redirect,需要进行重定向。下面就给客户端返回301，带上正确的location头部
-		//XXX:(1)增加一个location头
-		
+		//XXX:(1)增加一个location头	
 		ngx_http_clear_location(r);
 
         r->headers_out.location = ngx_list_push(&r->headers_out.headers);
@@ -3191,6 +3223,13 @@ ngx_http_gzip_quantity(u_char *p, u_char *last)
 #endif
 
 
+/*
+创建subrequest
+参数r为当前的请求，uri和args为新的要发起的uri和args，当然args可以为NULL，
+psr为指向一个ngx_http_request_t指针的指针，它的作用就是获得创建的子请求
+
+
+*/
 ngx_int_t
 ngx_http_subrequest(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *args, 
 	ngx_http_request_t **psr, ngx_http_post_subrequest_t *ps, ngx_uint_t flags)
@@ -3251,6 +3290,7 @@ ngx_http_subrequest(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *args,
 
     sr->headers_in = r->headers_in;
 
+	//XXX: 将主请求中对应的内容也修改了？？？
     ngx_http_clear_content_length(sr);
     ngx_http_clear_accept_ranges(sr);
     ngx_http_clear_last_modified(sr);
@@ -3286,11 +3326,14 @@ ngx_http_subrequest(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *args,
 
     sr->main = r->main;
     sr->parent = r;
-    sr->post_subrequest = ps;
-    sr->read_event_handler = ngx_http_request_empty_handler;	//读事件handler赋值为不做任何事的函数，因为子请求不用再读数据或者检查连接状态；
-    sr->write_event_handler = ngx_http_handler;				//写事件handler为ngx_http_handler，它会重走phase 
+    sr->post_subrequest = ps;	//XXX: 保存回调handler及数据，在子请求执行完，将会调用
+    
+    //读事件handler赋值为不做任何事的函数，因为子请求不用再读数据或者检查连接状态；
+    //写事件handler为ngx_http_handler，它会重走phase 
+    sr->read_event_handler = ngx_http_request_empty_handler;	
+    sr->write_event_handler = ngx_http_handler;				
 
-    sr->variables = r->variables;
+    sr->variables = r->variables;	//XXX:默认共享父请求的变量，当然你也可以根据需求在创建完子请求后，再创建子请求独立的变量集
 
     sr->log_handler = r->log_handler;
 
@@ -3299,8 +3342,9 @@ ngx_http_subrequest(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *args,
     }
 
     if (!sr->background) {
+		//ngx_connection_s的data保存了当前可以向out chain输出数据的请求
         if (c->data == r && r->postponed == NULL) {
-            c->data = sr;
+            c->data = sr;	
         }
 
         pr = ngx_palloc(r->pool, sizeof(ngx_http_postponed_request_t));
@@ -3312,6 +3356,7 @@ ngx_http_subrequest(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *args,
         pr->out = NULL;
         pr->next = NULL;
 
+		//XXX:把该子请求挂载在其父请求的postponed链表的队尾
         if (r->postponed) {
             for (p = r->postponed; p->next; p = p->next) { /* void */ }
             p->next = pr;
@@ -3321,7 +3366,7 @@ ngx_http_subrequest(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *args,
         }
     }
 
-    sr->internal = 1;
+    sr->internal = 1;	//XXX:子请求为内部请求，它可以访问internal类型的location
 
     sr->discard_body = r->discard_body;
     sr->expect_tested = 1;
@@ -3334,6 +3379,7 @@ ngx_http_subrequest(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *args,
     sr->start_sec = tp->sec;
     sr->start_msec = tp->msec;
 
+	// 增加主请求的引用数，这个字段主要是在ngx_http_finalize_request调用的一些结束请求和 连接的函数中使用
     r->main->count++;
 
     *psr = sr;
@@ -3351,6 +3397,7 @@ ngx_http_subrequest(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *args,
         ngx_http_update_location_config(sr);
     }
 
+	//XXX: 将该子请求挂载在主请求的posted_requests链表队尾
     return ngx_http_post_request(sr, NULL);
 }
 
@@ -3400,7 +3447,7 @@ ngx_http_internal_redirect(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *arg
     r->internal = 1;
     r->valid_unparsed_uri = 0;
     r->add_uri_to_alias = 0;
-    r->main->count++;
+    r->main->count++;	//XXX:内部重定向为什么要增加引用计数？？？？
 
     ngx_http_handler(r);
 

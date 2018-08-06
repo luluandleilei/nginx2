@@ -846,6 +846,11 @@ done:
 
 /*
 解析头部行(请求头部)
+NGX_OK:	表示解析出一行HTTP头部
+NGX_HTTP_PARSE_INVALID_HEADER：	
+NGX_HTTP_PARSE_HEADER_DONE：		表示已经解析出了完整的HTTP头部，这时可以准备开始处理HTTP请求了
+NGX_AGAIN：表示还需要接收到更多的字符流才能继续解析
+
 
 */
 ngx_int_t
@@ -980,11 +985,8 @@ ngx_http_parse_header_line(ngx_http_request_t *r, ngx_buf_t *b, ngx_uint_t allow
             }
 
             /* IIS may send the duplicate "HTTP/1.1 ..." lines */
-            if (ch == '/'
-                && r->upstream
-                && p - r->header_name_start == 4
-                && ngx_strncmp(r->header_name_start, "HTTP", 4) == 0)
-            {
+			//XXX:什么意思？？
+            if (ch == '/' && r->upstream && p - r->header_name_start == 4 && ngx_strncmp(r->header_name_start, "HTTP", 4) == 0) {
                 state = sw_ignore_line;
                 break;
             }
@@ -1607,8 +1609,7 @@ args:
 
 
 ngx_int_t
-ngx_http_parse_status_line(ngx_http_request_t *r, ngx_buf_t *b,
-    ngx_http_status_t *status)
+ngx_http_parse_status_line(ngx_http_request_t *r, ngx_buf_t *b, ngx_http_status_t *status)
 {
     u_char   ch;
     u_char  *p;

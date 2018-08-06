@@ -14,16 +14,12 @@ static void ngx_http_read_client_request_body_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_do_read_client_request_body(ngx_http_request_t *r);
 static ngx_int_t ngx_http_write_request_body(ngx_http_request_t *r);
 static ngx_int_t ngx_http_read_discarded_request_body(ngx_http_request_t *r);
-static ngx_int_t ngx_http_discard_request_body_filter(ngx_http_request_t *r,
-    ngx_buf_t *b);
+static ngx_int_t ngx_http_discard_request_body_filter(ngx_http_request_t *r, ngx_buf_t *b);
 static ngx_int_t ngx_http_test_expect(ngx_http_request_t *r);
 
-static ngx_int_t ngx_http_request_body_filter(ngx_http_request_t *r,
-    ngx_chain_t *in);
-static ngx_int_t ngx_http_request_body_length_filter(ngx_http_request_t *r,
-    ngx_chain_t *in);
-static ngx_int_t ngx_http_request_body_chunked_filter(ngx_http_request_t *r,
-    ngx_chain_t *in);
+static ngx_int_t ngx_http_request_body_filter(ngx_http_request_t *r, ngx_chain_t *in);
+static ngx_int_t ngx_http_request_body_length_filter(ngx_http_request_t *r, ngx_chain_t *in);
+static ngx_int_t ngx_http_request_body_chunked_filter(ngx_http_request_t *r, ngx_chain_t *in);
 
 
 /*
@@ -506,6 +502,15 @@ ngx_http_write_request_body(ngx_http_request_t *r)
 }
 
 
+/*
+对于HTTP模块而言，放弃接收包体就是简单地不处理包体了，可是对于HTTP框架而言，并不是不接收包体就可以的。因为对于客户端而言，通常
+会调用一些阻塞的发送方法来发送包体，如果HTTP框架一直不接收包体，会导致实现上不够健壮的客户端认为服务器超时无响应，因而简单地关
+闭连接，可这时Nginx模块可能还在处理这个连接。因此，HTTP模块中的放弃接收包体，对HTTP框架而言就是接收包体，但是接收后不做保存，直接丢弃。
+
+HTTP模块调用的ngx_http_discard_request_body方法用于第一次启动丢弃包体动作，而ngx_http_discarded_request_body_handler是作为请
+求的read_event_handler方法的，在有新的可读事件时会调用它处理包体。ngx_http_read discarded_request_body方法则是根据上述两个方法
+通用部分提取出的公共方法，用来读取包体且不做任何处理。
+*/
 ngx_int_t
 ngx_http_discard_request_body(ngx_http_request_t *r)
 {
@@ -532,7 +537,7 @@ ngx_http_discard_request_body(ngx_http_request_t *r)
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, rev->log, 0, "http set discard body");
 
-    if (rev->timer_set) {
+    if (rev->timer_set) {	//XXX: rev->timer_set 什么时候为1？？？
         ngx_del_timer(rev);
     }
 
@@ -660,8 +665,7 @@ ngx_http_read_discarded_request_body(ngx_http_request_t *r)
     ngx_buf_t  b;
     u_char     buffer[NGX_HTTP_DISCARD_BUFFER_SIZE];
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http read discarded body");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http read discarded body");
 
     ngx_memzero(&b, sizeof(ngx_buf_t));
 
@@ -677,8 +681,7 @@ ngx_http_read_discarded_request_body(ngx_http_request_t *r)
             return NGX_AGAIN;
         }
 
-        size = (size_t) ngx_min(r->headers_in.content_length_n,
-                                NGX_HTTP_DISCARD_BUFFER_SIZE);
+        size = (size_t) ngx_min(r->headers_in.content_length_n, NGX_HTTP_DISCARD_BUFFER_SIZE);
 
         n = r->connection->recv(r->connection, buffer, size);
 
@@ -795,7 +798,11 @@ ngx_http_discard_request_body_filter(ngx_http_request_t *r, ngx_buf_t *b)
     return NGX_OK;
 }
 
-
+/*
+处理http1.1 expect的情况，
+根据http1.1的expect机制，如果客户端发送了expect头，
+而服务端不希望接收请求体时，必须返回417(Expectation Failed)错误。
+*/
 static ngx_int_t
 ngx_http_test_expect(ngx_http_request_t *r)
 {
@@ -817,8 +824,8 @@ ngx_http_test_expect(ngx_http_request_t *r)
 
     expect = &r->headers_in.expect->value;
 
-    if (expect->len != sizeof("100-continue") - 1
-			|| ngx_strncasecmp(expect->data, (u_char *) "100-continue", sizeof("100-continue") - 1) != 0)
+    if (expect->len != sizeof("100-continue") - 1 
+		|| ngx_strncasecmp(expect->data, (u_char *) "100-continue", sizeof("100-continue") - 1) != 0)
     {
         return NGX_OK;
     }
@@ -863,8 +870,7 @@ ngx_http_request_body_length_filter(ngx_http_request_t *r, ngx_chain_t *in)
     rb = r->request_body;
 
     if (rb->rest == -1) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "http request body content length filter");
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http request body content length filter");
 
         rb->rest = r->headers_in.content_length_n;
     }
@@ -914,8 +920,7 @@ ngx_http_request_body_length_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     rc = ngx_http_top_request_body_filter(r, out);
 
-    ngx_chain_update_chains(r->pool, &rb->free, &rb->busy, &out,
-                            (ngx_buf_tag_t) &ngx_http_read_client_request_body);
+    ngx_chain_update_chains(r->pool, &rb->free, &rb->busy, &out, (ngx_buf_tag_t) &ngx_http_read_client_request_body);
 
     return rc;
 }
