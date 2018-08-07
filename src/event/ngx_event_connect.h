@@ -55,7 +55,7 @@ struct ngx_peer_connection_s {
 
     ngx_addr_t                      *local;
 
-    int                              type;
+    int                              type;	//套接字类型
     int                              rcvbuf;
 
     ngx_log_t                       *log;

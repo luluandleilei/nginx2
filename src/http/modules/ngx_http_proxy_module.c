@@ -1108,8 +1108,7 @@ ngx_http_proxy_handler(ngx_http_request_t *r)
 
     if (!plcf->upstream.request_buffering
         && plcf->body_values == NULL && plcf->upstream.pass_request_body
-        && (!r->headers_in.chunked
-            || plcf->http_version == NGX_HTTP_VERSION_11))
+        && (!r->headers_in.chunked || plcf->http_version == NGX_HTTP_VERSION_11))
     {
         r->request_body_no_buffering = 1;
     }
@@ -1506,8 +1505,7 @@ ngx_http_proxy_create_request(ngx_http_request_t *r)
             b->last += r->uri.len - loc_len + escape;
 
         } else {
-            b->last = ngx_copy(b->last, r->uri.data + loc_len,
-                               r->uri.len - loc_len);
+            b->last = ngx_copy(b->last, r->uri.data + loc_len, r->uri.len - loc_len);
         }
 
         if (r->args.len > 0) {
@@ -1591,9 +1589,7 @@ ngx_http_proxy_create_request(ngx_http_request_t *r)
                 i = 0;
             }
 
-            if (ngx_hash_find(&headers->hash, header[i].hash,
-                              header[i].lowcase_key, header[i].key.len))
-            {
+            if (ngx_hash_find(&headers->hash, header[i].hash, header[i].lowcase_key, header[i].key.len)) {
                 continue;
             }
 
@@ -1601,14 +1597,11 @@ ngx_http_proxy_create_request(ngx_http_request_t *r)
 
             *b->last++ = ':'; *b->last++ = ' ';
 
-            b->last = ngx_copy(b->last, header[i].value.data,
-                               header[i].value.len);
+            b->last = ngx_copy(b->last, header[i].value.data, header[i].value.len);
 
             *b->last++ = CR; *b->last++ = LF;
 
-            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                           "http proxy header: \"%V: %V\"",
-                           &header[i].key, &header[i].value);
+            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http proxy header: \"%V: %V\"", &header[i].key, &header[i].value);
         }
     }
 
@@ -1629,9 +1622,7 @@ ngx_http_proxy_create_request(ngx_http_request_t *r)
         b->last = e.pos;
     }
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http proxy header:%N\"%*s\"",
-                   (size_t) (b->last - b->pos), b->pos);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http proxy header:%N\"%*s\"", (size_t) (b->last - b->pos), b->pos);
 
     if (r->request_body_no_buffering) {
 

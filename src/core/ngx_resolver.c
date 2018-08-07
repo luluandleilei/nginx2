@@ -77,9 +77,7 @@ static void ngx_resolver_udp_read(ngx_event_t *rev);
 static void ngx_resolver_tcp_write(ngx_event_t *wev);
 static void ngx_resolver_tcp_read(ngx_event_t *rev);
 static void ngx_resolver_process_response(ngx_resolver_t *r, u_char *buf, size_t n, ngx_uint_t tcp);
-static void ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
-    ngx_uint_t ident, ngx_uint_t code, ngx_uint_t qtype,
-    ngx_uint_t nan, ngx_uint_t trunc, ngx_uint_t ans);
+static void ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n, ngx_uint_t ident, ngx_uint_t code, ngx_uint_t qtype, ngx_uint_t nan, ngx_uint_t trunc, ngx_uint_t ans);
 static void ngx_resolver_process_srv(ngx_resolver_t *r, u_char *buf, size_t n,
     ngx_uint_t ident, ngx_uint_t code, ngx_uint_t nan,
     ngx_uint_t trunc, ngx_uint_t ans);
@@ -88,8 +86,7 @@ static void ngx_resolver_process_ptr(ngx_resolver_t *r, u_char *buf, size_t n,
 static ngx_resolver_node_t *ngx_resolver_lookup_name(ngx_resolver_t *r, ngx_str_t *name, uint32_t hash);
 static ngx_resolver_node_t *ngx_resolver_lookup_srv(ngx_resolver_t *r, ngx_str_t *name, uint32_t hash);
 static ngx_resolver_node_t *ngx_resolver_lookup_addr(ngx_resolver_t *r, in_addr_t addr);
-static void ngx_resolver_rbtree_insert_value(ngx_rbtree_node_t *temp,
-    ngx_rbtree_node_t *node, ngx_rbtree_node_t *sentinel);
+static void ngx_resolver_rbtree_insert_value(ngx_rbtree_node_t *temp, ngx_rbtree_node_t *node, ngx_rbtree_node_t *sentinel);
 static ngx_int_t ngx_resolver_copy(ngx_resolver_t *r, ngx_str_t *name, u_char *buf, u_char *src, u_char *last);
 static ngx_int_t ngx_resolver_set_timeout(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx);
 static void ngx_resolver_timeout_handler(ngx_event_t *ev);
@@ -99,8 +96,7 @@ static void *ngx_resolver_calloc(ngx_resolver_t *r, size_t size);
 static void ngx_resolver_free(ngx_resolver_t *r, void *p);
 static void ngx_resolver_free_locked(ngx_resolver_t *r, void *p);
 static void *ngx_resolver_dup(ngx_resolver_t *r, void *src, size_t size);
-static ngx_resolver_addr_t *ngx_resolver_export(ngx_resolver_t *r,
-    ngx_resolver_node_t *rn, ngx_uint_t rotate);
+static ngx_resolver_addr_t *ngx_resolver_export(ngx_resolver_t *r, ngx_resolver_node_t *rn, ngx_uint_t rotate);
 static void ngx_resolver_report_srv(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx);
 static u_char *ngx_resolver_log_error(ngx_log_t *log, u_char *buf, size_t len);
 static void ngx_resolver_resolve_srv_names(ngx_resolver_ctx_t *ctx, ngx_resolver_node_t *rn);
@@ -492,8 +488,9 @@ ngx_resolve_name_done(ngx_resolver_ctx_t *ctx)
         ngx_resolver_free(r, ctx->srvs);
     }
 
+	//ctx提前结束，将ctx从node->waiting中删除
     if (ctx->state == NGX_AGAIN || ctx->state == NGX_RESOLVE_TIMEDOUT) {
-
+		
         rn = ctx->node;
 
         if (rn) {
@@ -528,6 +525,7 @@ done:
 
     /* lock alloc mutex */
 
+	//删除ctx对象
     if (ctx->event) {
         ngx_resolver_free_locked(r, ctx->event);
     }
@@ -536,6 +534,8 @@ done:
 
     /* unlock alloc mutex */
 
+	//如果resend队列为空，撤销重传定时器
+	//XXX:为什么是这里判断，不应该是有node从resend队列出队时判断
     if (r->event->timer_set && ngx_resolver_resend_empty(r)) {
         ngx_del_timer(r->event);
     }
@@ -559,6 +559,7 @@ ngx_resolve_name_locked(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx, ngx_str_t *n
 
     hash = ngx_crc32_short(name->data, name->len);
 
+	//查找是否有对应的缓存的node
     if (ctx->service.len) {
         rn = ngx_resolver_lookup_srv(r, name, hash);
 
@@ -574,21 +575,25 @@ ngx_resolve_name_locked(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx, ngx_str_t *n
         expire_queue = &r->name_expire_queue;
     }
 
+	//有缓存node
     if (rn) {
 
         /* ctx can be a list after NGX_RESOLVE_CNAME */
         for (last = ctx; last->next; last = last->next);
 
+		//缓存node的结果有效
         if (rn->valid >= ngx_time()) {
 
             ngx_log_debug0(NGX_LOG_DEBUG_CORE, r->log, 0, "resolve cached");
 
+			//重置node过期时间
             ngx_queue_remove(&rn->queue);
 
             rn->expire = ngx_time() + r->expire;
 
             ngx_queue_insert_head(expire_queue, &rn->queue);
 
+			//构造临时结果对象，传递给ctx
             naddrs = (rn->naddrs == (u_short) -1) ? 0 : rn->naddrs;
 #if (NGX_HAVE_INET6)
             naddrs += (rn->naddrs6 == (u_short) -1) ? 0 : rn->naddrs6;
@@ -606,7 +611,9 @@ ngx_resolve_name_locked(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx, ngx_str_t *n
                     }
                 }
 
-                last->next = rn->waiting;
+				//XXX:rn->waiting不是应该为NULL么? (参看ngx_resolver_process_a)
+				//什么时候rn->waiting 可能不为NULL
+                last->next = rn->waiting;	
                 rn->waiting = NULL;
 
                 /* unlock name mutex */
@@ -635,6 +642,7 @@ ngx_resolve_name_locked(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx, ngx_str_t *n
                     ctx = next;
                 } while (ctx);
 
+				//销毁临时结果对象
                 if (addrs != NULL) {
                     ngx_resolver_free(r, addrs->sockaddr);
                     ngx_resolver_free(r, addrs);
@@ -670,6 +678,7 @@ ngx_resolve_name_locked(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx, ngx_str_t *n
                 return ngx_resolve_name_locked(r, ctx, &cname);
             }
 
+			//递归查询深度达到最大值，直接以NGX_RESOLVE_NXDOMAIN结果通知上层
             last->next = rn->waiting;
             rn->waiting = NULL;
 
@@ -688,16 +697,20 @@ ngx_resolve_name_locked(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx, ngx_str_t *n
             return NGX_OK;
         }
 
+		//缓存node正在处理
         if (rn->waiting) {
+			//设置新增的ctx的超时
             if (ngx_resolver_set_timeout(r, ctx) != NGX_OK) {
                 return NGX_ERROR;
             }
 
+			//将新的ctx加入rn->waiting链表的表头
             last->next = rn->waiting;
             rn->waiting = ctx;
-            ctx->state = NGX_AGAIN;
-            ctx->async = 1;
+            ctx->state = NGX_AGAIN;	//XXX: 为什么仅仅头节点置状态位，而ngx_resolve_name_done中判断状态而不是判断头结点??
+            ctx->async = 1;			//XXX: ??
 
+			//设置ctx关联的node节点
             do {
                 ctx->node = rn;
                 ctx = ctx->next;
@@ -706,11 +719,14 @@ ngx_resolve_name_locked(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx, ngx_str_t *n
             return NGX_AGAIN;
         }
 
+		//XXX:什么时候会出现这种情况? 
+		//(1)ctx提前结束，node还在resend队列中，且还没有被resend(若被resend，因rn->waiting为NULL，rn会被删除)
+		//(2)node的结果已经无效，node还在expire队列中，且还没有被从expire队列中删除
         ngx_queue_remove(&rn->queue);
 
         /* lock alloc mutex */
 
-        if (rn->query) {
+        if (rn->query) {	//XXX： 什么时候rn->query不为NULL？？？
             ngx_resolver_free_locked(r, rn->query);
             rn->query = NULL;
 #if (NGX_HAVE_INET6)
@@ -813,7 +829,9 @@ ngx_resolve_name_locked(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx, ngx_str_t *n
     rn->naddrs = (u_short) -1;
     rn->tcp = 0;
 #if (NGX_HAVE_INET6)
-    rn->naddrs6 = r->ipv6 ? (u_short) -1 : 0;
+	//注意：当不查询ipv6地址时，设置结果的ipv6地址为0，
+	//这样在处理查询结果时，可以统一对待ipv4和ipv6，不需要对r->ipv6字段做判断
+    rn->naddrs6 = r->ipv6 ? (u_short) -1 : 0;	
     rn->tcp6 = 0;
 #endif
     rn->nsrvs = 0;
@@ -828,13 +846,16 @@ ngx_resolve_name_locked(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx, ngx_str_t *n
         goto failed;
     }
 
-	//XXX: 所有的重传队列为空
+	//所有重传队列为空时，重传定时时间必然没有启动，
+	//此时将新增一个重传节点，故需要启动重传定时器事件
     if (ngx_resolver_resend_empty(r)) {
         ngx_add_timer(r->event, (ngx_msec_t) (r->resend_timeout * 1000));
     }
 
+	//设置节点重传时间
     rn->expire = ngx_time() + r->resend_timeout;
 
+	//将节点添加到重传队列
     ngx_queue_insert_head(resend_queue, &rn->queue);
 
     rn->code = 0;
@@ -1106,8 +1127,7 @@ ngx_resolve_addr_done(ngx_resolver_ctx_t *ctx)
         expire_queue = &r->addr_expire_queue;
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_CORE, r->log, 0,
-                   "resolve addr done: %i", ctx->state);
+    ngx_log_debug1(NGX_LOG_DEBUG_CORE, r->log, 0, "resolve addr done: %i", ctx->state);
 
     if (ctx->event && ctx->event->timer_set) {
         ngx_del_timer(ctx->event);
@@ -1182,7 +1202,10 @@ ngx_resolver_expire(ngx_resolver_t *r, ngx_rbtree_t *tree, ngx_queue_t *queue)
 
     now = ngx_time();
 
-    for (i = 0; i < 2; i++) {
+	//至多删除两个元素
+	//将expire的判断均分到每个ctx的销毁的时候，避免了长时间的expire队列的遍历
+	//删除次数大于添加次数，保证一定可以删除所有无效的元素
+    for (i = 0; i < 2; i++) {	
         if (ngx_queue_empty(queue)) {
             return;
         }
@@ -1368,6 +1391,7 @@ ngx_resolver_send_tcp_query(ngx_resolver_t *r, ngx_resolver_connection_t *rec, u
     *b->last++ = (u_char) qlen;
     b->last = ngx_cpymem(b->last, query, qlen);
 
+	//连接建立成功，或者连接已经存在，直接尝试发送
     if (rc == NGX_OK) {
         ngx_resolver_tcp_write(rec->tcp->write);
     }
@@ -1389,6 +1413,7 @@ ngx_resolver_resend_handler(ngx_event_t *ev)
 
     ngx_log_debug0(NGX_LOG_DEBUG_CORE, r->log, 0, "resolver resend handler");
 
+	//XXX:查看每个重传队列，重传已经过期的节点
     /* lock name mutex */
 
     ntimer = ngx_resolver_resend(r, &r->name_rbtree, &r->name_resend_queue);
@@ -1413,6 +1438,7 @@ ngx_resolver_resend_handler(ngx_event_t *ev)
 
 #endif
 
+	//XXX:计算确定下次重传的时间
     timer = ntimer;
 
     if (timer == 0) {
@@ -1440,6 +1466,7 @@ ngx_resolver_resend_handler(ngx_event_t *ev)
 
 #endif
 
+	//XXX：重置重传队列定时器
     if (timer) {
         ngx_add_timer(r->event, (ngx_msec_t) (timer * 1000));
     }
@@ -1689,11 +1716,8 @@ ngx_resolver_process_response(ngx_resolver_t *r, u_char *buf, size_t n, ngx_uint
     nan = (response->nan_hi << 8) + response->nan_lo;
     trunc = flags & 0x0200;
 
-    ngx_log_debug6(NGX_LOG_DEBUG_CORE, r->log, 0,
-                   "resolver DNS response %ui fl:%04Xi %ui/%ui/%ud/%ud",
-                   ident, flags, nqs, nan,
-                   (response->nns_hi << 8) + response->nns_lo,
-                   (response->nar_hi << 8) + response->nar_lo);
+    ngx_log_debug6(NGX_LOG_DEBUG_CORE, r->log, 0, "resolver DNS response %ui fl:%04Xi %ui/%ui/%ud/%ud", 
+		ident, flags, nqs, nan, (response->nns_hi << 8) + response->nns_lo, (response->nar_hi << 8) + response->nar_lo);
 
     /* response to a standard query */
     if ((flags & 0xf870) != 0x8000 || (trunc && tcp)) {
@@ -1703,7 +1727,7 @@ ngx_resolver_process_response(ngx_resolver_t *r, u_char *buf, size_t n, ngx_uint
 
     code = flags & 0xf;
 
-    if (code == NGX_RESOLVE_FORMERR) {
+    if (code == NGX_RESOLVE_FORMERR) {	//报文格式错误(Format error) - 服务器不能理解请求的报文。
 
         times = 0;
 
@@ -1760,8 +1784,8 @@ found:
         goto done;
     }
 
-    if (i + sizeof(ngx_resolver_qs_t) + nan * (2 + sizeof(ngx_resolver_an_t)) > (ngx_uint_t) n)
-    {
+	//XXX: 这里的2表示什么？
+    if (i + sizeof(ngx_resolver_qs_t) + nan * (2 + sizeof(ngx_resolver_an_t)) > (ngx_uint_t) n) {
         goto short_response;
     }
 
@@ -1819,12 +1843,14 @@ done:
 
 dns_error_name:
 
-    ngx_log_error(r->log_level, r->log, 0, "DNS error (%ui: %s), query id:%ui, name:\"%*s\"", code, ngx_resolver_strerror(code), ident, (size_t) rn->nlen, rn->name);
+    ngx_log_error(r->log_level, r->log, 0, "DNS error (%ui: %s), query id:%ui, name:\"%*s\"", 
+		code, ngx_resolver_strerror(code), ident, (size_t) rn->nlen, rn->name);
     return;
 
 dns_error:
 
-    ngx_log_error(r->log_level, r->log, 0, "DNS error (%ui: %s), query id:%ui", code, ngx_resolver_strerror(code), ident);
+    ngx_log_error(r->log_level, r->log, 0, "DNS error (%ui: %s), query id:%ui", 
+		code, ngx_resolver_strerror(code), ident);
     return;
 }
 
@@ -1851,23 +1877,22 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
     ngx_resolver_addr_t        *addrs;
     ngx_resolver_connection_t  *rec;
 
-    if (ngx_resolver_copy(r, &name, buf, buf + sizeof(ngx_resolver_hdr_t), buf + n)
-        != NGX_OK)
-    {
+	//获取查询问题的域名
+    if (ngx_resolver_copy(r, &name, buf, buf + sizeof(ngx_resolver_hdr_t), buf + n) != NGX_OK) {
         return;
     }
 
     ngx_log_debug1(NGX_LOG_DEBUG_CORE, r->log, 0, "resolver qs:%V", &name);
 
+	//查找域名对应的缓存节点
     hash = ngx_crc32_short(name.data, name.len);
 
     /* lock name mutex */
 
     rn = ngx_resolver_lookup_name(r, &name, hash);
 
-    if (rn == NULL) {
-        ngx_log_error(r->log_level, r->log, 0,
-                      "unexpected response for %V", &name);
+    if (rn == NULL) {	//XXX: 如果域名没有错误的话，有没有什么情况下，结果仍然为NULL？？？节点超时被删除可能么？
+        ngx_log_error(r->log_level, r->log, 0, "unexpected response for %V", &name);
         ngx_resolver_free(r, name.data);
         goto failed;
     }
@@ -1878,8 +1903,7 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
     case NGX_RESOLVE_AAAA:
 
         if (rn->query6 == NULL || rn->naddrs6 != (u_short) -1) {
-            ngx_log_error(r->log_level, r->log, 0,
-                          "unexpected response for %V", &name);
+            ngx_log_error(r->log_level, r->log, 0, "unexpected response for %V", &name);
             ngx_resolver_free(r, name.data);
             goto failed;
         }
@@ -1897,13 +1921,12 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
     default: /* NGX_RESOLVE_A */
 
         if (rn->query == NULL || rn->naddrs != (u_short) -1) {
-            ngx_log_error(r->log_level, r->log, 0,
-                          "unexpected response for %V", &name);
+            ngx_log_error(r->log_level, r->log, 0, "unexpected response for %V", &name);
             ngx_resolver_free(r, name.data);
             goto failed;
         }
 
-        if (trunc && rn->tcp) {
+        if (trunc && rn->tcp) {	//XXX:tcp方式发送的请求被截断被认为是错误 ??
             ngx_resolver_free(r, name.data);
             goto failed;
         }
@@ -1911,20 +1934,22 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
         qident = (rn->query[0] << 8) + rn->query[1];
     }
 
-    if (ident != qident) {
-        ngx_log_error(r->log_level, r->log, 0,
-                      "wrong ident %ui response for %V, expect %ui",
-                      ident, &name, qident);
+	//XXX：resolver是否会允许发送可能会发送同样的域名的不同请求对象么还是会直接用之前的，不会有重复域名的对象？
+	//XXX: ident != qident 什么情况下回出现？？？
+    if (ident != qident) {	
+        ngx_log_error(r->log_level, r->log, 0, "wrong ident %ui response for %V, expect %ui", ident, &name, qident);
         ngx_resolver_free(r, name.data);
         goto failed;
     }
 
     ngx_resolver_free(r, name.data);
 
+	//XXX: 如果被截断，尝试使用tcp进行重新发送请求
     if (trunc) {
 
-        ngx_queue_remove(&rn->queue);
+        ngx_queue_remove(&rn->queue);	//XXX: 可能会是从exprire队列移除么？
 
+		//上层没有对象关心该请求
         if (rn->waiting == NULL) {
             ngx_rbtree_delete(&r->name_rbtree, &rn->node);
             ngx_resolver_free_node(r, rn);
@@ -1941,7 +1966,7 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
 
             rn->tcp6 = 1;
 
-            (void) ngx_resolver_send_tcp_query(r, rec, rn->query6, rn->qlen);
+            (void) ngx_resolver_send_tcp_query(r, rec, rn->query6, rn->qlen);	//XXX:为什么忽略返回值，不判断？？
 
             break;
 #endif
@@ -1950,7 +1975,7 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
 
             rn->tcp = 1;
 
-            (void) ngx_resolver_send_tcp_query(r, rec, rn->query, rn->qlen);
+            (void) ngx_resolver_send_tcp_query(r, rec, rn->query, rn->qlen); //XXX:为什么忽略返回值，不判断？？
         }
 
         rn->expire = ngx_time() + r->resend_timeout;
@@ -1960,46 +1985,61 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
         goto next;
     }
 
+	//XXX: 为什么要这样处理返回码？？？
+	//IPv6或者ipv4只要其中一个有错误，就认为错误？？？
     if (code == 0 && rn->code) {
         code = rn->code;
     }
 
+	/*回答个数为0的特殊处理*/
     if (code == 0 && nan == 0) {
 
-#if (NGX_HAVE_INET6)
+#if (NGX_HAVE_INET6)	
         switch (qtype) {
 
         case NGX_RESOLVE_AAAA:
 
+			//ipv6查询结果为0
             rn->naddrs6 = 0;
 
+			//ipv4查询结果未知，直接返回等待其结果，再来通知上层
             if (rn->naddrs == (u_short) -1) {
                 goto next;
             }
 
+			//ipv4查询到正确结果，通知上层用户
             if (rn->naddrs) {
                 goto export;
             }
 
+			/* rn->naddrs == 0 */
             break;
 
         default: /* NGX_RESOLVE_A */
 
+			//ipv4查询结果为0
             rn->naddrs = 0;
 
+			//如果r->ipv6 == 0，已经设置rn->naddrs6 == 0
+			//ipv6查询结果未知，直接返回等待其结果，再来通知上层
             if (rn->naddrs6 == (u_short) -1) {
                 goto next;
             }
 
+			//ipv6查询到正确结果，通知上层用户
             if (rn->naddrs6) {
                 goto export;
             }
+
+			/* rn->naddrs6 == 0 */
         }
 #endif
 
+		/* rn->naddrs == 0 && rn->naddrs6 == 0 */
         code = NGX_RESOLVE_NXDOMAIN;
     }
 
+	/*查询到错误结果处理*/
     if (code) {
 
 #if (NGX_HAVE_INET6)
@@ -2007,13 +2047,16 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
 
         case NGX_RESOLVE_AAAA:
 
+			//ipv6查询结果错误，设置ipv6查询结果为0
             rn->naddrs6 = 0;
 
+			//ipv4查询结果未知，设置查询结果为当前错误，收到ipv4查询结果再通知上层
             if (rn->naddrs == (u_short) -1) {
                 rn->code = (u_char) code;
                 goto next;
             }
 
+			//通知上层查询错误
             break;
 
         default: /* NGX_RESOLVE_A */
@@ -2050,6 +2093,9 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
         return;
     }
 
+	/*查询到正确结果*/
+	
+	//统计回答中的地址个数和cname
     i = ans;
     naddrs = 0;
     cname = NULL;
@@ -2093,12 +2139,10 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
         type = (an->type_hi << 8) + an->type_lo;
         class = (an->class_hi << 8) + an->class_lo;
         len = (an->len_hi << 8) + an->len_lo;
-        ttl = (an->ttl[0] << 24) + (an->ttl[1] << 16)
-            + (an->ttl[2] << 8) + (an->ttl[3]);
+        ttl = (an->ttl[0] << 24) + (an->ttl[1] << 16) + (an->ttl[2] << 8) + (an->ttl[3]);
 
         if (class != 1) {
-            ngx_log_error(r->log_level, r->log, 0,
-                          "unexpected RR class %ui", class);
+            ngx_log_error(r->log_level, r->log, 0, "unexpected RR class %ui", class);
             goto failed;
         }
 
@@ -2114,7 +2158,7 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
 
         case NGX_RESOLVE_A:
 
-            if (qtype != NGX_RESOLVE_A) {
+            if (qtype != NGX_RESOLVE_A) {	//回答类型为NGX_RESOLVE_A，查询类型必须为NGX_RESOLVE_A
                 err = "unexpected A record in DNS response";
                 goto invalid;
             }
@@ -2135,7 +2179,7 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
 #if (NGX_HAVE_INET6)
         case NGX_RESOLVE_AAAA:
 
-            if (qtype != NGX_RESOLVE_AAAA) {
+            if (qtype != NGX_RESOLVE_AAAA) {	//回答类型为NGX_RESOLVE_AAAA，查询类型必须为NGX_RESOLVE_AAAA
                 err = "unexpected AAAA record in DNS response";
                 goto invalid;
             }
@@ -2154,31 +2198,31 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
             break;
 #endif
 
-        case NGX_RESOLVE_CNAME:
+		//XXX: 查询类型为NGX_RESOLVE_A, NGX_RESOLVE_AAAA，回答类型可能为NGX_RESOLVE_CNAME吗 ???
+        case NGX_RESOLVE_CNAME:	
 
             cname = &buf[i];
 
             break;
 
+		//XXX: 查询类型为NGX_RESOLVE_A, NGX_RESOLVE_AAAA，回答类型可能为NGX_RESOLVE_DNAME吗 ???
         case NGX_RESOLVE_DNAME:
 
             break;
 
         default:
 
-            ngx_log_error(r->log_level, r->log, 0,
-                          "unexpected RR type %ui", type);
+            ngx_log_error(r->log_level, r->log, 0, "unexpected RR type %ui", type);
         }
 
         i += len;
     }
 
-    ngx_log_debug3(NGX_LOG_DEBUG_CORE, r->log, 0,
-                   "resolver naddrs:%ui cname:%p ttl:%uD",
-                   naddrs, cname, rn->ttl);
+    ngx_log_debug3(NGX_LOG_DEBUG_CORE, r->log, 0, "resolver naddrs:%ui cname:%p ttl:%uD", naddrs, cname, rn->ttl);
 
     if (naddrs) {
 
+		//分配存储地址的空间
         switch (qtype) {
 
 #if (NGX_HAVE_INET6)
@@ -2226,6 +2270,7 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
 #endif
         }
 
+		//解析出地址，存储到分配的空间
         j = 0;
         i = ans;
 
@@ -2255,13 +2300,12 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
 
             if (type == NGX_RESOLVE_A) {
 
-                addr[j] = htonl((buf[i] << 24) + (buf[i + 1] << 16)
-                                + (buf[i + 2] << 8) + (buf[i + 3]));
+                addr[j] = htonl((buf[i] << 24) + (buf[i + 1] << 16) + (buf[i + 2] << 8) + (buf[i + 3]));
 
                 if (++j == naddrs) {
 
 #if (NGX_HAVE_INET6)
-                    if (rn->naddrs6 == (u_short) -1) {
+                    if (rn->naddrs6 == (u_short) -1) {	//ipv6查询结果未知，直接返回等待其结果，再来通知上层
                         goto next;
                     }
 #endif
@@ -2277,7 +2321,7 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
 
                 if (++j == naddrs) {
 
-                    if (rn->naddrs == (u_short) -1) {
+                    if (rn->naddrs == (u_short) -1) {	//ipv4查询结果未知，直接返回等待其结果，再来通知上层
                         goto next;
                     }
 
@@ -2290,6 +2334,7 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
         }
     }
 
+	//XXX: 返回结果仅仅只有cname的处理？？？
     switch (qtype) {
 
 #if (NGX_HAVE_INET6)
@@ -2309,6 +2354,7 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
         }
     }
 
+	//ipv4，ipv6都有有效的结果地址
     if (rn->naddrs != (u_short) -1
 #if (NGX_HAVE_INET6)
         && rn->naddrs6 != (u_short) -1
@@ -2339,6 +2385,7 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
             }
         }
 
+		//XXX： 从resend队列中移除
         ngx_queue_remove(&rn->queue);
 
         rn->valid = ngx_time() + (r->valid ? r->valid : (time_t) rn->ttl);
@@ -2347,10 +2394,12 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
         ngx_queue_insert_head(&r->name_expire_queue, &rn->queue);
 
         next = rn->waiting;
+		//设置等待该节点的上层对象为NULL
         rn->waiting = NULL;
 
         /* unlock name mutex */
 
+		//通知上层结果
         while (next) {
             ctx = next;
             ctx->state = NGX_OK;
@@ -2379,6 +2428,7 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
             ngx_resolver_free(r, addrs);
         }
 
+		//XXX：为什么要把rn->query释放掉？？？是因为省内存吗？
         ngx_resolver_free(r, rn->query);
         rn->query = NULL;
 #if (NGX_HAVE_INET6)
@@ -2392,6 +2442,9 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
 
         /* CNAME only */
 
+		//ipv4或ipv6查询结果未知，直接返回等待其结果，再来通知上层
+		//XXX:如果先在一个响应报文中返回cname，后续响应报文返回ipv4,ipv6地址都无效
+		//由于cname没有保存起来，name不是无法处理了？？？
         if (rn->naddrs == (u_short) -1
 #if (NGX_HAVE_INET6)
             || rn->naddrs6 == (u_short) -1
@@ -2405,17 +2458,17 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
             goto failed;
         }
 
-        ngx_log_debug1(NGX_LOG_DEBUG_CORE, r->log, 0,
-                       "resolver cname:\"%V\"", &name);
+        ngx_log_debug1(NGX_LOG_DEBUG_CORE, r->log, 0, "resolver cname:\"%V\"", &name);
 
-        ngx_queue_remove(&rn->queue);
+        ngx_queue_remove(&rn->queue);	//XXX:从重传队列中删除
 
         rn->cnlen = (u_short) name.len;
         rn->u.cname = name.data;
 
+		//设置node的有效时间和过期时间
         rn->valid = ngx_time() + (r->valid ? r->valid : (time_t) rn->ttl);
         rn->expire = ngx_time() + r->expire;
-
+		//将node加入过期队列
         ngx_queue_insert_head(&r->name_expire_queue, &rn->queue);
 
         ngx_resolver_free(r, rn->query);
@@ -2429,6 +2482,7 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
 
         if (ctx) {
 
+			//递归查询cname达到最大次数，通知上层
             if (ctx->recursion++ >= NGX_RESOLVER_MAX_RECURSION) {
 
                 /* unlock name mutex */
@@ -2445,6 +2499,7 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
                 return;
             }
 
+			//查询cname域名对应的地址，将上层关联到新的node
             for (next = ctx; next; next = next->next) {
                 next->node = NULL;
             }
@@ -2457,8 +2512,7 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t n,
         return;
     }
 
-    ngx_log_error(r->log_level, r->log, 0,
-                  "no A or CNAME types in DNS response");
+    ngx_log_error(r->log_level, r->log, 0, "no A or CNAME types in DNS response");
     return;
 
 short_response:
@@ -3862,9 +3916,15 @@ ngx_resolver_create_addr_query(ngx_resolver_t *r, ngx_resolver_node_t *rn,
 }
 
 
+/*
+获取域名
+name: 存储获取的域名
+buf： 响应的起始地址
+src： 指向域名的起始地址
+last：响应的结束地址
+*/
 static ngx_int_t
-ngx_resolver_copy(ngx_resolver_t *r, ngx_str_t *name, u_char *buf, u_char *src,
-    u_char *last)
+ngx_resolver_copy(ngx_resolver_t *r, ngx_str_t *name, u_char *buf, u_char *src, u_char *last)
 {
     char        *err;
     u_char      *p, *dst;
@@ -4105,8 +4165,7 @@ ngx_resolver_dup(ngx_resolver_t *r, void *src, size_t size)
 
 
 static ngx_resolver_addr_t *
-ngx_resolver_export(ngx_resolver_t *r, ngx_resolver_node_t *rn,
-    ngx_uint_t rotate)
+ngx_resolver_export(ngx_resolver_t *r, ngx_resolver_node_t *rn, ngx_uint_t rotate)
 {
     ngx_uint_t            d, i, j, n;
     in_addr_t            *addr;
