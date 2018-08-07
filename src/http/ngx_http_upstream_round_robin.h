@@ -74,9 +74,9 @@ struct ngx_http_upstream_rr_peers_s {
 
     ngx_str_t                      *name;
 
-    ngx_http_upstream_rr_peers_t   *next;
+    ngx_http_upstream_rr_peers_t   *next;	//backup peers
 
-    ngx_http_upstream_rr_peer_t    *peer;
+    ngx_http_upstream_rr_peer_t    *peer;	//list of ngx_http_upstream_rr_peer_t
 };
 
 
@@ -133,8 +133,7 @@ typedef struct {
 } ngx_http_upstream_rr_peer_data_t;
 
 
-ngx_int_t ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
-    ngx_http_upstream_srv_conf_t *us);
+ngx_int_t ngx_http_upstream_init_round_robin(ngx_conf_t *cf, ngx_http_upstream_srv_conf_t *us);
 ngx_int_t ngx_http_upstream_init_round_robin_peer(ngx_http_request_t *r,
     ngx_http_upstream_srv_conf_t *us);
 ngx_int_t ngx_http_upstream_create_round_robin_peer(ngx_http_request_t *r,

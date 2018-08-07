@@ -74,7 +74,7 @@ typedef struct {
 typedef struct {
     struct sockaddr          *sockaddr;
     socklen_t                 socklen;
-    ngx_str_t                 name;
+    ngx_str_t                 name;		//"ip:port"字符串表示
 } ngx_addr_t;
 
 

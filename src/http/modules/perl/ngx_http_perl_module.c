@@ -50,8 +50,7 @@ static ngx_int_t ngx_http_perl_preconfiguration(ngx_conf_t *cf);
 static void *ngx_http_perl_create_main_conf(ngx_conf_t *cf);
 static char *ngx_http_perl_init_main_conf(ngx_conf_t *cf, void *conf);
 static void *ngx_http_perl_create_loc_conf(ngx_conf_t *cf);
-static char *ngx_http_perl_merge_loc_conf(ngx_conf_t *cf, void *parent,
-    void *child);
+static char *ngx_http_perl_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
 static char *ngx_http_perl(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_http_perl_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 

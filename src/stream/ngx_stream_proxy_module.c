@@ -564,8 +564,7 @@ ngx_stream_proxy_eval(ngx_stream_session_t *s,
 
     if (ngx_parse_url(s->connection->pool, &url) != NGX_OK) {
         if (url.err) {
-            ngx_log_error(NGX_LOG_ERR, s->connection->log, 0,
-                          "%s in upstream \"%V\"", url.err, &url.url);
+            ngx_log_error(NGX_LOG_ERR, s->connection->log, 0, "%s in upstream \"%V\"", url.err, &url.url);
         }
 
         return NGX_ERROR;

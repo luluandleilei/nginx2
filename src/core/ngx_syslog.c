@@ -111,8 +111,7 @@ ngx_syslog_parse_args(ngx_conf_t *cf, ngx_syslog_peer_t *peer)
         if (ngx_strncmp(p, "server=", 7) == 0) {
 
             if (peer->server.sockaddr != NULL) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "duplicate syslog \"server\"");
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "duplicate syslog \"server\"");
                 return NGX_CONF_ERROR;
             }
 
@@ -124,9 +123,7 @@ ngx_syslog_parse_args(ngx_conf_t *cf, ngx_syslog_peer_t *peer)
 
             if (ngx_parse_url(cf->pool, &u) != NGX_OK) {
                 if (u.err) {
-                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                       "%s in syslog server \"%V\"",
-                                       u.err, &u.url);
+                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "%s in syslog server \"%V\"", u.err, &u.url);
                 }
 
                 return NGX_CONF_ERROR;

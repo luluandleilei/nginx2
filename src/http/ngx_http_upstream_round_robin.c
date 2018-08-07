@@ -41,8 +41,8 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf, ngx_http_upstream_srv_conf_t 
     if (us->servers) {
         server = us->servers->elts;
 
-        n = 0;
-        w = 0;
+        n = 0;	//XXX:统计总的XXX个数
+        w = 0;	//统计总的权重
 
         for (i = 0; i < us->servers->nelts; i++) {
             if (server[i].backup) {
@@ -444,9 +444,7 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
             goto failed;
         }
 
-        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, pc->log, 0,
-                       "get rr peer, current: %p %i",
-                       peer, peer->current_weight);
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, pc->log, 0, "get rr peer, current: %p %i", peer, peer->current_weight);
     }
 
     pc->sockaddr = peer->sockaddr;
@@ -515,8 +513,8 @@ ngx_http_upstream_get_peer(ngx_http_upstream_rr_peer_data_t *rrp)
          peer;
          peer = peer->next, i++)
     {
-        n = i / (8 * sizeof(uintptr_t));
-        m = (uintptr_t) 1 << i % (8 * sizeof(uintptr_t));
+        n = i / (8 * sizeof(uintptr_t));					//第几个uintptr_t
+        m = (uintptr_t) 1 << i % (8 * sizeof(uintptr_t));	//uintptr_t内的偏移量
 
         if (rrp->tried[n] & m) {
             continue;

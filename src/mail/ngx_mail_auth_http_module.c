@@ -1519,8 +1519,7 @@ ngx_mail_auth_http(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     if (ngx_parse_url(cf->pool, &u) != NGX_OK) {
         if (u.err) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "%s in auth_http \"%V\"", u.err, &u.url);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "%s in auth_http \"%V\"", u.err, &u.url);
         }
 
         return NGX_CONF_ERROR;
