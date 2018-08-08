@@ -385,15 +385,14 @@ found:
 
 	/*分配桶个数，如必要分配哈希表*/
     if (hinit->hash == NULL) {
-        hinit->hash = ngx_pcalloc(hinit->pool, sizeof(ngx_hash_wildcard_t)		//XXX:为什么是sizeof(ngx_hash_wildcard_t)而不是sizeof(ngx_hash_t)
-                                             + size * sizeof(ngx_hash_elt_t *));
+		//XXX:为什么是sizeof(ngx_hash_wildcard_t)而不是sizeof(ngx_hash_t) ???
+        hinit->hash = ngx_pcalloc(hinit->pool, sizeof(ngx_hash_wildcard_t) + size * sizeof(ngx_hash_elt_t *));
         if (hinit->hash == NULL) {
             ngx_free(test);
             return NGX_ERROR;
         }
 
-        buckets = (ngx_hash_elt_t **)
-                      ((u_char *) hinit->hash + sizeof(ngx_hash_wildcard_t));
+        buckets = (ngx_hash_elt_t **) ((u_char *) hinit->hash + sizeof(ngx_hash_wildcard_t));
 
     } else {
         buckets = ngx_pcalloc(hinit->pool, size * sizeof(ngx_hash_elt_t *));
@@ -530,8 +529,7 @@ ngx_hash_wildcard_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names, ngx_uint_t
     for (n = 0; n < nelts; n = i) {	//注意这里是：n = i
 
 #if 0
-        ngx_log_error(NGX_LOG_ALERT, hinit->pool->log, 0,
-                      "wc0: \"%V\"", &names[n].key);
+        ngx_log_error(NGX_LOG_ALERT, hinit->pool->log, 0, "wc0: \"%V\"", &names[n].key);
 #endif
 
         dot = 0;
@@ -554,8 +552,7 @@ ngx_hash_wildcard_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names, ngx_uint_t
         name->value = names[n].value;
 
 #if 0
-        ngx_log_error(NGX_LOG_ALERT, hinit->pool->log, 0,
-                      "wc1: \"%V\" %ui", &name->key, dot);
+        ngx_log_error(NGX_LOG_ALERT, hinit->pool->log, 0, "wc1: \"%V\" %ui", &name->key, dot);
 #endif
 
         dot_len = len + 1;
@@ -578,8 +575,7 @@ ngx_hash_wildcard_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names, ngx_uint_t
             next_name->value = names[n].value;
 
 #if 0
-            ngx_log_error(NGX_LOG_ALERT, hinit->pool->log, 0,
-                          "wc2: \"%V\"", &next_name->key);
+            ngx_log_error(NGX_LOG_ALERT, hinit->pool->log, 0, "wc2: \"%V\"", &next_name->key);
 #endif
         }
 
@@ -616,10 +612,7 @@ ngx_hash_wildcard_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names, ngx_uint_t
             h = *hinit;
             h.hash = NULL;
 
-            if (ngx_hash_wildcard_init(&h, (ngx_hash_key_t *) next_names.elts,
-                                       next_names.nelts)
-                != NGX_OK)
-            {
+            if (ngx_hash_wildcard_init(&h, (ngx_hash_key_t *) next_names.elts, next_names.nelts) != NGX_OK) {
                 return NGX_ERROR;
             }
 
@@ -636,10 +629,7 @@ ngx_hash_wildcard_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names, ngx_uint_t
         }
     }
 
-    if (ngx_hash_init(hinit, (ngx_hash_key_t *) curr_names.elts,
-                      curr_names.nelts)
-        != NGX_OK)
-    {
+    if (ngx_hash_init(hinit, (ngx_hash_key_t *) curr_names.elts, curr_names.nelts) != NGX_OK) {
         return NGX_ERROR;
     }
 
@@ -759,6 +749,8 @@ ngx_hash_keys_array_init(ngx_hash_keys_arrays_t *ha, ngx_uint_t type)
 //			NGX_HASH_WILDCARD_KEY被设置的时候，说明key里面可能含有通配符，会进行相应的处理。
 //			如果两个标志位都不设置，传0。
 //返回NGX_OK是加入成功。返回NGX_BUSY意味着key值重复。
+//NGX_DECLINED：不支持的key的格式
+//NGX_ERROR:	内部错误
 ngx_int_t
 ngx_hash_add_key(ngx_hash_keys_arrays_t *ha, ngx_str_t *key, void *value, ngx_uint_t flags)
 {
@@ -788,7 +780,7 @@ ngx_hash_add_key(ngx_hash_keys_arrays_t *ha, ngx_str_t *key, void *value, ngx_ui
                 }
             }
 
-            if (key->data[i] == '.' && key->data[i + 1] == '.') {	//包含连续的两个点，不支持该格式
+            if (key->data[i] == '.' && key->data[i + 1] == '.') {	//包含连续的两个点，不支持该格式 //XXX:key->data[i+1]越界，有问题吗？？？
                 return NGX_DECLINED;
             }
 
@@ -850,10 +842,7 @@ ngx_hash_add_key(ngx_hash_keys_arrays_t *ha, ngx_str_t *key, void *value, ngx_ui
         }
 
     } else {
-        if (ngx_array_init(&ha->keys_hash[k], ha->temp_pool, 4,
-                           sizeof(ngx_str_t))
-            != NGX_OK)
-        {
+        if (ngx_array_init(&ha->keys_hash[k], ha->temp_pool, 4, sizeof(ngx_str_t)) != NGX_OK) {
             return NGX_ERROR;
         }
     }
@@ -899,16 +888,15 @@ wildcard:
                     continue;
                 }
 
-                if (ngx_strncmp(&key->data[1], name[i].data, len) == 0) {	//XXX:为什么前向通配符的".example.com"形式不能与精确的相同?
+				//XXX:为什么前向通配符的".example.com"形式不能与精确的相同?
+				//.example.com 等价于*.example.com 和 example.com
+                if (ngx_strncmp(&key->data[1], name[i].data, len) == 0) {	
                     return NGX_BUSY;
                 }
             }
 
         } else {
-            if (ngx_array_init(&ha->keys_hash[k], ha->temp_pool, 4,
-                               sizeof(ngx_str_t))
-                != NGX_OK)
-            {
+            if (ngx_array_init(&ha->keys_hash[k], ha->temp_pool, 4, sizeof(ngx_str_t)) != NGX_OK) {
                 return NGX_ERROR;
             }
         }
@@ -919,7 +907,7 @@ wildcard:
         }
 
         name->len = last - 1;
-        name->data = ngx_pnalloc(ha->temp_pool, name->len);
+        name->data = ngx_pnalloc(ha->temp_pool, name->len);	//XXX:为什么这里要分配内存？不能让name->data = key->data + 1; ??
         if (name->data == NULL) {
             return NGX_ERROR;
         }
@@ -1001,8 +989,7 @@ wildcard:
         }
 
     } else {
-        if (ngx_array_init(keys, ha->temp_pool, 4, sizeof(ngx_str_t)) != NGX_OK)
-        {
+        if (ngx_array_init(keys, ha->temp_pool, 4, sizeof(ngx_str_t)) != NGX_OK) {
             return NGX_ERROR;
         }
     }
@@ -1013,7 +1000,7 @@ wildcard:
     }
 
     name->len = last - skip;
-    name->data = ngx_pnalloc(ha->temp_pool, name->len);
+    name->data = ngx_pnalloc(ha->temp_pool, name->len);	//XXX:为什么这里要分配内存？不能让name->data = key->data + skip; ??
     if (name->data == NULL) {
         return NGX_ERROR;
     }
@@ -1028,8 +1015,8 @@ wildcard:
         return NGX_ERROR;
     }
 
-    hk->key.len = last - 1;
-    hk->key.data = p;
+    hk->key.len = last - 1;	//注意：这里是hk->key.len没有包括后面的'\0'，但 hk->key.data可以直接作为普通字符串使用，因为后面有'\0'
+    hk->key.data = p;		//注意：这里hk->key.data是从ha->temp_pool中分配的
     hk->key_hash = 0;
     hk->value = value;
 

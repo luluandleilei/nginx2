@@ -197,8 +197,7 @@ ngx_http_index_handler(ngx_http_request_t *r)
             *e.pos = '\0';
         }
 
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "open index \"%V\"", &path);
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "open index \"%V\"", &path);
 
         ngx_memzero(&of, sizeof(ngx_open_file_info_t));
 

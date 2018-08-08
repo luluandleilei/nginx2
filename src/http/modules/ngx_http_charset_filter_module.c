@@ -1437,8 +1437,7 @@ ngx_http_set_charset_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_OK;
     }
 
-    mcf = ngx_http_conf_get_module_main_conf(cf,
-                                             ngx_http_charset_filter_module);
+    mcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_charset_filter_module);
 
     *cp = ngx_http_add_charset(&mcf->charsets, &value[1]);
     if (*cp == NGX_ERROR) {

@@ -537,8 +537,7 @@ ngx_http_valid_referers(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
 
 static ngx_int_t
-ngx_http_add_referer(ngx_conf_t *cf, ngx_hash_keys_arrays_t *keys,
-    ngx_str_t *value, ngx_str_t *uri)
+ngx_http_add_referer(ngx_conf_t *cf, ngx_hash_keys_arrays_t *keys, ngx_str_t *value, ngx_str_t *uri)
 {
     ngx_int_t   rc;
     ngx_str_t  *u;
@@ -562,13 +561,11 @@ ngx_http_add_referer(ngx_conf_t *cf, ngx_hash_keys_arrays_t *keys,
     }
 
     if (rc == NGX_DECLINED) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid hostname or wildcard \"%V\"", value);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid hostname or wildcard \"%V\"", value);
     }
 
     if (rc == NGX_BUSY) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "conflicting parameter \"%V\"", value);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "conflicting parameter \"%V\"", value);
     }
 
     return NGX_ERROR;

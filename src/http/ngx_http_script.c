@@ -907,8 +907,7 @@ ngx_http_script_regex_start_code(ngx_http_script_engine_t *e)
 
     r = e->request;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http script regex: \"%V\"", &code->name);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http script regex: \"%V\"", &code->name);
 
     if (code->uri) {
         e->line = r->uri;
@@ -954,8 +953,7 @@ ngx_http_script_regex_start_code(ngx_http_script_engine_t *e)
     }
 
     if (e->log || (r->connection->log->log_level & NGX_LOG_DEBUG_HTTP)) {
-        ngx_log_error(NGX_LOG_NOTICE, r->connection->log, 0,
-                      "\"%V\" matches \"%V\"", &code->name, &e->line);
+        ngx_log_error(NGX_LOG_NOTICE, r->connection->log, 0, "\"%V\" matches \"%V\"", &code->name, &e->line);
     }
 
     if (code->test) {
@@ -1001,8 +999,7 @@ ngx_http_script_regex_start_code(ngx_http_script_engine_t *e)
 
         if (code->uri) {
             if (r->ncaptures && (r->quoted_uri || r->plus_in_uri)) {
-                e->buf.len += 2 * ngx_escape_uri(NULL, r->uri.data, r->uri.len,
-                                                 NGX_ESCAPE_ARGS);
+                e->buf.len += 2 * ngx_escape_uri(NULL, r->uri.data, r->uri.len, NGX_ESCAPE_ARGS);
             }
         }
 

@@ -805,8 +805,7 @@ ngx_http_grpc_create_request(ngx_http_request_t *r)
         p = val_tmp;
 
         if (escape) {
-            p = (u_char *) ngx_escape_uri(p, r->uri.data, r->uri.len,
-                                          NGX_ESCAPE_URI);
+            p = (u_char *) ngx_escape_uri(p, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
 
         } else {
             p = ngx_copy(p, r->uri.data, r->uri.len);

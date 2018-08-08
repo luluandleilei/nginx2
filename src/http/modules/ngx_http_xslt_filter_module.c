@@ -204,8 +204,7 @@ ngx_http_xslt_header_filter(ngx_http_request_t *r)
     ngx_http_xslt_filter_ctx_t       *ctx;
     ngx_http_xslt_filter_loc_conf_t  *conf;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "xslt filter header");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "xslt filter header");
 
     if (r->headers_out.status == NGX_HTTP_NOT_MODIFIED) {
         return ngx_http_next_header_filter(r);

@@ -97,8 +97,7 @@ ngx_http_copy_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     c = r->connection;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "http copy filter: \"%V?%V\"", &r->uri, &r->args);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0, "http copy filter: \"%V?%V\"", &r->uri, &r->args);
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_copy_filter_module);
 
@@ -161,8 +160,7 @@ ngx_http_copy_filter(ngx_http_request_t *r, ngx_chain_t *in)
         r->buffered |= NGX_HTTP_COPY_BUFFERED;
     }
 
-    ngx_log_debug3(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "http copy filter: %i \"%V?%V\"", rc, &r->uri, &r->args);
+    ngx_log_debug3(NGX_LOG_DEBUG_HTTP, c->log, 0, "http copy filter: %i \"%V?%V\"", rc, &r->uri, &r->args);
 
     return rc;
 }

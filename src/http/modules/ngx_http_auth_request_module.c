@@ -66,6 +66,7 @@ static ngx_command_t  ngx_http_auth_request_commands[] = {
 	 Syntax:	auth_request_set $variable value;
 	 Default:	—
 	 Context:	http, server, location
+	 
 	 Sets the request variable to the given value after the authorization request completes. 
 	 The value may contain variables from the authorization request, such as $upstream_http_*.
 	*/

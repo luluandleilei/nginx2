@@ -2548,8 +2548,7 @@ ngx_http_proxy_port_variable(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_http_proxy_add_x_forwarded_for_variable(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
+ngx_http_proxy_add_x_forwarded_for_variable(ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data)
 {
     size_t             len;
     u_char            *p;

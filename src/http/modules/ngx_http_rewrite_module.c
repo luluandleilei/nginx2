@@ -395,8 +395,7 @@ ngx_http_rewrite(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_http_script_regex_end_code_t  *regex_end;
     u_char                             errstr[NGX_MAX_CONF_ERRSTR];
 
-    regex = ngx_http_script_start_code(cf->pool, &lcf->codes,
-                                       sizeof(ngx_http_script_regex_code_t));
+    regex = ngx_http_script_start_code(cf->pool, &lcf->codes, sizeof(ngx_http_script_regex_code_t));
     if (regex == NULL) {
         return NGX_CONF_ERROR;
     }
@@ -461,8 +460,7 @@ ngx_http_rewrite(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             last = 1;
 
         } else {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "invalid parameter \"%V\"", &value[3]);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid parameter \"%V\"", &value[3]);
             return NGX_CONF_ERROR;
         }
     }
@@ -491,9 +489,7 @@ ngx_http_rewrite(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         regex->lengths = NULL;
     }
 
-    regex_end = ngx_http_script_add_code(lcf->codes,
-                                      sizeof(ngx_http_script_regex_end_code_t),
-                                      &regex);
+    regex_end = ngx_http_script_add_code(lcf->codes, sizeof(ngx_http_script_regex_end_code_t), &regex);
     if (regex_end == NULL) {
         return NGX_CONF_ERROR;
     }
@@ -513,8 +509,7 @@ ngx_http_rewrite(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         *code = NULL;
     }
 
-    regex->next = (u_char *) lcf->codes->elts + lcf->codes->nelts
-                                              - (u_char *) regex;
+    regex->next = (u_char *) lcf->codes->elts + lcf->codes->nelts - (u_char *) regex;
 
     return NGX_CONF_OK;
 }
@@ -556,16 +551,14 @@ ngx_http_rewrite_return(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             v = &value[1];
 
         } else {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "invalid return code \"%V\"", &value[1]);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid return code \"%V\"", &value[1]);
             return NGX_CONF_ERROR;
         }
 
     } else {
 
         if (ret->status > 999) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "invalid return code \"%V\"", &value[1]);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid return code \"%V\"", &value[1]);
             return NGX_CONF_ERROR;
         }
 

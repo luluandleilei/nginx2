@@ -41,8 +41,7 @@ static ngx_int_t ngx_http_variable_request_line(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_variable_cookie(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_http_variable_argument(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_variable_argument(ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
 #if (NGX_HAVE_TCP_INFO)
 static ngx_int_t ngx_http_variable_tcpinfo(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
@@ -1778,8 +1777,7 @@ ngx_http_variable_sent_content_length(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_http_variable_sent_location(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
+ngx_http_variable_sent_location(ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_str_t  name;
 
@@ -2500,7 +2498,7 @@ ngx_http_variables_add_core_vars(ngx_conf_t *cf)
     }
 
     cmcf->variables_keys->pool = cf->pool;
-    cmcf->variables_keys->temp_pool = cf->pool;	//XXX: 为什么用的cf->pool?
+    cmcf->variables_keys->temp_pool = cf->pool;	//XXX: 为什么用的cf->pool?而不用cf->temp_pool??
 
     if (ngx_hash_keys_array_init(cmcf->variables_keys, NGX_HASH_SMALL) != NGX_OK) {
         return NGX_ERROR;

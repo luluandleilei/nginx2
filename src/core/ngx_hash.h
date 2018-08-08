@@ -92,19 +92,31 @@ typedef struct {
 //（或者也可以把这三个hash表组合成一个ngx_hash_combined_t）。在这种情况下，为了让大家方便的构造这些hash表，
 //nginx提供给了此辅助类型。
 typedef struct {
-    ngx_uint_t        hsize;		//将要构建的hash表的桶的个数。对于使用这个结构中包含的信息构建的三种类型的hash表都会使用此参数。
+	//将要构建的hash表的桶的个数。对于使用这个结构中包含的信息构建的三种类型的hash表都会使用此参数。
+    ngx_uint_t        hsize;		
 
-    ngx_pool_t       *pool;			//构建这些hash表使用的pool
-    ngx_pool_t       *temp_pool;	//在构建这个类型以及最终的三个hash表过程中可能用到临时pool。该temp_pool可以在构建完成以后，被销毁掉。这里只是存放临时的一些内存消耗。
+	//构建这些hash表使用的pool
+    ngx_pool_t       *pool;	
+	//在构建这个类型以及最终的三个hash表过程中可能用到临时pool。
+	//该temp_pool可以在构建完成以后，被销毁掉。这里只是存放临时的一些内存消耗。
+    ngx_pool_t       *temp_pool;	
 
-    ngx_array_t       keys;			//存放所有非通配符key的数组
-    ngx_array_t      *keys_hash;	//这是个二维数组，第一个维度代表的是bucket的编号，那么keys_hash[i]中存放的是所有的key算出来的hash值对hsize取模以后的值为i的key。假设有3个key,分别是key1,key2和key3假设hash值算出来以后对hsize取模的值都是i，那么这三个key的值就顺序存放在keys_hash[i][0],keys_hash[i][1], keys_hash[i][2]。该值在调用的过程中用来保存和检测是否有冲突的key值，也就是是否有重复。
+	//存放所有非通配符key的数组
+    ngx_array_t       keys;	
+	//这是个二维数组，第一个维度代表的是bucket的编号，那么keys_hash[i]中存放的是所有的key算出来的hash值对hsize取模以后的值为i的key。
+	//假设有3个key,分别是key1,key2和key3假设hash值算出来以后对hsize取模的值都是i，那么这三个key的值就顺序存放在keys_hash[i][0],
+	//keys_hash[i][1], keys_hash[i][2]。该值在调用的过程中用来保存和检测是否有冲突的key值，也就是是否有重复。
+    ngx_array_t      *keys_hash;	
 
-    ngx_array_t       dns_wc_head;		//放前向通配符key被处理完成以后的值。比如：“*.abc.com” 被处理完成以后，变成 “com.abc.” 被存放在此数组中。
-    ngx_array_t      *dns_wc_head_hash;	//该值在调用的过程中用来保存和检测是否有冲突的前向通配符的key值，也就是是否有重复。
+	//放前向通配符key被处理完成以后的值。比如：“*.abc.com” 被处理完成以后，变成 “com.abc.” 被存放在此数组中。
+    ngx_array_t       dns_wc_head;	
+	//该值在调用的过程中用来保存和检测是否有冲突的前向通配符的key值，也就是是否有重复。
+    ngx_array_t      *dns_wc_head_hash;	
 
-    ngx_array_t       dns_wc_tail;		//存放后向通配符key被处理完成以后的值。比如：“mail.xxx.*” 被处理完成以后，变成 “mail.xxx.” 被存放在此数组中。
-    ngx_array_t      *dns_wc_tail_hash;	//该值在调用的过程中用来保存和检测是否有冲突的后向通配符的key值，也就是是否有重复。
+	//存放后向通配符key被处理完成以后的值。比如：“mail.xxx.*” 被处理完成以后，变成 “mail.xxx.” 被存放在此数组中。
+    ngx_array_t       dns_wc_tail;	
+	//该值在调用的过程中用来保存和检测是否有冲突的后向通配符的key值，也就是是否有重复。
+    ngx_array_t      *dns_wc_tail_hash;	
 } ngx_hash_keys_arrays_t;
 
 
@@ -122,10 +134,8 @@ void *ngx_hash_find_wc_tail(ngx_hash_wildcard_t *hwc, u_char *name, size_t len);
 void *ngx_hash_find_combined(ngx_hash_combined_t *hash, ngx_uint_t key,
     u_char *name, size_t len);
 
-ngx_int_t ngx_hash_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names,
-    ngx_uint_t nelts);
-ngx_int_t ngx_hash_wildcard_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names,
-    ngx_uint_t nelts);
+ngx_int_t ngx_hash_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names, ngx_uint_t nelts);
+ngx_int_t ngx_hash_wildcard_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names, ngx_uint_t nelts);
 
 #define ngx_hash(key, c)   ((ngx_uint_t) key * 31 + c)
 ngx_uint_t ngx_hash_key(u_char *data, size_t len);
@@ -134,8 +144,7 @@ ngx_uint_t ngx_hash_strlow(u_char *dst, u_char *src, size_t n);
 
 
 ngx_int_t ngx_hash_keys_array_init(ngx_hash_keys_arrays_t *ha, ngx_uint_t type);
-ngx_int_t ngx_hash_add_key(ngx_hash_keys_arrays_t *ha, ngx_str_t *key,
-    void *value, ngx_uint_t flags);
+ngx_int_t ngx_hash_add_key(ngx_hash_keys_arrays_t *ha, ngx_str_t *key, void *value, ngx_uint_t flags);
 
 
 #endif /* _NGX_HASH_H_INCLUDED_ */

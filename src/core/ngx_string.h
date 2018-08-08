@@ -35,7 +35,9 @@ typedef struct {
 
     unsigned    valid:1;		//The value is valid //为1时表示当前这个变量值已经解析过，且数据是可用的
     unsigned    no_cacheable:1;	//Do not cache result	//为1时表示变量不可悲缓存，它与ngx_http_variable_t结构体flags成员里的NGX_HTTP_VAR_NOCACHEABLE标志位是相关的， 即设置这个标志位后no_cacheable就会为1
-    unsigned    not_found:1;	//The variable was not found and thus the data and len fields are irrelevant; this can happen, for example, with variables like $arg_foo when a corresponding argument was not passed in a request //为1表示当前这个变量值已经解析过了，但没有解析到相应的值
+	//The variable was not found and thus the data and len fields are irrelevant;
+	//this can happen, for example, with variables like $arg_foo when a corresponding argument was not passed in a request
+	unsigned    not_found:1;	 //为1表示当前这个变量值已经解析过了，但没有解析到相应的值
     unsigned    escape:1;		//Used internally by the logging module to mark values that require escaping on output. //仅由ngx_http_log_module模块使用， 用于日志格式的字符转义， 其他模块通常忽略这个字段
 
     u_char     *data;			//The value itself //指向变量值所在内存的起始地址， 与len成员配合使用

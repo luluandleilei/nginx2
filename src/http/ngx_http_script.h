@@ -20,7 +20,7 @@ typedef struct {
     ngx_http_variable_value_t  *sp;		//变量值构成的栈， 默认大小为10个变量值
 
     ngx_str_t                   buf; 	//存放结果，也就是buffer，pos指向其中。
-    ngx_str_t                   line;	//记录请求行URI  e->line = r->uri;
+    ngx_str_t                   line;	//记录请求行URI      e->line = r->uri;
 
     /* the start of the rewritten arguments */
     u_char                     *args;

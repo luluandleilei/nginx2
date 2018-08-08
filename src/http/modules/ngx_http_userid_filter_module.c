@@ -623,8 +623,7 @@ ngx_http_userid_add_variables(ngx_conf_t *cf)
 
     var->get_handler = ngx_http_userid_set_variable;
 
-    var = ngx_http_add_variable(cf, &ngx_http_userid_reset,
-                                NGX_HTTP_VAR_CHANGEABLE);
+    var = ngx_http_add_variable(cf, &ngx_http_userid_reset, NGX_HTTP_VAR_CHANGEABLE);
     if (var == NULL) {
         return NGX_ERROR;
     }

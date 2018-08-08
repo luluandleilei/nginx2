@@ -2209,7 +2209,7 @@ ngx_http_core_content_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
 
     /* rc == NGX_DECLINED */
 
-	//XXX:如果handler方法返回NGX_DECLINED，如果当前阶段还存在handler,那么将进入下一个处理方法
+	//XXX:handler方法返回NGX_DECLINED，如果当前阶段还存在handler,那么将进入下一个处理方法
     ph++;
 
     if (ph->checker) {
@@ -2218,7 +2218,8 @@ ngx_http_core_content_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
     }
 
     /* no content handler was found */
-
+	//handler方法返回NGX_DECLINED，当前阶段不存在handler,
+	
     if (r->uri.data[r->uri.len - 1] == '/') {
 
         if (ngx_http_map_uri_to_path(r, &path, &root, 0) != NULL) {
