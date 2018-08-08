@@ -3570,8 +3570,7 @@ ngx_http_fastcgi_split_path_info(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     if (rc.captures != 2) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "pattern \"%V\" must have 2 captures", &value[1]);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "pattern \"%V\" must have 2 captures", &value[1]);
         return NGX_CONF_ERROR;
     }
 

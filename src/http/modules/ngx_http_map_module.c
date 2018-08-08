@@ -55,45 +55,58 @@ static ngx_command_t  ngx_http_map_commands[] = {
 	 
 	 Creates a new variable whose value depends on values of one or more of the source variables specified in the first parameter.
 
-	Before version 0.9.0 only a single variable could be specified in the first parameter.
-	Since variables are evaluated only when they are used, the mere declaration even of a large number of “map” variables does not add any extra costs to request processing.
-	Parameters inside the map block specify a mapping between source and resulting values.
+		 Before version 0.9.0 only a single variable could be specified in the first parameter.
+		 
+		 Since variables are evaluated only when they are used, 
+		 the mere declaration even of a large number of “map” variables does not add any extra costs to request processing.
 
-	Source values are specified as strings or regular expressions (0.9.6).
+	 Parameters inside the map block specify a mapping between source and resulting values.
 
-	Strings are matched ignoring the case.
+	 Source values are specified as strings or regular expressions (0.9.6).
 
-	A regular expression should either start from the “~” symbol for a case-sensitive matching, or from the “~*” symbols (1.0.4) for case-insensitive matching. A regular expression can contain named and positional captures that can later be used in other directives along with the resulting variable.
+	 Strings are matched ignoring the case.
 
-	If a source value matches one of the names of special parameters described below, it should be prefixed with the “\” symbol.
+	 A regular expression should either start from the “~” symbol for a case-sensitive matching, 
+	 or from the “~*” symbols (1.0.4) for case-insensitive matching. 
+	 A regular expression can contain named and positional captures that can later be used in other directives along with the resulting variable.
 
-	The resulting value can contain text, variable (0.9.0), and their combination (1.11.0).
+	 If a source value matches one of the names of special parameters described below, it should be prefixed with the “\” symbol.
 
-	The following special parameters are also supported:
+	 The resulting value can contain text, variable (0.9.0), and their combination (1.11.0).
 
-	default value
-	sets the resulting value if the source value matches none of the specified variants. When default is not specified, the default resulting value will be an empty string.
-	hostnames
-	indicates that source values can be hostnames with a prefix or suffix mask:
-	*.example.com 1;
-	example.*     1;
-	The following two records
-	example.com   1;
-	*.example.com 1;
-	can be combined:
-	.example.com  1;
-	This parameter should be specified before the list of values.
-	include file
-	includes a file with values. There can be several inclusions.
-	volatile
-	indicates that the variable is not cacheable (1.11.7).
-	If the source value matches more than one of the specified variants, e.g. both a mask and a regular expression match, the first matching variant will be chosen, in the following order of priority:
+	 The following special parameters are also supported:
 
-	string value without a mask
-	longest string value with a prefix mask, e.g. “*.example.com”
-	longest string value with a suffix mask, e.g. “mail.*”
-	first matching regular expression (in order of appearance in a configuration file)
-	default value
+		default value
+			sets the resulting value if the source value matches none of the specified variants. 
+			When default is not specified, the default resulting value will be an empty string.
+
+	 	hostnames
+			indicates that source values can be hostnames with a prefix or suffix mask:
+				*.example.com 1;
+				example.*     1;
+
+			The following two records
+				example.com   1;
+				*.example.com 1;
+			can be combined:
+				.example.com  1;
+			
+			This parameter should be specified before the list of values.
+
+		include file
+			includes a file with values. There can be several inclusions.
+		
+		volatile
+			indicates that the variable is not cacheable (1.11.7).
+	
+	 If the source value matches more than one of the specified variants, e.g. both a mask and a regular expression match, 
+	 the first matching variant will be chosen, in the following order of priority:
+
+		1.string value without a mask
+		2.longest string value with a prefix mask, e.g. “*.example.com”
+		3.longest string value with a suffix mask, e.g. “mail.*”
+		4.first matching regular expression (in order of appearance in a configuration file)
+		5.default value
 	*/
     { ngx_string("map"),
       NGX_HTTP_MAIN_CONF|NGX_CONF_BLOCK|NGX_CONF_TAKE2,
@@ -102,6 +115,13 @@ static ngx_command_t  ngx_http_map_commands[] = {
       0,
       NULL },
 
+	/*
+	 Syntax:	map_hash_max_size size;
+	 Default: 	map_hash_max_size 2048;
+	 Context:	http
+
+	 Sets the maximum size of the map variables hash tables.
+	*/
     { ngx_string("map_hash_max_size"),
       NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_num_slot,
@@ -109,6 +129,14 @@ static ngx_command_t  ngx_http_map_commands[] = {
       offsetof(ngx_http_map_conf_t, hash_max_size),
       NULL },
 
+	/*
+	 Syntax:	map_hash_bucket_size size;
+	 Default: 	map_hash_bucket_size 32|64|128;
+	 Context:	http
+
+	 Sets the bucket size for the map variables hash tables. 
+	 Default value depends on the processor’s cache line size. 
+	*/
     { ngx_string("map_hash_bucket_size"),
       NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_num_slot,
@@ -245,8 +273,7 @@ ngx_http_map_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         mcf->hash_bucket_size = ngx_cacheline_size;
 
     } else {
-        mcf->hash_bucket_size = ngx_align(mcf->hash_bucket_size,
-                                          ngx_cacheline_size);
+        mcf->hash_bucket_size = ngx_align(mcf->hash_bucket_size, ngx_cacheline_size);
     }
 
     map = ngx_pcalloc(cf->pool, sizeof(ngx_http_map_ctx_t));
@@ -304,9 +331,7 @@ ngx_http_map_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
 #if (NGX_PCRE)
-    if (ngx_array_init(&ctx.regexes, cf->pool, 2, sizeof(ngx_http_map_regex_t))
-        != NGX_OK)
-    {
+    if (ngx_array_init(&ctx.regexes, cf->pool, 2, sizeof(ngx_http_map_regex_t)) != NGX_OK) {
         ngx_destroy_pool(pool);
         return NGX_CONF_ERROR;
     }
@@ -336,8 +361,7 @@ ngx_http_map_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         var->flags |= NGX_HTTP_VAR_NOCACHEABLE;
     }
 
-    map->default_value = ctx.default_value ? ctx.default_value:
-                                             &ngx_http_variable_null_value;
+    map->default_value = ctx.default_value ? ctx.default_value: &ngx_http_variable_null_value;
 
     map->hostnames = ctx.hostnames;
 
@@ -361,17 +385,12 @@ ngx_http_map_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     if (ctx.keys.dns_wc_head.nelts) {
 
-        ngx_qsort(ctx.keys.dns_wc_head.elts,
-                  (size_t) ctx.keys.dns_wc_head.nelts,
-                  sizeof(ngx_hash_key_t), ngx_http_map_cmp_dns_wildcards);
+        ngx_qsort(ctx.keys.dns_wc_head.elts, (size_t) ctx.keys.dns_wc_head.nelts, sizeof(ngx_hash_key_t), ngx_http_map_cmp_dns_wildcards);
 
         hash.hash = NULL;
         hash.temp_pool = pool;
 
-        if (ngx_hash_wildcard_init(&hash, ctx.keys.dns_wc_head.elts,
-                                   ctx.keys.dns_wc_head.nelts)
-            != NGX_OK)
-        {
+        if (ngx_hash_wildcard_init(&hash, ctx.keys.dns_wc_head.elts, ctx.keys.dns_wc_head.nelts) != NGX_OK) {
             ngx_destroy_pool(pool);
             return NGX_CONF_ERROR;
         }
@@ -381,17 +400,12 @@ ngx_http_map_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     if (ctx.keys.dns_wc_tail.nelts) {
 
-        ngx_qsort(ctx.keys.dns_wc_tail.elts,
-                  (size_t) ctx.keys.dns_wc_tail.nelts,
-                  sizeof(ngx_hash_key_t), ngx_http_map_cmp_dns_wildcards);
+        ngx_qsort(ctx.keys.dns_wc_tail.elts, (size_t) ctx.keys.dns_wc_tail.nelts, sizeof(ngx_hash_key_t), ngx_http_map_cmp_dns_wildcards);
 
         hash.hash = NULL;
         hash.temp_pool = pool;
 
-        if (ngx_hash_wildcard_init(&hash, ctx.keys.dns_wc_tail.elts,
-                                   ctx.keys.dns_wc_tail.nelts)
-            != NGX_OK)
-        {
+        if (ngx_hash_wildcard_init(&hash, ctx.keys.dns_wc_tail.elts, ctx.keys.dns_wc_tail.nelts) != NGX_OK) {
             ngx_destroy_pool(pool);
             return NGX_CONF_ERROR;
         }
@@ -443,23 +457,18 @@ ngx_http_map(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
 
     value = cf->args->elts;
 
-    if (cf->args->nelts == 1
-        && ngx_strcmp(value[0].data, "hostnames") == 0)
-    {
+    if (cf->args->nelts == 1 && ngx_strcmp(value[0].data, "hostnames") == 0) {
         ctx->hostnames = 1;
         return NGX_CONF_OK;
     }
 
-    if (cf->args->nelts == 1
-        && ngx_strcmp(value[0].data, "volatile") == 0)
-    {
+    if (cf->args->nelts == 1 && ngx_strcmp(value[0].data, "volatile") == 0) {
         ctx->no_cacheable = 1;
         return NGX_CONF_OK;
     }
 
     if (cf->args->nelts != 2) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid number of the map parameters");
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid number of the map parameters");
         return NGX_CONF_ERROR;
     }
 
@@ -560,8 +569,7 @@ found:
     if (ngx_strcmp(value[0].data, "default") == 0) {
 
         if (ctx->default_value) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "duplicate default map parameter");
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "duplicate default map parameter");
             return NGX_CONF_ERROR;
         }
 
@@ -614,8 +622,7 @@ found:
         value[0].data++;
     }
 
-    rv = ngx_hash_add_key(&ctx->keys, &value[0], var,
-                          (ctx->hostnames) ? NGX_HASH_WILDCARD_KEY : 0);
+    rv = ngx_hash_add_key(&ctx->keys, &value[0], var, (ctx->hostnames) ? NGX_HASH_WILDCARD_KEY : 0);
 
     if (rv == NGX_OK) {
         return NGX_CONF_OK;

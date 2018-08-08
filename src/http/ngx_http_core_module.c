@@ -5743,8 +5743,7 @@ ngx_http_gzip_disable(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     u_char                errstr[NGX_MAX_CONF_ERRSTR];
 
     if (clcf->gzip_disable == NGX_CONF_UNSET_PTR) {
-        clcf->gzip_disable = ngx_array_create(cf->pool, 2,
-                                              sizeof(ngx_regex_elt_t));
+        clcf->gzip_disable = ngx_array_create(cf->pool, 2, sizeof(ngx_regex_elt_t));
         if (clcf->gzip_disable == NULL) {
             return NGX_CONF_ERROR;
         }

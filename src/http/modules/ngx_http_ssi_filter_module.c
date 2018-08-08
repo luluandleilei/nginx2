@@ -1870,8 +1870,7 @@ invalid_variable:
 
 
 static ngx_int_t
-ngx_http_ssi_regex_match(ngx_http_request_t *r, ngx_str_t *pattern,
-    ngx_str_t *str)
+ngx_http_ssi_regex_match(ngx_http_request_t *r, ngx_str_t *pattern, ngx_str_t *str)
 {
 #if (NGX_PCRE)
     int                   rc, *captures;
