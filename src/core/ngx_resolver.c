@@ -488,7 +488,8 @@ ngx_resolve_name_done(ngx_resolver_ctx_t *ctx)
         ngx_resolver_free(r, ctx->srvs);
     }
 
-	//ctx提前结束，将ctx从node->waiting中删除
+	//ctx提前结束，
+	//将ctx从node->waiting中删除
     if (ctx->state == NGX_AGAIN || ctx->state == NGX_RESOLVE_TIMEDOUT) {
 		
         rn = ctx->node;
@@ -514,6 +515,7 @@ ngx_resolve_name_done(ngx_resolver_ctx_t *ctx)
 
 done:
 
+	//删除过期节点(expire时间内没有被访问的节点)
     if (ctx->service.len) {
         ngx_resolver_expire(r, &r->srv_rbtree, &r->srv_expire_queue);
 
@@ -525,8 +527,10 @@ done:
 
     /* lock alloc mutex */
 
-	//删除ctx对象
-    if (ctx->event) {
+	/* 删除ctx对象 */
+	
+	//XXX:什么时候定时器对象可能为NULL？？？ ctx->timeout == 0时不会创建该对象 
+    if (ctx->event) {	
         ngx_resolver_free_locked(r, ctx->event);
     }
 
@@ -4019,7 +4023,7 @@ done:
 static ngx_int_t
 ngx_resolver_set_timeout(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx)
 {
-    if (ctx->event || ctx->timeout == 0) {
+    if (ctx->event || ctx->timeout == 0) {	//XXX:什么时候ctx->event会为真？？？
         return NGX_OK;
     }
 

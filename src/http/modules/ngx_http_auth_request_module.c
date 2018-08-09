@@ -24,17 +24,15 @@ typedef struct {
 
 
 typedef struct {
-    ngx_int_t                 index;
-    ngx_http_complex_value_t  value;
-    ngx_http_set_variable_pt  set_handler;
+    ngx_int_t                 index;		//XXX:对应变量的索引
+    ngx_http_complex_value_t  value;		//XXX:对应变量的值
+    ngx_http_set_variable_pt  set_handler;	//XXX:变量的原始set_handler
 } ngx_http_auth_request_variable_t;
 
 
 static ngx_int_t ngx_http_auth_request_handler(ngx_http_request_t *r);
-static ngx_int_t ngx_http_auth_request_done(ngx_http_request_t *r,
-    void *data, ngx_int_t rc);
-static ngx_int_t ngx_http_auth_request_set_variables(ngx_http_request_t *r,
-    ngx_http_auth_request_conf_t *arcf, ngx_http_auth_request_ctx_t *ctx);
+static ngx_int_t ngx_http_auth_request_done(ngx_http_request_t *r, void *data, ngx_int_t rc);
+static ngx_int_t ngx_http_auth_request_set_variables(ngx_http_request_t *r, ngx_http_auth_request_conf_t *arcf, ngx_http_auth_request_ctx_t *ctx);
 static ngx_int_t ngx_http_auth_request_variable(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static void *ngx_http_auth_request_create_conf(ngx_conf_t *cf);
@@ -105,6 +103,12 @@ Any other response code returned by the subrequest is considered an error.
 For the 401 error, the client also receives the “WWW-Authenticate” header from the subrequest response.
 
 This module is not built by default, it should be enabled with the --with-http_auth_request_module configuration parameter.
+
+The module may be combined with other access modules, such as ngx_http_access_module, 
+ngx_http_auth_basic_module, and ngx_http_auth_jwt_module, via the satisfy directive.
+
+Before version 1.7.3, responses to authorization subrequests could not be cached (using proxy_cache, proxy_store, etc.).
+
 */
 ngx_module_t  ngx_http_auth_request_module = {
     NGX_MODULE_V1,
@@ -245,8 +249,7 @@ ngx_http_auth_request_done(ngx_http_request_t *r, void *data, ngx_int_t rc)
 
 
 static ngx_int_t
-ngx_http_auth_request_set_variables(ngx_http_request_t *r,
-    ngx_http_auth_request_conf_t *arcf, ngx_http_auth_request_ctx_t *ctx)
+ngx_http_auth_request_set_variables(ngx_http_request_t *r, ngx_http_auth_request_conf_t *arcf, ngx_http_auth_request_ctx_t *ctx)
 {
     ngx_str_t                          val;
     ngx_http_variable_t               *v;
@@ -274,9 +277,7 @@ ngx_http_auth_request_set_variables(ngx_http_request_t *r,
 
         vv = &r->variables[av->index];
 
-        if (ngx_http_complex_value(ctx->subrequest, &av->value, &val)
-            != NGX_OK)
-        {
+        if (ngx_http_complex_value(ctx->subrequest, &av->value, &val) != NGX_OK) {
             return NGX_ERROR;
         }
 

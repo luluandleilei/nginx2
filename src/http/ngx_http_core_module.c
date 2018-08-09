@@ -463,6 +463,7 @@ static ngx_command_t  ngx_http_core_commands[] = {
 				listen unix:path [default_server] [ssl] [http2 | spdy] [proxy_protocol] [backlog=number] [rcvbuf=size] [sndbuf=size] [accept_filter=filter] [deferred] [bind] [so_keepalive=on|off|[keepidle]:[keepintvl]:[keepcnt]];
 	 Default: 	listen *:80 | *:8000;
 	 Context:	server
+	 
 	 Sets the address and port for IP, or the path for a UNIX-domain socket on which the server will accept requests. 
 	 Both address and port, or only address or only port can be specified. 
 	 An address may also be a hostname, for example:
@@ -2086,7 +2087,8 @@ ngx_http_core_access_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
     rc = ph->handler(r);
 
 	//如果handler方法返回NGX_DECLINED，那么将进入下一个处理方法，这个处理方法既可能属于当前阶段，也可能属于下一个阶段
-    if (rc == NGX_DECLINED) {	//XXX:返回值NGX_DECLINED什么语义？
+	//XXX:返回值NGX_DECLINED什么语义？没有启用对应的ACCESS检查
+    if (rc == NGX_DECLINED) {	
         r->phase_handler++;
         return NGX_AGAIN;
     }
@@ -2133,7 +2135,7 @@ ngx_http_core_access_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
 
     /* rc == NGX_ERROR || rc == NGX_HTTP_...  */
 
-    ngx_http_finalize_request(r, rc);
+    ngx_http_finalize_request(r, rc);	//rc == NGX_ERROR是什么语义？ACCESS HANDLER 内部错误？
     return NGX_OK;
 }
 
@@ -2193,7 +2195,7 @@ ngx_http_core_content_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
 	//其实就是看在NGX_HTTP_FIND_CONFIG_PHASE阶段匹配了URI请求的location内，
 	//是否有HTTP模块把处理方法设置到了ngx_http_core_loc_conf_t结构体的handler成员中
     if (r->content_handler) {	 //如果在clcf->handler中设置了方法，则直接从这里进去执行该方法，然后返回，就不会执行content阶段的其他任何方法了
-        r->write_event_handler = ngx_http_request_empty_handler;
+        r->write_event_handler = ngx_http_request_empty_handler;	//XXX:这里为什么要设置write_event_handler为ngx_http_request_empty_handler
         ngx_http_finalize_request(r, r->content_handler(r));
         return NGX_OK;
     }
@@ -3254,7 +3256,7 @@ ngx_http_subrequest(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *args,
         return NGX_ERROR;
     }
 
-    if (r->subrequest_in_memory) {	//XXX: ???
+    if (r->subrequest_in_memory) {	//XXX: 什么意思??? subrequest_in_memory的请求不能有子请求??
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "nested in-memory subrequest \"%V\"", uri);
         return NGX_ERROR;
     }
@@ -3291,7 +3293,6 @@ ngx_http_subrequest(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *args,
 
     sr->headers_in = r->headers_in;
 
-	//XXX: 将主请求中对应的内容也修改了？？？
     ngx_http_clear_content_length(sr);
     ngx_http_clear_accept_ranges(sr);
     ngx_http_clear_last_modified(sr);
@@ -3344,10 +3345,12 @@ ngx_http_subrequest(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *args,
 
     if (!sr->background) {
 		//ngx_connection_s的data保存了当前可以向out chain输出数据的请求
+		//XXX:这里为什么要让c->data指向sr
         if (c->data == r && r->postponed == NULL) {
             c->data = sr;	
         }
 
+		//XXX:把该子请求挂载在其父请求的postponed链表的队尾
         pr = ngx_palloc(r->pool, sizeof(ngx_http_postponed_request_t));
         if (pr == NULL) {
             return NGX_ERROR;
@@ -3357,7 +3360,6 @@ ngx_http_subrequest(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *args,
         pr->out = NULL;
         pr->next = NULL;
 
-		//XXX:把该子请求挂载在其父请求的postponed链表的队尾
         if (r->postponed) {
             for (p = r->postponed; p->next; p = p->next) { /* void */ }
             p->next = pr;
@@ -3380,7 +3382,7 @@ ngx_http_subrequest(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *args,
     sr->start_sec = tp->sec;
     sr->start_msec = tp->msec;
 
-	// 增加主请求的引用数，这个字段主要是在ngx_http_finalize_request调用的一些结束请求和 连接的函数中使用
+	// 增加主请求的引用数，这个字段主要是在ngx_http_finalize_request调用的一些结束请求和连接的函数中使用
     r->main->count++;
 
     *psr = sr;

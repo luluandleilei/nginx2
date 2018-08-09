@@ -491,7 +491,8 @@ struct ngx_http_request_s {
     //List of output buffers and subrequests (of this request), in the order in which they are sent and created. 
     //The list is used by the postpone filter to provide consistent request output when parts of it are created by subrequests.
     ngx_http_postponed_request_t     *postponed;	
-	//Pointer to a handler with the context to be called when a subrequest gets finalized. Unused for main requests.
+	//Pointer to a handler with the context to be called when a subrequest gets finalized.
+	//Unused for main requests.
 	ngx_http_post_subrequest_t       *post_subrequest;	
 	//List of requests to be started or resumed, which is done by calling the request's write_event_handler. 
 	//Normally, this handler holds the request main function, which at first runs request phases and then produces the output.
@@ -645,7 +646,7 @@ struct ngx_http_request_s {
     unsigned                          request_output:1;
 	//Flag indicating that the output header has already been sent by the request.
     unsigned                          header_sent:1;		
-    unsigned                          expect_tested:1;	//表示已经调用了ngx_http_test_expect()函数
+    unsigned                          expect_tested:1;	//XXX:表示已经调用了ngx_http_test_expect()函数
     unsigned                          root_tested:1;
     unsigned                          done:1;
     unsigned                          logged:1;

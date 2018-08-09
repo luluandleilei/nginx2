@@ -1977,8 +1977,7 @@ ngx_http_ssi_regex_match(ngx_http_request_t *r, ngx_str_t *pattern, ngx_str_t *s
 
 
 static ngx_int_t
-ngx_http_ssi_include(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx,
-    ngx_str_t **params)
+ngx_http_ssi_include(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx, ngx_str_t **params)
 {
     ngx_int_t                    rc;
     ngx_str_t                   *uri, *file, *wait, *set, *stub, args;
@@ -1998,43 +1997,31 @@ ngx_http_ssi_include(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx,
     stub = params[NGX_HTTP_SSI_INCLUDE_STUB];
 
     if (uri && file) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                      "inclusion may be either virtual=\"%V\" or file=\"%V\"",
-                      uri, file);
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "inclusion may be either virtual=\"%V\" or file=\"%V\"", uri, file);
         return NGX_HTTP_SSI_ERROR;
     }
 
     if (uri == NULL && file == NULL) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                      "no parameter in \"include\" SSI command");
-        return NGX_HTTP_SSI_ERROR;
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "no parameter in \"include\" SSI command");
+		return NGX_HTTP_SSI_ERROR;
     }
 
     if (set && stub) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                      "\"set\" and \"stub\" cannot be used together "
-                      "in \"include\" SSI command");
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "\"set\" and \"stub\" cannot be used together " "in \"include\" SSI command");
         return NGX_HTTP_SSI_ERROR;
     }
 
     if (wait) {
         if (uri == NULL) {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                          "\"wait\" cannot be used with file=\"%V\"", file);
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "\"wait\" cannot be used with file=\"%V\"", file);
             return NGX_HTTP_SSI_ERROR;
         }
 
-        if (wait->len == 2
-            && ngx_strncasecmp(wait->data, (u_char *) "no", 2) == 0)
-        {
+        if (wait->len == 2 && ngx_strncasecmp(wait->data, (u_char *) "no", 2) == 0) {
             wait = NULL;
 
-        } else if (wait->len != 3
-                   || ngx_strncasecmp(wait->data, (u_char *) "yes", 3) != 0)
-        {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                          "invalid value \"%V\" in the \"wait\" parameter",
-                          wait);
+        } else if (wait->len != 3 || ngx_strncasecmp(wait->data, (u_char *) "yes", 3) != 0) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "invalid value \"%V\" in the \"wait\" parameter", wait);
             return NGX_HTTP_SSI_ERROR;
         }
     }
@@ -2050,8 +2037,7 @@ ngx_http_ssi_include(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx,
         return rc;
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "ssi include: \"%V\"", uri);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "ssi include: \"%V\"", uri);
 
     ngx_str_null(&args);
     flags = NGX_HTTP_LOG_UNSAFE;

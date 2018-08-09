@@ -2129,8 +2129,8 @@ ngx_http_request_handler(ngx_event_t *ev)
 
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0, "http run request: \"%V?%V\"", &r->uri, &r->args);
 
-    if (c->close) {		//XXX: 这里为什么要判断？？
-        r->main->count++;
+    if (c->close) {		//XXX: 这里为什么要判断c->close？？
+        r->main->count++;	//XXX:这里为什么要引用计数加1？
         ngx_http_terminate_request(r, 0);
         ngx_http_run_posted_requests(c);
         return;
@@ -2174,6 +2174,7 @@ ngx_http_run_posted_requests(ngx_connection_t *c)
             return;
         }
 
+		//将请求从主请求的posted_requests链表中删除
         r->main->posted_requests = pr->next;
 
         r = pr->request;
@@ -2469,8 +2470,7 @@ ngx_http_terminate_request(ngx_http_request_t *r, ngx_int_t rc)
 static void
 ngx_http_terminate_handler(ngx_http_request_t *r)
 {
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http terminate handler count:%d", r->count);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http terminate handler count:%d", r->count);
 
     r->count = 1;
 
@@ -3294,8 +3294,7 @@ ngx_http_post_action(ngx_http_request_t *r)
         return NGX_DECLINED;
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "post action: \"%V\"", &clcf->post_action);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "post action: \"%V\"", &clcf->post_action);
 
     r->main->count--;
 
