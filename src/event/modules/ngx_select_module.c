@@ -127,21 +127,15 @@ ngx_select_add_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
 
     c = ev->data;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_EVENT, ev->log, 0,
-                   "select add event fd:%d ev:%i", c->fd, event);
+    ngx_log_debug2(NGX_LOG_DEBUG_EVENT, ev->log, 0, "select add event fd:%d ev:%i", c->fd, event);
 
     if (ev->index != NGX_INVALID_INDEX) {
-        ngx_log_error(NGX_LOG_ALERT, ev->log, 0,
-                      "select event fd:%d ev:%i is already set", c->fd, event);
+        ngx_log_error(NGX_LOG_ALERT, ev->log, 0, "select event fd:%d ev:%i is already set", c->fd, event);
         return NGX_OK;
     }
 
-    if ((event == NGX_READ_EVENT && ev->write)
-        || (event == NGX_WRITE_EVENT && !ev->write))
-    {
-        ngx_log_error(NGX_LOG_ALERT, ev->log, 0,
-                      "invalid select %s event fd:%d ev:%i",
-                      ev->write ? "write" : "read", c->fd, event);
+    if ((event == NGX_READ_EVENT && ev->write) || (event == NGX_WRITE_EVENT && !ev->write)) {
+        ngx_log_error(NGX_LOG_ALERT, ev->log, 0, "invalid select %s event fd:%d ev:%i", ev->write ? "write" : "read", c->fd, event);
         return NGX_ERROR;
     }
 

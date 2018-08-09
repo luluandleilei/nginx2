@@ -164,7 +164,7 @@ typedef struct {
 
 
 typedef struct {
-    ngx_http_script_code_pt     code;
+    ngx_http_script_code_pt     code;	//ngx_http_script_return_code
     uintptr_t                   status;
     ngx_http_complex_value_t    text;
 } ngx_http_script_return_code_t;

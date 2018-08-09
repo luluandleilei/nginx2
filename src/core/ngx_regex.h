@@ -32,8 +32,8 @@ typedef struct {
     ngx_int_t     options;			//[in]
 
     ngx_regex_t  *regex;			//[out]
-    int           captures;			//[out]	Number of capturing subpatterns
-    int           named_captures;	//[out] Number of named subpatterns
+    int           captures;			//[out]	Number of capturing subpatterns  the count of named captures
+    int           named_captures;	//[out] Number of named subpatterns  the count of all captures
     int           name_size;		//[out] Size of name table entry
     u_char       *names;			//[out] Pointer to name table
     ngx_str_t     err;				//[out]	存放编译正则表达式发生错误时的错误信息

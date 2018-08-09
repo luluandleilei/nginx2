@@ -1756,6 +1756,7 @@ ngx_http_handler(ngx_http_request_t *r)
 
     r->connection->log->action = NULL;
 
+	//(1)XXX: 确定r->phase_handler
     if (!r->internal) {
         switch (r->headers_in.connection_type) {
         case 0:
@@ -1786,6 +1787,7 @@ ngx_http_handler(ngx_http_request_t *r)
     r->gzip_vary = 0;
 #endif
 
+	//(2)
     r->write_event_handler = ngx_http_core_run_phases;
     ngx_http_core_run_phases(r);
 }

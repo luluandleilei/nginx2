@@ -2183,6 +2183,7 @@ ngx_http_run_posted_requests(ngx_connection_t *c)
 
         ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0, "http posted request: \"%V?%V\"", &r->uri, &r->args);
 
+		//执行该请求的write_event_handler()函数
         r->write_event_handler(r);
     }
 }

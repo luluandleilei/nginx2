@@ -71,7 +71,7 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_ha
 
     r->request_body = rb;
 
-    if (r->headers_in.content_length_n < 0 && !r->headers_in.chunked) {
+    if (r->headers_in.content_length_n < 0 && !r->headers_in.chunked) {	//XXX: 什么意思？？
         r->request_body_no_buffering = 0;
         post_handler(r);
         return NGX_OK;
@@ -330,16 +330,14 @@ ngx_http_do_read_client_request_body(ngx_http_request_t *r)
 
             n = c->recv(c, rb->buf->last, size);
 
-            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                           "http client request body recv %z", n);
+            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0, "http client request body recv %z", n);
 
             if (n == NGX_AGAIN) {
                 break;
             }
 
             if (n == 0) {
-                ngx_log_error(NGX_LOG_INFO, c->log, 0,
-                              "client prematurely closed connection");
+                ngx_log_error(NGX_LOG_INFO, c->log, 0, "client prematurely closed connection");
             }
 
             if (n == 0 || n == NGX_ERROR) {
@@ -940,8 +938,7 @@ ngx_http_request_body_chunked_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     if (rb->rest == -1) {
 
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "http request body chunked filter");
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http request body chunked filter");
 
         rb->chunked = ngx_pcalloc(r->pool, sizeof(ngx_http_chunked_t));
         if (rb->chunked == NULL) {
@@ -1072,8 +1069,7 @@ ngx_http_request_body_chunked_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     rc = ngx_http_top_request_body_filter(r, out);
 
-    ngx_chain_update_chains(r->pool, &rb->free, &rb->busy, &out,
-                            (ngx_buf_tag_t) &ngx_http_read_client_request_body);
+    ngx_chain_update_chains(r->pool, &rb->free, &rb->busy, &out, (ngx_buf_tag_t) &ngx_http_read_client_request_body);
 
     return rc;
 }
