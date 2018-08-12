@@ -17,8 +17,8 @@ typedef struct {
 
 
 #define NGX_HTTP_REQUEST_BODY_FILE_OFF    0
-#define NGX_HTTP_REQUEST_BODY_FILE_ON     1
-#define NGX_HTTP_REQUEST_BODY_FILE_CLEAN  2
+#define NGX_HTTP_REQUEST_BODY_FILE_ON     1	//请求处理后不会删除临时文件
+#define NGX_HTTP_REQUEST_BODY_FILE_CLEAN  2	//删除请求处理后留下的临时文件
 
 
 static ngx_int_t ngx_http_core_find_location(ngx_http_request_t *r);
@@ -824,11 +824,12 @@ static ngx_command_t  ngx_http_core_commands[] = {
 	 Syntax:	client_body_buffer_size size;
 	 Default: 	client_body_buffer_size 8k|16k;
 	 Context:	http, server, location
+	 
 	 Sets buffer size for reading client request body. 
+	 
 	 In case the request body is larger than the buffer, the whole body or only its part is written to a temporary file. 
 	 By default, buffer size is equal to two memory pages. 
-	 This is 8K on x86, other 32-bit platforms, and x86-64.
-	 It is usually 16K on other 64-bit platforms.
+	 This is 8K on x86, other 32-bit platforms, and x86-64. It is usually 16K on other 64-bit platforms.
 	*/
     { ngx_string("client_body_buffer_size"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
@@ -841,7 +842,8 @@ static ngx_command_t  ngx_http_core_commands[] = {
 	 Syntax:	client_body_timeout time;
 	 Default: 	client_body_timeout 60s;
 	 Context:	http, server, location
-	 Defines a timeout for reading client request body. 
+	 
+	 Defines a timeout for reading client request body.
 	 The timeout is set only for a period between two successive read operations, not for the transmission of the whole request body. 
 	 If a client does not transmit anything within this time, the 408 (Request Time-out) error is returned to the client.
 	*/
@@ -875,8 +877,12 @@ static ngx_command_t  ngx_http_core_commands[] = {
 	 Syntax:	client_body_in_file_only on | clean | off;
 	 Default: 	client_body_in_file_only off;
 	 Context:	http, server, location
+	 
 	 Determines whether nginx should save the entire client request body into a file. 
-	 This directive can be used during debugging, or when using the $request_body_file variable, or the $r->request_body_file method of the module ngx_http_perl_module.
+	 
+	 This directive can be used during debugging, or when using the $request_body_file variable, 
+	 or the $r->request_body_file method of the module ngx_http_perl_module.
+	 
 	 When set to the value on, temporary files are not removed after request processing.
 	 The value 'clean' will cause the temporary files left after request processing to be removed.
 	*/
@@ -4553,8 +4559,7 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_off_value(conf->client_max_body_size,
                               prev->client_max_body_size, 1 * 1024 * 1024);
     ngx_conf_merge_size_value(conf->client_body_buffer_size, prev->client_body_buffer_size, (size_t) 2 * ngx_pagesize);
-    ngx_conf_merge_msec_value(conf->client_body_timeout,
-                              prev->client_body_timeout, 60000);
+    ngx_conf_merge_msec_value(conf->client_body_timeout, prev->client_body_timeout, 60000);
 
     ngx_conf_merge_bitmask_value(conf->keepalive_disable,
                               prev->keepalive_disable,

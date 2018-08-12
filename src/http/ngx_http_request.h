@@ -373,8 +373,8 @@ struct ngx_http_postponed_request_s {
 typedef struct ngx_http_posted_request_s  ngx_http_posted_request_t;
 
 struct ngx_http_posted_request_s {
-    ngx_http_request_t               *request;
-    ngx_http_posted_request_t        *next;
+    ngx_http_request_t               *request;	//指向待处理的子请求的ngx_http_request_t结构体
+    ngx_http_posted_request_t        *next;		//指向下一个在请求，如果没有，则为NULL
 };
 
 
@@ -496,7 +496,7 @@ struct ngx_http_request_s {
 	ngx_http_post_subrequest_t       *post_subrequest;	
 	//List of requests to be started or resumed, which is done by calling the request's write_event_handler. 
 	//Normally, this handler holds the request main function, which at first runs request phases and then produces the output.
-	//Only used by main request.
+	//The field only makes sense for the main request. 
 	ngx_http_posted_request_t        *posted_requests;	
 
 	//Index of current request phase.
@@ -590,7 +590,7 @@ struct ngx_http_request_s {
     unsigned                          request_body_in_clean_file:1;
     unsigned                          request_body_file_group_access:1;
     unsigned                          request_body_file_log_level:3;
-    unsigned                          request_body_no_buffering:1;
+    unsigned                          request_body_no_buffering:1;	//[in|out]读取请求体时不缓存请求体，读到数据就通知post_handler
 
 	//Output is not sent to the client, but rather stored in memory. 
 	//The flag only affects subrequests which are processed by one of the proxying modules. 

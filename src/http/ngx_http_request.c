@@ -2163,10 +2163,12 @@ ngx_http_run_posted_requests(ngx_connection_t *c)
 
     for ( ;; ) {
 
+		//检查Nginx与客户端的连接是否已经销毁
         if (c->destroyed) {	//XXX：连接已经被断开(销毁)，直接返回
             return;
         }
 
+		//获取原始请求的posted_requests链表的首个post请求
         r = c->data;
         pr = r->main->posted_requests;
 
@@ -2174,16 +2176,18 @@ ngx_http_run_posted_requests(ngx_connection_t *c)
             return;
         }
 
-		//将请求从主请求的posted_requests链表中删除
+		//将原始请求的posted_requests成员指向链表中的下一个post请求
         r->main->posted_requests = pr->next;
 
+		//执行当前post请求的write_event_handler方法
+		//XXX:为什么不是 执行read_event_handler方法呢？ 
+		//子请求不是被网络事件驱动的，因此，执行post请求时就相当于有可写事件，由Nginx主动做出动作
         r = pr->request;
 
         ngx_http_set_log_request(c->log, r);
 
         ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0, "http posted request: \"%V?%V\"", &r->uri, &r->args);
 
-		//执行该请求的write_event_handler()函数
         r->write_event_handler(r);
     }
 }

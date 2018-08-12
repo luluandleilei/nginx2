@@ -128,6 +128,7 @@ ngx_create_chain_of_bufs(ngx_pool_t *pool, ngx_bufs_t *bufs)
 }
 
 
+//将in中的节点链入chain的末尾
 ngx_int_t
 ngx_chain_add_copy(ngx_pool_t *pool, ngx_chain_t **chain, ngx_chain_t *in)
 {
@@ -187,11 +188,11 @@ ngx_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free)
 
 
 void
-ngx_chain_update_chains(ngx_pool_t *p, ngx_chain_t **free, ngx_chain_t **busy,
-    ngx_chain_t **out, ngx_buf_tag_t tag)
+ngx_chain_update_chains(ngx_pool_t *p, ngx_chain_t **free, ngx_chain_t **busy, ngx_chain_t **out, ngx_buf_tag_t tag)
 {
     ngx_chain_t  *cl;
 
+	//将out放到busy的末尾
     if (*out) {
         if (*busy == NULL) {
             *busy = *out;

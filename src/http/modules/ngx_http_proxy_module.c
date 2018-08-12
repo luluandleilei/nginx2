@@ -1106,6 +1106,9 @@ ngx_http_proxy_handler(ngx_http_request_t *r)
 
     u->accel = 1;
 
+	//XXX: ???
+	//大部分情况下都会缓存body，例如在配置了proxy_request_buffering为off，且proxy_pass_request_body为on，
+	//body不是chunked类型或proxy_http_version是1.1才可以不缓存body直接转发到上游。
     if (!plcf->upstream.request_buffering
         && plcf->body_values == NULL && plcf->upstream.pass_request_body
         && (!r->headers_in.chunked || plcf->http_version == NGX_HTTP_VERSION_11))

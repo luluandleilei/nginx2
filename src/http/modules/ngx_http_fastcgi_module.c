@@ -732,9 +732,7 @@ ngx_http_fastcgi_handler(ngx_http_request_t *r)
     u->input_filter = ngx_http_fastcgi_non_buffered_filter;
     u->input_filter_ctx = r;
 
-    if (!flcf->upstream.request_buffering
-        && flcf->upstream.pass_request_body)
-    {
+    if (!flcf->upstream.request_buffering && flcf->upstream.pass_request_body) {
         r->request_body_no_buffering = 1;
     }
 

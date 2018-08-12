@@ -166,8 +166,7 @@ static ngx_int_t ngx_http_upstream_cookie_variable(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 
 static char *ngx_http_upstream(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy);
-static char *ngx_http_upstream_server(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+static char *ngx_http_upstream_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 static ngx_int_t ngx_http_upstream_set_local(ngx_http_request_t *r,
   ngx_http_upstream_t *u, ngx_http_upstream_local_t *local);

@@ -453,6 +453,8 @@ struct ngx_http_core_loc_conf_s {
     size_t        read_ahead;              /* read_ahead */
     size_t        subrequest_output_buffer_size; /* subrequest_output_buffer_size */
 
+	//the timeout for reading client request body.
+	//the timeout is set only for a period between two successive read operations, not for the transmission of the whole request body.
     ngx_msec_t    client_body_timeout;     /* client_body_timeout */
     ngx_msec_t    send_timeout;            /* send_timeout */
     ngx_msec_t    keepalive_timeout;       /* keepalive_timeout */
@@ -473,8 +475,10 @@ struct ngx_http_core_loc_conf_s {
     ngx_uint_t    lingering_close;         /* lingering_close */
     ngx_uint_t    if_modified_since;       /* if_modified_since */
     ngx_uint_t    max_ranges;              /* max_ranges */
+	//determines whether nginx should save the entire client request body into a file.
     ngx_uint_t    client_body_in_file_only; /* client_body_in_file_only */
 
+	//determines whether nginx should save the entire client request body in a single buffer.
     ngx_flag_t    client_body_in_single_buffer; /* client_body_in_singe_buffer */
 	//specifies that this location can only be used for internal requests
     ngx_flag_t    internal;                /* internal */

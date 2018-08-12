@@ -110,16 +110,14 @@ ngx_write_chain_to_temp_file(ngx_temp_file_t *tf, ngx_chain_t *chain)
     ngx_int_t  rc;
 
     if (tf->file.fd == NGX_INVALID_FILE) {
-        rc = ngx_create_temp_file(&tf->file, tf->path, tf->pool,
-                                  tf->persistent, tf->clean, tf->access);
+        rc = ngx_create_temp_file(&tf->file, tf->path, tf->pool, tf->persistent, tf->clean, tf->access);
 
         if (rc != NGX_OK) {
             return rc;
         }
 
         if (tf->log_level) {
-            ngx_log_error(tf->log_level, tf->file.log, 0, "%s %V",
-                          tf->warn, &tf->file.name);
+            ngx_log_error(tf->log_level, tf->file.log, 0, "%s %V", tf->warn, &tf->file.name);
         }
     }
 

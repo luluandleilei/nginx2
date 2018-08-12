@@ -4089,8 +4089,7 @@ update:
 
     rc = ngx_http_top_request_body_filter(r, cl);
 
-    ngx_chain_update_chains(r->pool, &rb->free, &rb->busy, &cl,
-                            (ngx_buf_tag_t) &ngx_http_v2_filter_request_body);
+    ngx_chain_update_chains(r->pool, &rb->free, &rb->busy, &cl, (ngx_buf_tag_t) &ngx_http_v2_filter_request_body);
 
     return rc;
 }

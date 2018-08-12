@@ -24,7 +24,10 @@ static ngx_int_t ngx_http_request_body_chunked_filter(ngx_http_request_t *r, ngx
 
 /*
 接收包体
-
+启动了接收包体这一动作，在这个动作完成后，就会回调HTTP模块定义的post_handler方法。
+NGX_OK:
+NGX_AGAIN:
+NGX_HTTP_*:
 */
 ngx_int_t
 ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_handler_pt post_handler)
@@ -37,8 +40,15 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_ha
     ngx_http_request_body_t   *rb;
     ngx_http_core_loc_conf_t  *clcf;
 
+	//将该请求对应的原始请求的引用计数加1。
+	//这同时是在要求每一个HTTP模块在传入的post_handler方法被回调时， 
+	//务必调用类似ngx_http_finalize_request的方法去结束请求， 
+	//否则引用计数会始终无法清零，从而导致请求无法释放。
     r->main->count++;
 
+	//r != r->main，表示子请求不处理HTTP包体
+	//r->request_body != NULL，表示已经执行过读取HTTP包体方法
+	//r->discard_body != 0，表示已经执行过丢弃HTTP包体的方法
     if (r != r->main || r->request_body || r->discard_body) {
         r->request_body_no_buffering = 0;
         post_handler(r);
@@ -50,6 +60,7 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_ha
         goto done;
     }
 
+	//分配用于接收包体的request_body成员
     rb = ngx_pcalloc(r->pool, sizeof(ngx_http_request_body_t));
     if (rb == NULL) {
         rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
@@ -71,7 +82,9 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_ha
 
     r->request_body = rb;
 
-    if (r->headers_in.content_length_n < 0 && !r->headers_in.chunked) {	//XXX: 什么意思？？
+	//XXX: 什么意思？表示没有包体吗？
+	//不会出现r->headers_in.content_length_n == 0 表示什么？不表示没有包体么？
+    if (r->headers_in.content_length_n < 0 && !r->headers_in.chunked) {	
         r->request_body_no_buffering = 0;
         post_handler(r);
         return NGX_OK;
@@ -84,9 +97,11 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_ha
     }
 #endif
 
+	//接收HTTP头部的流程中，是有可能接收到HTTP包体的
+	//因此，需要检查在header_in缓冲区中是否已经接收到包体
     preread = r->header_in->last - r->header_in->pos;
 
-    if (preread) {
+    if (preread) {	//header_in缓冲区中已经接收到包体
 
         /* there is the pre-read part of the request body */
 
@@ -101,8 +116,10 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_ha
             goto done;
         }
 
+		//更新请求长度大小
         r->request_length += preread - (r->header_in->last - r->header_in->pos);
 
+		//在content_length模式下，还没有接收到全部的包体，检查header_in缓冲区里的剩余空间是否可存放下全部包体
         if (!r->headers_in.chunked
             && rb->rest > 0
             && rb->rest <= (off_t) (r->header_in->end - r->header_in->last))
@@ -130,7 +147,7 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_ha
             goto done;
         }
 
-    } else {
+    } else {	//header_in缓冲区中已经接收到包体
         /* set rb->rest */
 
         if (ngx_http_request_body_filter(r, NULL) != NGX_OK) {
@@ -139,8 +156,7 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_ha
         }
     }
 
-    if (rb->rest == 0) {
-        /* the whole request body was pre-read */
+    if (rb->rest == 0) {	 /* the whole request body was pre-read */
         r->request_body_no_buffering = 0;
         post_handler(r);
         return NGX_OK;
@@ -197,7 +213,8 @@ done:
     }
 
     if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
-        r->main->count--;
+		//XXX:为什么不是像ngx_http_read_client_request_body_handler中调用ngx_http_finalize_request来结束请求？
+        r->main->count--;	
     }
 
     return rc;
@@ -241,14 +258,17 @@ ngx_http_read_client_request_body_handler(ngx_http_request_t *r)
 {
     ngx_int_t  rc;
 
+	//Timeout for reading client request body 
     if (r->connection->read->timedout) {
-        r->connection->timedout = 1;
+        r->connection->timedout = 1;	//XXX:为什么需要把connection结构体上的timeout标志位也置为1
         ngx_http_finalize_request(r, NGX_HTTP_REQUEST_TIME_OUT);
         return;
     }
 
     rc = ngx_http_do_read_client_request_body(r);
 
+	//XXX:rc >= NGX_HTTP_SPECIAL_RESPONSE 发生错误，不会调用post_handler
+	//XXX:通过调用ngx_http_finalize_request将原始请求的count计数减1。
     if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
         ngx_http_finalize_request(r, rc);
     }
@@ -270,14 +290,13 @@ ngx_http_do_read_client_request_body(ngx_http_request_t *r)
     c = r->connection;
     rb = r->request_body;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "http read client request body");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0, "http read client request body");
 
     for ( ;; ) {
-        for ( ;; ) {
-            if (rb->buf->last == rb->buf->end) {
+        for ( ;; ) { 
+            if (rb->buf->last == rb->buf->end) {		//缓冲区已经写满
 
-                if (rb->buf->pos != rb->buf->last) {
+                if (rb->buf->pos != rb->buf->last) {	//缓冲区中有数据
 
                     /* pass buffer to request body filter chain */
 
@@ -290,7 +309,7 @@ ngx_http_do_read_client_request_body(ngx_http_request_t *r)
                         return rc;
                     }
 
-                } else {
+                } else {	//缓冲区中没有数据， XXX：什么时候会这样？？？
 
                     /* update chains */
 
@@ -321,6 +340,7 @@ ngx_http_do_read_client_request_body(ngx_http_request_t *r)
                 rb->buf->last = rb->buf->start;
             }
 
+			//缓冲区还有空闲的空间，读取内核套接字缓冲区里的TCP字符流
             size = rb->buf->end - rb->buf->last;
             rest = rb->rest - (rb->buf->last - rb->buf->pos);
 
@@ -370,18 +390,17 @@ ngx_http_do_read_client_request_body(ngx_http_request_t *r)
             }
         }
 
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                       "http client request body rest %O", rb->rest);
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0, "http client request body rest %O", rb->rest);
 
+		//检查是否接收到完整的包体
         if (rb->rest == 0) {
             break;
         }
 
+		//没有接收到完整的包体，且当前流不可读，则说明需要把读事件添加到事件模块， 等待可读事件发生时
         if (!c->read->ready) {
 
-            if (r->request_body_no_buffering
-                && rb->buf->pos != rb->buf->last)
-            {
+            if (r->request_body_no_buffering && rb->buf->pos != rb->buf->last) {
                 /* pass buffer to request body filter chain */
 
                 out.buf = rb->buf;
@@ -403,8 +422,11 @@ ngx_http_do_read_client_request_body(ngx_http_request_t *r)
 
             return NGX_AGAIN;
         }
+		
+		//还没有接收到完整的包体，且当前TCP流还可以读
     }
 
+	//接收到完整的包体
     if (c->read->timer_set) {
         ngx_del_timer(c->read);
     }
@@ -429,8 +451,7 @@ ngx_http_write_request_body(ngx_http_request_t *r)
 
     rb = r->request_body;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http write client request body, bufs %p", rb->bufs);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http write client request body, bufs %p", rb->bufs);
 
     if (rb->temp_file == NULL) {
         tf = ngx_pcalloc(r->pool, sizeof(ngx_temp_file_t));
@@ -458,10 +479,7 @@ ngx_http_write_request_body(ngx_http_request_t *r)
         if (rb->bufs == NULL) {
             /* empty body with r->request_body_in_file_only */
 
-            if (ngx_create_temp_file(&tf->file, tf->path, tf->pool,
-                                     tf->persistent, tf->clean, tf->access)
-                != NGX_OK)
-            {
+            if (ngx_create_temp_file(&tf->file, tf->path, tf->pool, tf->persistent, tf->clean, tf->access) != NGX_OK) {
                 return NGX_ERROR;
             }
 
@@ -876,6 +894,7 @@ ngx_http_request_body_length_filter(ngx_http_request_t *r, ngx_chain_t *in)
     out = NULL;
     ll = &out;
 
+	//XXX: 为什么需要重新分配chain对象和buf对象 ？？
     for (cl = in; cl; cl = cl->next) {
 
         if (rb->rest == 0) {
@@ -893,13 +912,13 @@ ngx_http_request_body_length_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
         b->temporary = 1;
         b->tag = (ngx_buf_tag_t) &ngx_http_read_client_request_body;
-        b->start = cl->buf->pos;
+        b->start = cl->buf->pos;					//XXX:
         b->pos = cl->buf->pos;
         b->last = cl->buf->last;
         b->end = cl->buf->end;
-        b->flush = r->request_body_no_buffering;
+        b->flush = r->request_body_no_buffering;	//XXX:
 
-        size = cl->buf->last - cl->buf->pos;
+        size = cl->buf->last - cl->buf->pos; //缓冲区中数据大小
 
         if ((off_t) size < rb->rest) {
             cl->buf->pos = cl->buf->last;
@@ -1124,9 +1143,7 @@ ngx_http_request_body_save_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     if (rb->rest > 0) {
 
-        if (rb->buf && rb->buf->last == rb->buf->end
-            && ngx_http_write_request_body(r) != NGX_OK)
-        {
+        if (rb->buf && rb->buf->last == rb->buf->end && ngx_http_write_request_body(r) != NGX_OK) {
             return NGX_HTTP_INTERNAL_SERVER_ERROR;
         }
 
