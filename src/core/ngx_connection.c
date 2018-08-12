@@ -1128,7 +1128,7 @@ ngx_drain_connections(ngx_cycle_t *cycle)
 
         ngx_log_debug0(NGX_LOG_DEBUG_CORE, c->log, 0, "reusing connection");
 
-		//这里的handler是ngx_http_keepalive_handler，这函数里，由于close被置1，
+		//XXX:这里的handler是ngx_http_keepalive_handler，这函数里，由于close被置1，
         //所以会执行ngx_http_close_connection来释放连接，这样也就发生了keepalive
         //连接被强制断掉的现象了
         c->close = 1;

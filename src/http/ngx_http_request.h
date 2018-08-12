@@ -301,20 +301,21 @@ typedef struct {
 typedef void (*ngx_http_client_body_handler_pt)(ngx_http_request_t *r);
 
 typedef struct {
-	//存放HTTP包体的临时文件
+	//存放请求体的临时文件
     ngx_temp_file_t                  *temp_file;	
-	//接收HTTP包体的缓冲区链表。
-	//当包体需要全部存放在内存中时，如果一块ngx_buf_t缓冲区无法存放完，这时就需要使用ngx_chain_t链表来存放
+	//接收请求体的缓冲区链表。
+	//当请求体需要全部存放在内存中时，如果一块ngx_buf_t缓冲区无法存放完，这时就需要使用ngx_chain_t链表来存放
     ngx_chain_t                      *bufs;
-	//直接接收HTTP包体的缓存
+	//直接接收请求体的缓存
     ngx_buf_t                        *buf;
+	//当前剩余请求体大小
 	//根据content-length头部和已接收到的包体长度，计算出的还需要接收的包体长度
     off_t                             rest;
     off_t                             received;
     ngx_chain_t                      *free;	//XXX: free  busy 和bufs链表的关系可以参考ngx_http_request_body_length_filter
     ngx_chain_t                      *busy;
     ngx_http_chunked_t               *chunked;
-	//HTTP包体接收完毕后执行的回调方法
+	//请求体接收完毕后执行的回调方法
     ngx_http_client_body_handler_pt   post_handler;
 } ngx_http_request_body_t;
 
@@ -584,12 +585,27 @@ struct ngx_http_request_s {
 	//Rewrites and internal redirects to normal or named locations are considered URI changes.
     unsigned                          uri_changes:4;		
 
+	//Read the body to a single memory buffer.
     unsigned                          request_body_in_single_buf:1;
+	//Always read the body to a file, even if fits in the memory buffer.
     unsigned                          request_body_in_file_only:1;
+	//Do not unlink the file immediately after creation. 
+	//A file with this flag can be moved to another directory.
     unsigned                          request_body_in_persistent_file:1;
+	//Unlink the file when the request is finalized. 
+	//This can be useful when a file was supposed to be moved to another directory but was not moved for some reason.
     unsigned                          request_body_in_clean_file:1;
+	//Enable group access to the file by replacing the default 0600 access mask with 0660.
     unsigned                          request_body_file_group_access:1;
+	//Severity level at which to log file errors.
     unsigned                          request_body_file_log_level:3;
+	//Read the request body without buffering
+	//The 'request_body_no_buffering' flag enables the unbuffered mode of reading a request body. 
+	//In this mode, after calling 'ngx_http_read_client_request_body()', the 'bufs' chain might keep only a part of the body. 
+	//To read the next part, call the 'ngx_http_read_unbuffered_request_body(r)' function. 
+	//The return value NGX_AGAIN and the request flag 'reading_body' indicate that more data is available. 
+	//If 'bufs' is NULL after calling this function, there is nothing to read at the moment. 
+	//The request callback read_event_handler will be called when the next part of request body is available.
     unsigned                          request_body_no_buffering:1;	//[in|out]读取请求体时不缓存请求体，读到数据就通知post_handler
 
 	//Output is not sent to the client, but rather stored in memory. 

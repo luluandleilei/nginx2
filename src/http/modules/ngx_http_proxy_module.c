@@ -401,6 +401,22 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       offsetof(ngx_http_proxy_loc_conf_t, upstream.buffering),
       NULL },
 
+	/*
+	 Syntax:	proxy_request_buffering on | off;
+	 Default: 	proxy_request_buffering on;
+	 Context:	http, server, location
+	 This directive appeared in version 1.7.11.
+
+	 Enables or disables buffering of a client request body.
+
+	 When buffering is enabled, the entire request body is read from the client before sending the request to a proxied server.
+
+	 When buffering is disabled, the request body is sent to the proxied server immediately as it is received. 
+	 In this case, the request cannot be passed to the next server if nginx already started sending the request body.
+
+	 When HTTP/1.1 chunked transfer encoding is used to send the original request body, 
+	 the request body will be buffered regardless of the directive value unless HTTP/1.1 is enabled for proxying.
+	*/
     { ngx_string("proxy_request_buffering"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
       ngx_conf_set_flag_slot,
@@ -450,6 +466,36 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       offsetof(ngx_http_proxy_loc_conf_t, upstream.intercept_errors),
       NULL },
 
+	/*
+	 Syntax:	proxy_set_header field value;
+	 Default: 	proxy_set_header Host $proxy_host;
+	  			proxy_set_header Connection close;
+	 Context:	http, server, location
+
+	 Allows redefining or appending fields to the request header passed to the proxied server. 
+	 The value can contain text, variables, and their combinations. 
+	 These directives are inherited from the previous level if and only if 
+	 there are no proxy_set_header directives defined on the current level. 
+	 By default, only two fields are redefined:
+		proxy_set_header Host       $proxy_host;
+		proxy_set_header Connection close;
+		
+	 If caching is enabled, the header fields “If-Modified-Since”, “If-Unmodified-Since”, “If-None-Match”, 
+	 “If-Match”, “Range”, and “If-Range” from the original request are not passed to the proxied server.
+
+	 An unchanged “Host” request header field can be passed like this:
+	 	proxy_set_header Host       $http_host;
+	 However, if this field is not present in a client request header then nothing will be passed. 
+	 In such a case it is better to use the $host variable - its value equals the server name in the “Host” 
+	 request header field or the primary server name if this field is not present:
+		proxy_set_header Host       $host;
+
+	 In addition, the server name can be passed together with the port of the proxied server:
+		proxy_set_header Host       $host:$proxy_port;
+		
+	 If the value of a header field is an empty string then this field will not be passed to a proxied server:
+		proxy_set_header Accept-Encoding "";
+	*/
     { ngx_string("proxy_set_header"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE2,
       ngx_conf_set_keyval_slot,
@@ -471,6 +517,14 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       offsetof(ngx_http_proxy_loc_conf_t, headers_hash_bucket_size),
       NULL },
 
+	/*
+	 Syntax:	proxy_set_body value;
+	 Default:	—
+	 Context:	http, server, location
+
+	 Allows redefining the request body passed to the proxied server. 
+	 The value can contain text, variables, and their combination.
+	*/
     { ngx_string("proxy_set_body"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_str_slot,
@@ -485,13 +539,45 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       offsetof(ngx_http_proxy_loc_conf_t, method),
       NULL },
 
+	/*
+	 Syntax:	proxy_pass_request_headers on | off;
+	 Default: 	proxy_pass_request_headers on;
+	 Context:	http, server, location
+
+	 Indicates whether the header fields of the original request are passed to the proxied server.
+		location /x-accel-redirect-here/ {
+		    proxy_method GET;
+		    proxy_pass_request_headers off;
+		    proxy_pass_request_body off;
+
+		    proxy_pass ...
+		}
+
+	 See also the proxy_set_header and proxy_pass_request_body directives.
+	*/
     { ngx_string("proxy_pass_request_headers"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
       ngx_conf_set_flag_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_proxy_loc_conf_t, upstream.pass_request_headers),
       NULL },
+	
+	/*
+	 Syntax:	proxy_pass_request_body on | off;
+	 Default: 	proxy_pass_request_body on;
+	 Context:	http, server, location
 
+	 Indicates whether the original request body is passed to the proxied server.
+		location /x-accel-redirect-here/ {
+		    proxy_method GET;
+		    proxy_pass_request_body off;
+		    proxy_set_header Content-Length "";
+
+		    proxy_pass ...
+		}
+		
+	 See also the proxy_set_header and proxy_pass_request_headers directives.
+	*/
     { ngx_string("proxy_pass_request_body"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
       ngx_conf_set_flag_slot,

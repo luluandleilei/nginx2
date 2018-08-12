@@ -3408,7 +3408,7 @@ ngx_http_subrequest(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *args,
         ngx_http_update_location_config(sr);
     }
 
-	//XXX: 将该子请求挂载在主请求的posted_requests链表队尾
+	//XXX: 将该子请求挂载在原始请求的posted_requests链表队尾
     return ngx_http_post_request(sr, NULL);
 }
 

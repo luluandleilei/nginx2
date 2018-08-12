@@ -53,8 +53,7 @@ static ngx_int_t ngx_http_upstream_process_headers(ngx_http_request_t *r,
     ngx_http_upstream_t *u);
 static ngx_int_t ngx_http_upstream_process_trailers(ngx_http_request_t *r,
     ngx_http_upstream_t *u);
-static void ngx_http_upstream_send_response(ngx_http_request_t *r,
-    ngx_http_upstream_t *u);
+static void ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u);
 static void ngx_http_upstream_upgrade(ngx_http_request_t *r,
     ngx_http_upstream_t *u);
 static void ngx_http_upstream_upgraded_read_downstream(ngx_http_request_t *r);
@@ -539,12 +538,15 @@ ngx_http_upstream_init(ngx_http_request_t *r)
     }
 #endif
 
-    if (c->read->timer_set) {
+	//XXX:这个定时器是用来判断什么的？？
+	//XXX:为什么要删除掉？？？
+    if (c->read->timer_set) {	//XXX：什么时候c->read->timer_set为1， 什么时候为0
         ngx_del_timer(c->read);
     }
 
 	//XXX：添加写事件？？
 	//XXX: 为什么仅在ngx_event_flags & NGX_USE_CLEAR_EVENT时添加？？？
+	//XXX: 这个触发一次ngx_http_upstream_wr_check_broken_connection函数的调用
     if (ngx_event_flags & NGX_USE_CLEAR_EVENT) {
 
         if (!c->write->active) {
@@ -2024,8 +2026,7 @@ ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u, ng
 
 
 static ngx_int_t
-ngx_http_upstream_send_request_body(ngx_http_request_t *r,
-    ngx_http_upstream_t *u, ngx_uint_t do_write)
+ngx_http_upstream_send_request_body(ngx_http_request_t *r, ngx_http_upstream_t *u, ngx_uint_t do_write)
 {
     ngx_int_t                  rc;
     ngx_chain_t               *out, *cl, *ln;
@@ -2207,8 +2208,7 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     c = u->peer.connection;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "http upstream process header");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0, "http upstream process header");
 
     c->log->action = "reading response header from upstream";
 
@@ -2225,8 +2225,7 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
     if (u->buffer.start == NULL) {
         u->buffer.start = ngx_palloc(r->pool, u->conf->buffer_size);
         if (u->buffer.start == NULL) {
-            ngx_http_upstream_finalize_request(r, u,
-                                               NGX_HTTP_INTERNAL_SERVER_ERROR);
+            ngx_http_upstream_finalize_request(r, u, NGX_HTTP_INTERNAL_SERVER_ERROR);
             return;
         }
 
@@ -2237,21 +2236,13 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
         u->buffer.tag = u->output.tag;
 
-        if (ngx_list_init(&u->headers_in.headers, r->pool, 8,
-                          sizeof(ngx_table_elt_t))
-            != NGX_OK)
-        {
-            ngx_http_upstream_finalize_request(r, u,
-                                               NGX_HTTP_INTERNAL_SERVER_ERROR);
+        if (ngx_list_init(&u->headers_in.headers, r->pool, 8, sizeof(ngx_table_elt_t)) != NGX_OK) {
+            ngx_http_upstream_finalize_request(r, u, NGX_HTTP_INTERNAL_SERVER_ERROR);
             return;
         }
 
-        if (ngx_list_init(&u->headers_in.trailers, r->pool, 2,
-                          sizeof(ngx_table_elt_t))
-            != NGX_OK)
-        {
-            ngx_http_upstream_finalize_request(r, u,
-                                               NGX_HTTP_INTERNAL_SERVER_ERROR);
+        if (ngx_list_init(&u->headers_in.trailers, r->pool, 2, sizeof(ngx_table_elt_t)) != NGX_OK) {
+            ngx_http_upstream_finalize_request(r, u, NGX_HTTP_INTERNAL_SERVER_ERROR);
             return;
         }
 
@@ -2274,8 +2265,7 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
 #endif
 
             if (ngx_handle_read_event(c->read, 0) != NGX_OK) {
-                ngx_http_upstream_finalize_request(r, u,
-                                               NGX_HTTP_INTERNAL_SERVER_ERROR);
+                ngx_http_upstream_finalize_request(r, u, NGX_HTTP_INTERNAL_SERVER_ERROR);
                 return;
             }
 
@@ -2283,8 +2273,7 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
         }
 
         if (n == 0) {
-            ngx_log_error(NGX_LOG_ERR, c->log, 0,
-                          "upstream prematurely closed connection");
+            ngx_log_error(NGX_LOG_ERR, c->log, 0, "upstream prematurely closed connection");
         }
 
         if (n == NGX_ERROR || n == 0) {
@@ -2307,11 +2296,9 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
         if (rc == NGX_AGAIN) {
 
             if (u->buffer.last == u->buffer.end) {
-                ngx_log_error(NGX_LOG_ERR, c->log, 0,
-                              "upstream sent too big header");
+                ngx_log_error(NGX_LOG_ERR, c->log, 0, "upstream sent too big header");
 
-                ngx_http_upstream_next(r, u,
-                                       NGX_HTTP_UPSTREAM_FT_INVALID_HEADER);
+                ngx_http_upstream_next(r, u, NGX_HTTP_UPSTREAM_FT_INVALID_HEADER);
                 return;
             }
 
@@ -2327,8 +2314,7 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
     }
 
     if (rc == NGX_ERROR) {
-        ngx_http_upstream_finalize_request(r, u,
-                                           NGX_HTTP_INTERNAL_SERVER_ERROR);
+        ngx_http_upstream_finalize_request(r, u, NGX_HTTP_INTERNAL_SERVER_ERROR);
         return;
     }
 
@@ -2890,8 +2876,7 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
         }
 
         u->read_event_handler = ngx_http_upstream_process_non_buffered_upstream;
-        r->write_event_handler =
-                             ngx_http_upstream_process_non_buffered_downstream;
+        r->write_event_handler = ngx_http_upstream_process_non_buffered_downstream;
 
         r->limit_rate = 0;
 
@@ -4034,14 +4019,12 @@ ngx_http_upstream_dummy_handler(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
 
 static void
-ngx_http_upstream_next(ngx_http_request_t *r, ngx_http_upstream_t *u,
-    ngx_uint_t ft_type)
+ngx_http_upstream_next(ngx_http_request_t *r, ngx_http_upstream_t *u, ngx_uint_t ft_type)
 {
     ngx_msec_t  timeout;
     ngx_uint_t  status, state;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http next upstream, %xi", ft_type);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http next upstream, %xi", ft_type);
 
     if (u->peer.sockaddr) {
 
@@ -4159,9 +4142,7 @@ ngx_http_upstream_next(ngx_http_request_t *r, ngx_http_upstream_t *u,
     }
 
     if (u->peer.connection) {
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "close http upstream connection: %d",
-                       u->peer.connection->fd);
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "close http upstream connection: %d", u->peer.connection->fd);
 #if (NGX_HTTP_SSL)
 
         if (u->peer.connection->ssl) {

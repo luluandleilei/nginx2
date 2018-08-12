@@ -128,7 +128,7 @@ ngx_create_chain_of_bufs(ngx_pool_t *pool, ngx_bufs_t *bufs)
 }
 
 
-//将in中的节点链入chain的末尾
+//将in中的节点的buf链入chain的末尾
 ngx_int_t
 ngx_chain_add_copy(ngx_pool_t *pool, ngx_chain_t **chain, ngx_chain_t *in)
 {

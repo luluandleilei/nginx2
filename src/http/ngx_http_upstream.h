@@ -170,7 +170,9 @@ typedef struct {
     ngx_uint_t                       next_upstream_tries;
     ngx_flag_t                       buffering;
     ngx_flag_t                       request_buffering;
+	//Indicates whether the header fields of the original request are passed to the proxied server
     ngx_flag_t                       pass_request_headers;
+	//Indicates whether the original request body is passed to the proxied server.
     ngx_flag_t                       pass_request_body;
 
     ngx_flag_t                       ignore_client_abort;

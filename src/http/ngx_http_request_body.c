@@ -46,9 +46,9 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_ha
 	//否则引用计数会始终无法清零，从而导致请求无法释放。
     r->main->count++;
 
-	//r != r->main，表示子请求不处理HTTP包体
-	//r->request_body != NULL，表示已经执行过读取HTTP包体方法
-	//r->discard_body != 0，表示已经执行过丢弃HTTP包体的方法
+	//r != r->main，表示子请求不处理请求体
+	//r->request_body != NULL，表示已经执行过读取请求体方法
+	//r->discard_body != 0，表示已经执行过丢弃请求体的方法
     if (r != r->main || r->request_body || r->discard_body) {
         r->request_body_no_buffering = 0;
         post_handler(r);
@@ -82,7 +82,7 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_ha
 
     r->request_body = rb;
 
-	//XXX: 什么意思？表示没有包体吗？
+	//XXX: 什么意思？表示没有请求体吗？
 	//不会出现r->headers_in.content_length_n == 0 表示什么？不表示没有包体么？
     if (r->headers_in.content_length_n < 0 && !r->headers_in.chunked) {	
         r->request_body_no_buffering = 0;
@@ -97,8 +97,9 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_ha
     }
 #endif
 
-	//接收HTTP头部的流程中，是有可能接收到HTTP包体的
-	//因此，需要检查在header_in缓冲区中是否已经接收到包体
+	//接收请求头的流程中，是有可能接收到请求体的
+	//因此，需要检查是否在读取请求头时预读了请求体，
+	//这里的检查是通过判断保存请求头的缓存(r->header_in)中是否还有未处理的数据
     preread = r->header_in->last - r->header_in->pos;
 
     if (preread) {	//header_in缓冲区中已经接收到包体
@@ -120,10 +121,7 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_ha
         r->request_length += preread - (r->header_in->last - r->header_in->pos);
 
 		//在content_length模式下，还没有接收到全部的包体，检查header_in缓冲区里的剩余空间是否可存放下全部包体
-        if (!r->headers_in.chunked
-            && rb->rest > 0
-            && rb->rest <= (off_t) (r->header_in->end - r->header_in->last))
-        {
+        if (!r->headers_in.chunked && rb->rest > 0 && rb->rest <= (off_t) (r->header_in->end - r->header_in->last)) {
             /* the whole request body may be placed in r->header_in */
 
             b = ngx_calloc_buf(r->pool);
@@ -815,9 +813,12 @@ ngx_http_discard_request_body_filter(ngx_http_request_t *r, ngx_buf_t *b)
 }
 
 /*
-处理http1.1 expect的情况，
-根据http1.1的expect机制，如果客户端发送了expect头，
-而服务端不希望接收请求体时，必须返回417(Expectation Failed)错误。
+处理http1.1 expect的情况：
+	检查客户端是否发送了Expect: 100-continue头，是的话则给客户端回复”HTTP/1.1 100 Continue”，
+
+根据http 1.1协议，客户端可以发送一个Expect头来向服务器表明期望发送请求体，
+服务器如果允许客户端发送请求体，则会回复”HTTP/1.1 100 Continue”，客户端收到时，才会开始发送请求体。
+而服务端不希望接收请求体时，必须返回417(Expectation Failed)错误。 //XXX??
 */
 static ngx_int_t
 ngx_http_test_expect(ngx_http_request_t *r)
@@ -992,15 +993,8 @@ ngx_http_request_body_chunked_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
                 clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
-                if (clcf->client_max_body_size
-                    && clcf->client_max_body_size
-                       - r->headers_in.content_length_n < rb->chunked->size)
-                {
-                    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                                  "client intended to send too large chunked "
-                                  "body: %O+%O bytes",
-                                  r->headers_in.content_length_n,
-                                  rb->chunked->size);
+                if (clcf->client_max_body_size && clcf->client_max_body_size - r->headers_in.content_length_n < rb->chunked->size) {
+                    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "client intended to send too large chunked " "body: %O+%O bytes", r->headers_in.content_length_n, rb->chunked->size);
 
                     r->lingering_close = 1;
 
@@ -1079,8 +1073,7 @@ ngx_http_request_body_chunked_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
             /* invalid */
 
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                          "client sent invalid chunked body");
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "client sent invalid chunked body");
 
             return NGX_HTTP_BAD_REQUEST;
         }

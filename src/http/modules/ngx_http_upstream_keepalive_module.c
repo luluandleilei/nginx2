@@ -388,8 +388,7 @@ ngx_http_upstream_keepalive_close_handler(ngx_event_t *ev)
     char               buf[1];
     ngx_connection_t  *c;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, ev->log, 0,
-                   "keepalive close handler");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, ev->log, 0, "keepalive close handler");
 
     c = ev->data;
 
