@@ -10,8 +10,7 @@
 #include <ngx_http.h>
 
 
-#define ngx_http_upstream_tries(p) ((p)->number                               \
-                                    + ((p)->next ? (p)->next->number : 0))
+#define ngx_http_upstream_tries(p) ((p)->number + ((p)->next ? (p)->next->number : 0))
 
 
 static ngx_http_upstream_rr_peer_t *ngx_http_upstream_get_peer(
@@ -41,8 +40,8 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf, ngx_http_upstream_srv_conf_t 
     if (us->servers) {
         server = us->servers->elts;
 
-        n = 0;	//XXX:Í³¼Æ×ÜµÄXXX¸öÊı
-        w = 0;	//Í³¼Æ×ÜµÄÈ¨ÖØ
+        n = 0;	//XXX:ç»Ÿè®¡æ€»çš„XXXä¸ªæ•°
+        w = 0;	//ç»Ÿè®¡æ€»çš„æƒé‡
 
         for (i = 0; i < us->servers->nelts; i++) {
             if (server[i].backup) {
@@ -241,7 +240,7 @@ ngx_http_upstream_init_round_robin_peer(ngx_http_request_t *r, ngx_http_upstream
 
     rrp = r->upstream->peer.data;
 
-    if (rrp == NULL) {
+    if (rrp == NULL) {	//XXX: ä»€ä¹ˆæ—¶å€™rrpå¯èƒ½ä¸ä¸ºNULL ???
         rrp = ngx_palloc(r->pool, sizeof(ngx_http_upstream_rr_peer_data_t));
         if (rrp == NULL) {
             return NGX_ERROR;
@@ -509,12 +508,9 @@ ngx_http_upstream_get_peer(ngx_http_upstream_rr_peer_data_t *rrp)
     p = 0;
 #endif
 
-    for (peer = rrp->peers->peer, i = 0;
-         peer;
-         peer = peer->next, i++)
-    {
-        n = i / (8 * sizeof(uintptr_t));					//µÚ¼¸¸öuintptr_t
-        m = (uintptr_t) 1 << i % (8 * sizeof(uintptr_t));	//uintptr_tÄÚµÄÆ«ÒÆÁ¿
+    for (peer = rrp->peers->peer, i = 0; peer; peer = peer->next, i++) {
+        n = i / (8 * sizeof(uintptr_t));					//ç¬¬å‡ ä¸ªuintptr_t
+        m = (uintptr_t) 1 << i % (8 * sizeof(uintptr_t));	//uintptr_tå†…çš„åç§»é‡
 
         if (rrp->tried[n] & m) {
             continue;
@@ -524,10 +520,7 @@ ngx_http_upstream_get_peer(ngx_http_upstream_rr_peer_data_t *rrp)
             continue;
         }
 
-        if (peer->max_fails
-            && peer->fails >= peer->max_fails
-            && now - peer->checked <= peer->fail_timeout)
-        {
+        if (peer->max_fails && peer->fails >= peer->max_fails && now - peer->checked <= peer->fail_timeout) {
             continue;
         }
 
@@ -578,8 +571,7 @@ ngx_http_upstream_free_round_robin_peer(ngx_peer_connection_t *pc, void *data,
     time_t                       now;
     ngx_http_upstream_rr_peer_t  *peer;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, pc->log, 0,
-                   "free rr peer %ui %ui", pc->tries, state);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, pc->log, 0, "free rr peer %ui %ui", pc->tries, state);
 
     /* TODO: NGX_PEER_KEEPALIVE */
 
@@ -610,14 +602,11 @@ ngx_http_upstream_free_round_robin_peer(ngx_peer_connection_t *pc, void *data,
             peer->effective_weight -= peer->weight / peer->max_fails;
 
             if (peer->fails >= peer->max_fails) {
-                ngx_log_error(NGX_LOG_WARN, pc->log, 0,
-                              "upstream server temporarily disabled");
+                ngx_log_error(NGX_LOG_WARN, pc->log, 0, "upstream server temporarily disabled");
             }
         }
 
-        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, pc->log, 0,
-                       "free rr peer failed: %p %i",
-                       peer, peer->effective_weight);
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, pc->log, 0, "free rr peer failed: %p %i", peer, peer->effective_weight);
 
         if (peer->effective_weight < 0) {
             peer->effective_weight = 0;

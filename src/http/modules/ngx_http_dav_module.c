@@ -219,8 +219,7 @@ ngx_http_dav_put_handler(ngx_http_request_t *r)
     }
 
     if (r->request_body->temp_file == NULL) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                      "PUT request body must be in a file");
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "PUT request body must be in a file");
         ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
         return;
     }
@@ -232,8 +231,7 @@ ngx_http_dav_put_handler(ngx_http_request_t *r)
 
     path.len--;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http put filename: \"%s\"", path.data);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http put filename: \"%s\"", path.data);
 
     temp = &r->request_body->temp_file->file.name;
 

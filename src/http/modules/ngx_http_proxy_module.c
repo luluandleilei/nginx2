@@ -1197,7 +1197,7 @@ ngx_http_proxy_handler(ngx_http_request_t *r)
 	//body不是chunked类型或proxy_http_version是1.1才可以不缓存body直接转发到上游。
     if (!plcf->upstream.request_buffering
         && plcf->body_values == NULL && plcf->upstream.pass_request_body
-        && (!r->headers_in.chunked || plcf->http_version == NGX_HTTP_VERSION_11))
+        && (!r->headers_in.chunked || plcf->http_version == NGX_HTTP_VERSION_11))	//XXX:为什么非http1.1的情况下不支持chunked方式 ???
     {
         r->request_body_no_buffering = 1;
     }

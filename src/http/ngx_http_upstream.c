@@ -573,7 +573,9 @@ ngx_http_upstream_init_request(ngx_http_request_t *r)
     ngx_http_upstream_srv_conf_t   *uscf, **uscfp;
     ngx_http_upstream_main_conf_t  *umcf;
 
-    if (r->aio) {
+	//XXX：为什么不调用ngx_http_finalize_request将引用计数减1 ???
+	//难道执行aio操作时本身就没有将原始请求的引用计数(count)加1吗？？
+    if (r->aio) {	
         return;
     }
 

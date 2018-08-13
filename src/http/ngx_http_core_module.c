@@ -4566,21 +4566,14 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
                               (NGX_CONF_BITMASK_SET
                                |NGX_HTTP_KEEPALIVE_DISABLE_MSIE6));
     ngx_conf_merge_uint_value(conf->satisfy, prev->satisfy, NGX_HTTP_SATISFY_ALL);
-    ngx_conf_merge_uint_value(conf->if_modified_since, prev->if_modified_since,
-                              NGX_HTTP_IMS_EXACT);
-    ngx_conf_merge_uint_value(conf->max_ranges, prev->max_ranges,
-                              NGX_MAX_INT32_VALUE);
-    ngx_conf_merge_uint_value(conf->client_body_in_file_only,
-                              prev->client_body_in_file_only,
-                              NGX_HTTP_REQUEST_BODY_FILE_OFF);
+    ngx_conf_merge_uint_value(conf->if_modified_since, prev->if_modified_since, NGX_HTTP_IMS_EXACT);
+    ngx_conf_merge_uint_value(conf->max_ranges, prev->max_ranges, NGX_MAX_INT32_VALUE);
+    ngx_conf_merge_uint_value(conf->client_body_in_file_only, prev->client_body_in_file_only, NGX_HTTP_REQUEST_BODY_FILE_OFF);
     ngx_conf_merge_value(conf->client_body_in_single_buffer, prev->client_body_in_single_buffer, 0);
     ngx_conf_merge_value(conf->internal, prev->internal, 0);
     ngx_conf_merge_value(conf->sendfile, prev->sendfile, 0);
-    ngx_conf_merge_size_value(conf->sendfile_max_chunk,
-                              prev->sendfile_max_chunk, 0);
-    ngx_conf_merge_size_value(conf->subrequest_output_buffer_size,
-                              prev->subrequest_output_buffer_size,
-                              (size_t) ngx_pagesize);
+    ngx_conf_merge_size_value(conf->sendfile_max_chunk, prev->sendfile_max_chunk, 0);
+    ngx_conf_merge_size_value(conf->subrequest_output_buffer_size, prev->subrequest_output_buffer_size, (size_t) ngx_pagesize);
     ngx_conf_merge_value(conf->aio, prev->aio, NGX_HTTP_AIO_OFF);
     ngx_conf_merge_value(conf->aio_write, prev->aio_write, 0);
 #if (NGX_THREADS)

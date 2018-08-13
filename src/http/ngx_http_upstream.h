@@ -375,7 +375,7 @@ struct ngx_http_upstream_s {
     ngx_str_t                        ssl_name;
 #endif
 
-    ngx_http_cleanup_pt             *cleanup;
+    ngx_http_cleanup_pt             *cleanup;	//XXX:指针的指针
 
     unsigned                         store:1;
     unsigned                         cacheable:1;

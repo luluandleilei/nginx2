@@ -557,6 +557,7 @@ ngx_event_module_init(ngx_cycle_t *cycle)
 
 #endif
 
+	//XXX:(X.1)
 	/*初始化描述共享内存的ngx_shm_t结构体*/
     shm.size = size;
     ngx_str_set(&shm.name, "nginx_shared_zone");
@@ -575,12 +576,14 @@ ngx_event_module_init(ngx_cycle_t *cycle)
         return NGX_ERROR;
     }
 
+	//XXX:(X.2)
     ngx_connection_counter = (ngx_atomic_t *) (shared + 1 * cl);
 
     (void) ngx_atomic_cmp_set(ngx_connection_counter, 0, 1);
 
     ngx_log_debug2(NGX_LOG_DEBUG_EVENT, cycle->log, 0, "counter: %p, %uA", ngx_connection_counter, *ngx_connection_counter);
 
+	//XXX:(x.3)
     ngx_temp_number = (ngx_atomic_t *) (shared + 2 * cl);
 
     tp = ngx_timeofday();

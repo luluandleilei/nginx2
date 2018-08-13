@@ -73,8 +73,8 @@ struct ngx_pool_s {
 
 
 typedef struct {
-    ngx_fd_t              fd;
-    u_char               *name;
+    ngx_fd_t              fd;	//XXX: 文件对应的描述符
+    u_char               *name;	//XXX：文件的绝对路径
     ngx_log_t            *log;
 } ngx_pool_cleanup_file_t;
 

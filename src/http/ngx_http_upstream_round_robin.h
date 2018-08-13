@@ -19,8 +19,8 @@ typedef struct ngx_http_upstream_rr_peer_s   ngx_http_upstream_rr_peer_t;
 struct ngx_http_upstream_rr_peer_s {
     struct sockaddr                *sockaddr;
     socklen_t                       socklen;
-    ngx_str_t                       name;
-    ngx_str_t                       server;
+    ngx_str_t                       name;		//XXX: "ip:port"字符串表示
+    ngx_str_t                       server;		//XXX:url
 
     ngx_int_t                       current_weight;
     ngx_int_t                       effective_weight;

@@ -124,8 +124,7 @@ ngx_write_chain_to_temp_file(ngx_temp_file_t *tf, ngx_chain_t *chain)
 #if (NGX_THREADS && NGX_HAVE_PWRITEV)
 
     if (tf->thread_write) {
-        return ngx_thread_write_chain_to_file(&tf->file, chain, tf->offset,
-                                              tf->pool);
+        return ngx_thread_write_chain_to_file(&tf->file, chain, tf->offset, tf->pool);
     }
 
 #endif
@@ -158,7 +157,7 @@ ngx_create_temp_file(ngx_file_t *file, ngx_path_t *path, ngx_pool_t *pool,
         prefix = 0;
     }
 
-    file->name.len = name.len + 1 + levels + 10;
+    file->name.len = name.len + 1 + levels + 10;	//XXX: dir + '/' + subdir + random
 
     file->name.data = ngx_pnalloc(pool, file->name.len + 1);
     if (file->name.data == NULL) {
@@ -193,13 +192,11 @@ ngx_create_temp_file(ngx_file_t *file, ngx_path_t *path, ngx_pool_t *pool,
             ngx_create_hashed_filename(path, file->name.data, file->name.len);
         }
 
-        ngx_log_debug1(NGX_LOG_DEBUG_CORE, file->log, 0,
-                       "hashed path: %s", file->name.data);
+        ngx_log_debug1(NGX_LOG_DEBUG_CORE, file->log, 0, "hashed path: %s", file->name.data);
 
         file->fd = ngx_open_tempfile(file->name.data, persistent, access);
 
-        ngx_log_debug1(NGX_LOG_DEBUG_CORE, file->log, 0,
-                       "temp fd:%d", file->fd);
+        ngx_log_debug1(NGX_LOG_DEBUG_CORE, file->log, 0, "temp fd:%d", file->fd);
 
         if (file->fd != NGX_INVALID_FILE) {
 
@@ -221,9 +218,7 @@ ngx_create_temp_file(ngx_file_t *file, ngx_path_t *path, ngx_pool_t *pool,
         }
 
         if ((path->level[0] == 0) || (err != NGX_ENOPATH)) {
-            ngx_log_error(NGX_LOG_CRIT, file->log, err,
-                          ngx_open_tempfile_n " \"%s\" failed",
-                          file->name.data);
+            ngx_log_error(NGX_LOG_CRIT, file->log, err, ngx_open_tempfile_n " \"%s\" failed", file->name.data);
             return NGX_ERROR;
         }
 

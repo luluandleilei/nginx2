@@ -261,11 +261,10 @@ ngx_open_tempfile(u_char *name, ngx_uint_t persistent, ngx_uint_t access)
 {
     ngx_fd_t  fd;
 
-    fd = open((const char *) name, O_CREAT|O_EXCL|O_RDWR,
-              access ? access : 0600);
+    fd = open((const char *) name, O_CREAT|O_EXCL|O_RDWR, access ? access : 0600);
 
     if (fd != -1 && !persistent) {
-        (void) unlink((const char *) name);
+        (void) unlink((const char *) name);	//XXX: 当关闭文件描述符时，文件会被自动删除
     }
 
     return fd;
@@ -273,8 +272,7 @@ ngx_open_tempfile(u_char *name, ngx_uint_t persistent, ngx_uint_t access)
 
 
 ssize_t
-ngx_write_chain_to_file(ngx_file_t *file, ngx_chain_t *cl, off_t offset,
-    ngx_pool_t *pool)
+ngx_write_chain_to_file(ngx_file_t *file, ngx_chain_t *cl, off_t offset, ngx_pool_t *pool)
 {
     ssize_t        total, n;
     ngx_iovec_t    vec;
@@ -283,9 +281,7 @@ ngx_write_chain_to_file(ngx_file_t *file, ngx_chain_t *cl, off_t offset,
     /* use pwrite() if there is the only buf in a chain */
 
     if (cl->next == NULL) {
-        return ngx_write_file(file, cl->buf->pos,
-                              (size_t) (cl->buf->last - cl->buf->pos),
-                              offset);
+        return ngx_write_file(file, cl->buf->pos, (size_t) (cl->buf->last - cl->buf->pos), offset);
     }
 
     total = 0;
@@ -300,8 +296,7 @@ ngx_write_chain_to_file(ngx_file_t *file, ngx_chain_t *cl, off_t offset,
         /* use pwrite() if there is the only iovec buffer */
 
         if (vec.count == 1) {
-            n = ngx_write_file(file, (u_char *) iovs[0].iov_base,
-                               iovs[0].iov_len, offset);
+            n = ngx_write_file(file, (u_char *) iovs[0].iov_base, iovs[0].iov_len, offset);
 
             if (n == NGX_ERROR) {
                 return n;
@@ -457,21 +452,17 @@ eintr:
 #if (NGX_THREADS)
 
 ssize_t
-ngx_thread_write_chain_to_file(ngx_file_t *file, ngx_chain_t *cl, off_t offset,
-    ngx_pool_t *pool)
+ngx_thread_write_chain_to_file(ngx_file_t *file, ngx_chain_t *cl, off_t offset, ngx_pool_t *pool)
 {
     ngx_thread_task_t      *task;
     ngx_thread_file_ctx_t  *ctx;
 
-    ngx_log_debug3(NGX_LOG_DEBUG_CORE, file->log, 0,
-                   "thread write chain: %d, %p, %O",
-                   file->fd, cl, offset);
+    ngx_log_debug3(NGX_LOG_DEBUG_CORE, file->log, 0, "thread write chain: %d, %p, %O", file->fd, cl, offset);
 
     task = file->thread_task;
 
     if (task == NULL) {
-        task = ngx_thread_task_alloc(pool,
-                                     sizeof(ngx_thread_file_ctx_t));
+        task = ngx_thread_task_alloc(pool, sizeof(ngx_thread_file_ctx_t));
         if (task == NULL) {
             return NGX_ERROR;
         }
@@ -485,14 +476,12 @@ ngx_thread_write_chain_to_file(ngx_file_t *file, ngx_chain_t *cl, off_t offset,
         task->event.complete = 0;
 
         if (!ctx->write) {
-            ngx_log_error(NGX_LOG_ALERT, file->log, 0,
-                          "invalid thread call, write instead of read");
+            ngx_log_error(NGX_LOG_ALERT, file->log, 0, "invalid thread call, write instead of read");
             return NGX_ERROR;
         }
 
         if (ctx->err || ctx->nbytes == 0) {
-            ngx_log_error(NGX_LOG_CRIT, file->log, ctx->err,
-                          "pwritev() \"%s\" failed", file->name.data);
+            ngx_log_error(NGX_LOG_CRIT, file->log, ctx->err, "pwritev() \"%s\" failed", file->name.data);
             return NGX_ERROR;
         }
 

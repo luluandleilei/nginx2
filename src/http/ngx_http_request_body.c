@@ -23,6 +23,23 @@ static ngx_int_t ngx_http_request_body_chunked_filter(ngx_http_request_t *r, ngx
 
 
 /*
+For dealing with the body of a client request, nginx provides the ngx_http_read_client_request_body(r, post_handler) 
+and ngx_http_discard_request_body(r) functions. The first function reads the request body and makes it available via
+the request_body request field. The second function instructs nginx to discard (read and ignore) the request body. 
+One of these functions must be called for every request. Normally, the content handler makes the call.
+
+Reading or discarding the client request body from a subrequest is not allowed. It must always be done in the main 
+request. When a subrequest is created, it inherits the parent's request_body object which can be used by the 
+subrequest if the main request has previously read the request body.
+
+The function ngx_http_read_client_request_body(r, post_handler) starts the process of reading the request body. 
+When the body is completely read, the post_handler callback is called to continue processing the request. 
+If the request body is missing or has already been read, the callback is called immediately. 
+The function ngx_http_read_client_request_body(r, post_handler) allocates the request_body request field of type 
+ngx_http_request_body_t. The field bufs of this object keeps the result as a buffer chain. The body can be saved 
+in memory buffers or file buffers, if the capacity specified by the client_body_buffer_size directive is not 
+enough to fit the entire body in memory.
+
 接收包体
 启动了接收包体这一动作，在这个动作完成后，就会回调HTTP模块定义的post_handler方法。
 NGX_OK:
@@ -517,6 +534,7 @@ ngx_http_write_request_body(ngx_http_request_t *r)
 
 
 /*
+instructs nginx to discard (read and ignore) the request body. 
 对于HTTP模块而言，放弃接收包体就是简单地不处理包体了，可是对于HTTP框架而言，并不是不接收包体就可以的。因为对于客户端而言，通常
 会调用一些阻塞的发送方法来发送包体，如果HTTP框架一直不接收包体，会导致实现上不够健壮的客户端认为服务器超时无响应，因而简单地关
 闭连接，可这时Nginx模块可能还在处理这个连接。因此，HTTP模块中的放弃接收包体，对HTTP框架而言就是接收包体，但是接收后不做保存，直接丢弃。
@@ -1136,6 +1154,7 @@ ngx_http_request_body_save_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     if (rb->rest > 0) {
 
+		//这里rb->buf有可能为NULL吗？
         if (rb->buf && rb->buf->last == rb->buf->end && ngx_http_write_request_body(r) != NGX_OK) {
             return NGX_HTTP_INTERNAL_SERVER_ERROR;
         }
