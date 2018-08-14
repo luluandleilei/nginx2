@@ -808,6 +808,7 @@ static ngx_command_t  ngx_http_core_commands[] = {
 	 Syntax:	client_max_body_size size;
 	 Default: 	client_max_body_size 1m;
 	 Context:	http, server, location
+	 
 	 Sets the maximum allowed size of the client request body, specified in the “Content-Length” request header field. 
 	 If the size in a request exceeds the configured value, the 413 (Request Entity Too Large) error is returned to the client. 
 	 Please be aware that browsers cannot correctly display this error. 
@@ -1334,6 +1335,22 @@ static ngx_command_t  ngx_http_core_commands[] = {
       0,
       NULL },
 
+	/*
+	 Syntax:	lingering_close off | on | always;
+	 Default: 	lingering_close on;
+	 Context:	http, server, location
+	 This directive appeared in versions 1.1.0 and 1.0.6.
+
+	 Controls how nginx closes client connections.
+
+	 The default value “on” instructs nginx to wait for and process additional data from a client before 
+	 fully closing a connection, but only if heuristics suggests that a client may be sending more data.
+
+	 The value “always” will cause nginx to unconditionally wait for and process additional client data.
+
+	 The value “off” tells nginx to never wait for more data and close the connection immediately. This 
+	 behavior breaks the protocol and should not be used under normal circumstances.
+	*/
     { ngx_string("lingering_close"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_enum_slot,
@@ -1341,6 +1358,15 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_loc_conf_t, lingering_close),
       &ngx_http_core_lingering_close },
 
+	/*
+	 Syntax:	lingering_time time;
+	 Default: 	lingering_time 30s;
+	 Context:	http, server, location
+
+	 When lingering_close is in effect, this directive specifies the maximum time during which nginx will 
+	 process (read and ignore) additional data coming from a client. After that, the connection will be 
+	 closed, even if there will be more data.
+	*/
     { ngx_string("lingering_time"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_msec_slot,
@@ -1348,6 +1374,16 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_loc_conf_t, lingering_time),
       NULL },
 
+	/*
+	 Syntax:	lingering_timeout time;
+	 Default: 	lingering_timeout 5s;
+	 Context:	http, server, location
+
+	 When lingering_close is in effect, this directive specifies the maximum waiting time for more client 
+	 data to arrive. If data are not received during this time, the connection is closed. Otherwise, the data
+	 are read and ignored, and nginx starts waiting for more data again. The “wait-read-ignore” cycle is 
+	 repeated, but no longer than specified by the lingering_time directive.
+	*/
     { ngx_string("lingering_timeout"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_msec_slot,
@@ -1946,6 +1982,9 @@ ngx_http_core_find_config_phase(ngx_http_request_t *r, ngx_http_phase_handler_t 
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
 	//internal location can only be used for internal requests
+	//XXX:可能有这种情况吗？一个external请求在匹配到一个internal请求之前，已经匹配到一个非internal location
+	//但是根据匹配规则，internal的location更加匹配，导致选择了这个internal location，而没有选择之前的external location
+	//从而导致返回404
     if (!r->internal && clcf->internal) {
         ngx_http_finalize_request(r, NGX_HTTP_NOT_FOUND);
         return NGX_OK;
@@ -1957,8 +1996,9 @@ ngx_http_core_find_config_phase(ngx_http_request_t *r, ngx_http_phase_handler_t 
 
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http cl:%O max:%O", r->headers_in.content_length_n, clcf->client_max_body_size);
 
-    if (r->headers_in.content_length_n != -1	//XXX: ???
-        && !r->discard_body
+	//XXX:在确定了location之后，判断请求体是否超过最大长度
+    if (r->headers_in.content_length_n != -1	
+        && !r->discard_body				//XXX：r->discard_body在什么时候会在调用ngx_http_core_find_config_phase函数之前被设置为了1
         && clcf->client_max_body_size
         && clcf->client_max_body_size < r->headers_in.content_length_n)
     {
@@ -4553,18 +4593,13 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
         conf->error_pages = prev->error_pages;
     }
 
-    ngx_conf_merge_str_value(conf->default_type,
-                              prev->default_type, "text/plain");
+    ngx_conf_merge_str_value(conf->default_type, prev->default_type, "text/plain");
 
-    ngx_conf_merge_off_value(conf->client_max_body_size,
-                              prev->client_max_body_size, 1 * 1024 * 1024);
+    ngx_conf_merge_off_value(conf->client_max_body_size, prev->client_max_body_size, 1 * 1024 * 1024);
     ngx_conf_merge_size_value(conf->client_body_buffer_size, prev->client_body_buffer_size, (size_t) 2 * ngx_pagesize);
     ngx_conf_merge_msec_value(conf->client_body_timeout, prev->client_body_timeout, 60000);
 
-    ngx_conf_merge_bitmask_value(conf->keepalive_disable,
-                              prev->keepalive_disable,
-                              (NGX_CONF_BITMASK_SET
-                               |NGX_HTTP_KEEPALIVE_DISABLE_MSIE6));
+    ngx_conf_merge_bitmask_value(conf->keepalive_disable, prev->keepalive_disable, (NGX_CONF_BITMASK_SET |NGX_HTTP_KEEPALIVE_DISABLE_MSIE6));
     ngx_conf_merge_uint_value(conf->satisfy, prev->satisfy, NGX_HTTP_SATISFY_ALL);
     ngx_conf_merge_uint_value(conf->if_modified_since, prev->if_modified_since, NGX_HTTP_IMS_EXACT);
     ngx_conf_merge_uint_value(conf->max_ranges, prev->max_ranges, NGX_MAX_INT32_VALUE);

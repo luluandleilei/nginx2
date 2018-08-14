@@ -439,6 +439,9 @@ struct ngx_http_core_loc_conf_s {
     ngx_hash_t    types_hash;
     ngx_str_t     default_type;
 
+	//客户端请求体的最大允许大小。
+	//若请求体大小在“Content-Length”请求头字段中指定，则在NGX_HTTP_FIND_CONFIG_PHASE阶段确定location后进行判断
+	//若请求体以chunked方式发送，则在读取请求体(ngx_http_read_client_request_body)的时候进行判断
     off_t         client_max_body_size;    /* client_max_body_size */
     off_t         directio;                /* directio */
     off_t         directio_alignment;      /* directio_alignment */

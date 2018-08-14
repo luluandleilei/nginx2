@@ -35,8 +35,7 @@ static ngx_int_t ngx_http_index_init(ngx_conf_t *cf);
 static void *ngx_http_index_create_loc_conf(ngx_conf_t *cf);
 static char *ngx_http_index_merge_loc_conf(ngx_conf_t *cf,
     void *parent, void *child);
-static char *ngx_http_index_set_index(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+static char *ngx_http_index_set_index(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 
 static ngx_command_t  ngx_http_index_commands[] = {
@@ -67,6 +66,10 @@ static ngx_http_module_t  ngx_http_index_module_ctx = {
 };
 
 
+/*
+The ngx_http_index_module module processes requests ending with the slash character (‘/’). 
+Such requests can also be processed by the ngx_http_autoindex_module and ngx_http_random_index_module modules.
+*/
 ngx_module_t  ngx_http_index_module = {
     NGX_MODULE_V1,
     &ngx_http_index_module_ctx,            /* module context */

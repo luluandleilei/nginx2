@@ -133,6 +133,11 @@ static ngx_http_module_t  ngx_http_autoindex_module_ctx = {
 };
 
 
+/*
+The ngx_http_autoindex_module module processes requests ending with the slash character (‘/’) 
+and produces a directory listing. Usually a request is passed to the ngx_http_autoindex_module 
+module when the ngx_http_index_module module cannot find an index file.
+*/
 ngx_module_t  ngx_http_autoindex_module = {
     NGX_MODULE_V1,
     &ngx_http_autoindex_module_ctx,        /* module context */

@@ -57,9 +57,9 @@ struct ngx_http_log_ctx_s {
 
 
 struct ngx_http_chunked_s {
-    ngx_uint_t           state;
-    off_t                size;
-    off_t                length;
+    ngx_uint_t           state;		//chunk大小解析状态机
+    off_t                size;		//当前chunk剩余大小
+    off_t                length;	//amount of data we want to see next time
 };
 
 
@@ -102,8 +102,7 @@ ngx_int_t ngx_http_arg(ngx_http_request_t *r, u_char *name, size_t len,
     ngx_str_t *value);
 void ngx_http_split_args(ngx_http_request_t *r, ngx_str_t *uri,
     ngx_str_t *args);
-ngx_int_t ngx_http_parse_chunked(ngx_http_request_t *r, ngx_buf_t *b,
-    ngx_http_chunked_t *ctx);
+ngx_int_t ngx_http_parse_chunked(ngx_http_request_t *r, ngx_buf_t *b, ngx_http_chunked_t *ctx);
 
 
 ngx_http_request_t *ngx_http_create_request(ngx_connection_t *c);
@@ -131,8 +130,7 @@ ngx_int_t ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_clie
 ngx_int_t ngx_http_read_unbuffered_request_body(ngx_http_request_t *r);
 
 ngx_int_t ngx_http_send_header(ngx_http_request_t *r);
-ngx_int_t ngx_http_special_response_handler(ngx_http_request_t *r,
-    ngx_int_t error);
+ngx_int_t ngx_http_special_response_handler(ngx_http_request_t *r, ngx_int_t error);
 ngx_int_t ngx_http_filter_finalize_request(ngx_http_request_t *r,
     ngx_module_t *m, ngx_int_t error);
 void ngx_http_clean_header(ngx_http_request_t *r);

@@ -4047,9 +4047,7 @@ ngx_http_v2_filter_request_body(ngx_http_request_t *r)
         } else {
             clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
-            if (clcf->client_max_body_size
-                && rb->received > clcf->client_max_body_size)
-            {
+            if (clcf->client_max_body_size && rb->received > clcf->client_max_body_size) {
                 ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
                               "client intended to send too large chunked body: "
                               "%O bytes", rb->received);

@@ -64,8 +64,8 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_ha
     r->main->count++;
 
 	//r != r->main，表示子请求不处理请求体
-	//r->request_body != NULL，表示已经执行过读取请求体方法
-	//r->discard_body != 0，表示已经执行过丢弃请求体的方法
+	//r->request_body != NULL，表示正在/已经执行过读取请求体方法
+	//r->discard_body != 0，表示正在执行丢弃请求体的方法
     if (r != r->main || r->request_body || r->discard_body) {
         r->request_body_no_buffering = 0;
         post_handler(r);
@@ -177,12 +177,15 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_ha
         return NGX_OK;
     }
 
-    if (rb->rest < 0) {
+    if (rb->rest < 0) {	//XXX:什么时候会出现？
         ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0, "negative request body rest");
         rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
         goto done;
     }
 
+	/* rb->rest > 0 */
+
+	//XXX：
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
     size = clcf->client_body_buffer_size;
@@ -207,9 +210,11 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_ha
         goto done;
     }
 
+	//XXX:
     r->read_event_handler = ngx_http_read_client_request_body_handler;
     r->write_event_handler = ngx_http_request_empty_handler;
 
+	//XXX:
     rc = ngx_http_do_read_client_request_body(r);
 
 done:
@@ -290,6 +295,11 @@ ngx_http_read_client_request_body_handler(ngx_http_request_t *r)
 }
 
 
+/*
+NGX_OK:
+NGX_AGAIN:
+NGX_HTTP_*
+*/
 static ngx_int_t
 ngx_http_do_read_client_request_body(ngx_http_request_t *r)
 {
@@ -380,6 +390,8 @@ ngx_http_do_read_client_request_body(ngx_http_request_t *r)
                 return NGX_HTTP_BAD_REQUEST;
             }
 
+			/* n > 0 */
+			
             rb->buf->last += n;
             r->request_length += n;
 
@@ -411,6 +423,8 @@ ngx_http_do_read_client_request_body(ngx_http_request_t *r)
         if (rb->rest == 0) {
             break;
         }
+
+		/* rb->rest != 0 */
 
 		//没有接收到完整的包体，且当前流不可读，则说明需要把读事件添加到事件模块， 等待可读事件发生时
         if (!c->read->ready) {
@@ -502,6 +516,7 @@ ngx_http_write_request_body(ngx_http_request_t *r)
         }
     }
 
+	//XXX:可能在rb->bufs == NULL的时候调用ngx_http_write_request_body这个函数吗？
     if (rb->bufs == NULL) {
         return NGX_OK;
     }
@@ -542,6 +557,7 @@ instructs nginx to discard (read and ignore) the request body.
 HTTP模块调用的ngx_http_discard_request_body方法用于第一次启动丢弃包体动作，而ngx_http_discarded_request_body_handler是作为请
 求的read_event_handler方法的，在有新的可读事件时会调用它处理包体。ngx_http_read discarded_request_body方法则是根据上述两个方法
 通用部分提取出的公共方法，用来读取包体且不做任何处理。
+
 */
 ngx_int_t
 ngx_http_discard_request_body(ngx_http_request_t *r)
@@ -550,6 +566,9 @@ ngx_http_discard_request_body(ngx_http_request_t *r)
     ngx_int_t     rc;
     ngx_event_t  *rev;
 
+	//r != r->main -- 非原始请求
+	//r->discard_body -- 正在执行放弃接收请求体过程
+	//r->request_body -- 正在/已经读取了请求体 或 已经放弃接收chunked请求体
     if (r != r->main || r->discard_body || r->request_body) {
         return NGX_OK;
     }
@@ -569,10 +588,17 @@ ngx_http_discard_request_body(ngx_http_request_t *r)
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, rev->log, 0, "http set discard body");
 
+	//删掉读事件上的定时器
+	//因为这时本身就不需要请求体，所以也无所谓客户端发送的快还是慢了
+	//XXX:太慢会不会用来作为ddos攻击？？？
     if (rev->timer_set) {	//XXX: rev->timer_set 什么时候为1？？？
         ngx_del_timer(rev);
     }
 
+	//注意：这里与ngx_http_read_client_request_body的区别
+	//当放弃接收请求体过程执行完成，r->headers_in.content_length_n将会为0
+	//当重复调用ngx_http_discard_request_body，在content_length模式下在此处直接返回
+	//在chunked模式下，因为r->request_body != NULL返回
     if (r->headers_in.content_length_n <= 0 && !r->headers_in.chunked) {
         return NGX_OK;
     }
@@ -582,12 +608,12 @@ ngx_http_discard_request_body(ngx_http_request_t *r)
     if (size || r->headers_in.chunked) {
         rc = ngx_http_discard_request_body_filter(r, r->header_in);
 
-        if (rc != NGX_OK) {
+        if (rc != NGX_OK) {	//XXX:发生错误
             return rc;
         }
 
-        if (r->headers_in.content_length_n == 0) {
-            return NGX_OK;
+        if (r->headers_in.content_length_n == 0) {	//XXX:请求体读取完成
+            return NGX_OK;	//XXX:这里为什么不r->lingering_close = 0; ???
         }
     }
 
@@ -611,7 +637,7 @@ ngx_http_discard_request_body(ngx_http_request_t *r)
     }
 
     r->count++;
-    r->discard_body = 1;
+    r->discard_body = 1;	//XXX:数据还没有读取完毕，置变量，read_event_handler会下次处理
 
     return NGX_OK;
 }
@@ -687,7 +713,11 @@ ngx_http_discarded_request_body_handler(ngx_http_request_t *r)
     }
 }
 
-
+/*
+NGX_AGAIN:
+NGX_OK:		XXX:所有的请求体都被读取完成
+NGX_HTTP_*:
+*/
 static ngx_int_t
 ngx_http_read_discarded_request_body(ngx_http_request_t *r)
 {
@@ -704,7 +734,7 @@ ngx_http_read_discarded_request_body(ngx_http_request_t *r)
     b.temporary = 1;
 
     for ( ;; ) {
-        if (r->headers_in.content_length_n == 0) {
+        if (r->headers_in.content_length_n == 0) {	//XXX:为什么感觉应该是放在for循环的最后来进行判断 ???
             r->read_event_handler = ngx_http_block_reading;
             return NGX_OK;
         }
@@ -719,17 +749,19 @@ ngx_http_read_discarded_request_body(ngx_http_request_t *r)
 
         if (n == NGX_ERROR) {
             r->connection->error = 1;
-            return NGX_OK;
+            return NGX_OK;	//为什么返回NGX_OK？连接读错误，视为数据已经读取完，故返回NGX_OK
         }
 
         if (n == NGX_AGAIN) {
             return NGX_AGAIN;
         }
 
-        if (n == 0) {
-            return NGX_OK;
+        if (n == 0) {	//XXX:这种情况表示什么？？对端关闭了连接？
+            return NGX_OK;	//为什么返回NGX_OK？对端关闭了连接，视为数据已经读取完，故返回NGX_OK
         }
 
+		/* n > 0 */
+		
         b.pos = buffer;
         b.last = buffer + n;
 
@@ -742,6 +774,11 @@ ngx_http_read_discarded_request_body(ngx_http_request_t *r)
 }
 
 
+/*
+NGX_HTTP_INTERNAL_SERVER_ERROR:
+NGX_HTTP_BAD_REQUEST:
+NGX_OK:
+*/
 static ngx_int_t
 ngx_http_discard_request_body_filter(ngx_http_request_t *r, ngx_buf_t *b)
 {
@@ -808,8 +845,7 @@ ngx_http_discard_request_body_filter(ngx_http_request_t *r, ngx_buf_t *b)
 
             /* invalid */
 
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                          "client sent invalid chunked body");
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "client sent invalid chunked body");
 
             return NGX_HTTP_BAD_REQUEST;
         }
@@ -836,7 +872,8 @@ ngx_http_discard_request_body_filter(ngx_http_request_t *r, ngx_buf_t *b)
 
 根据http 1.1协议，客户端可以发送一个Expect头来向服务器表明期望发送请求体，
 服务器如果允许客户端发送请求体，则会回复”HTTP/1.1 100 Continue”，客户端收到时，才会开始发送请求体。
-而服务端不希望接收请求体时，必须返回417(Expectation Failed)错误。 //XXX??
+而服务端不希望接收请求体时，必须返回417(Expectation Failed)错误。
+nginx并没这样做，它只是简单的让客户端把请求体发送过来，然后丢弃掉。
 */
 static ngx_int_t
 ngx_http_test_expect(ngx_http_request_t *r)
@@ -881,6 +918,10 @@ ngx_http_test_expect(ngx_http_request_t *r)
 }
 
 
+/*
+NGX_OK:
+NGX_HTTP_*:
+*/
 static ngx_int_t
 ngx_http_request_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 {
@@ -914,6 +955,7 @@ ngx_http_request_body_length_filter(ngx_http_request_t *r, ngx_chain_t *in)
     ll = &out;
 
 	//XXX: 为什么需要重新分配chain对象和buf对象 ？？
+	//函数参数in对应的chain和buf肯能时临时变量？需要重新修一些字段？
     for (cl = in; cl; cl = cl->next) {
 
         if (rb->rest == 0) {
@@ -983,7 +1025,7 @@ ngx_http_request_body_chunked_filter(ngx_http_request_t *r, ngx_chain_t *in)
             return NGX_HTTP_INTERNAL_SERVER_ERROR;
         }
 
-        r->headers_in.content_length_n = 0;
+        r->headers_in.content_length_n = 0;	//XXX:用于记录已经读到的请求体的大小
         rb->rest = 3;
     }
 
@@ -1057,7 +1099,7 @@ ngx_http_request_body_chunked_filter(ngx_http_request_t *r, ngx_chain_t *in)
                 continue;
             }
 
-            if (rc == NGX_DONE) {
+            if (rc == NGX_DONE) {	//XXX:在NGX_DONE之后会不会buf中还有多余的数据或者后面还有chain节点？（参看ngx_http_request_body_length_filter）
 
                 /* a whole response has been parsed successfully */
 
@@ -1164,7 +1206,7 @@ ngx_http_request_body_save_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     /* rb->rest == 0 */
 
-    if (rb->temp_file || r->request_body_in_file_only) {
+    if (rb->temp_file || r->request_body_in_file_only) {	//XXX:在rb->temp_file不为NULL的情况下，为什么还要把剩余数据写到文件中??
 
         if (ngx_http_write_request_body(r) != NGX_OK) {
             return NGX_HTTP_INTERNAL_SERVER_ERROR;

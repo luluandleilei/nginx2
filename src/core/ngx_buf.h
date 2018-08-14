@@ -155,10 +155,13 @@ typedef struct {
 #define NGX_CHAIN_ERROR     (ngx_chain_t *) NGX_ERROR
 
 
-#define ngx_buf_in_memory(b)        (b->temporary || b->memory || b->mmap)	//判断这个buf里面的内容是否在内存里
-#define ngx_buf_in_memory_only(b)   (ngx_buf_in_memory(b) && !b->in_file)	//判断这个buf里面的内容是否仅仅在内存里，并且没有在文件里
+//判断这个buf里面的内容是否在内存里
+#define ngx_buf_in_memory(b)        (b->temporary || b->memory || b->mmap)	
+//判断这个buf里面的内容是否仅仅在内存里，并且没有在文件里
+#define ngx_buf_in_memory_only(b)   (ngx_buf_in_memory(b) && !b->in_file)	
 
-#define ngx_buf_special(b)                                                   \	//判断这个buf是否是一个特殊的buf，只含有特殊的标志并且没有包含真正的数据
+//判断这个buf是否是一个特殊的buf，只含有特殊的标志并且没有包含真正的数据
+#define ngx_buf_special(b)                                                   \	
     ((b->flush || b->last_buf || b->sync)                                    \
      && !ngx_buf_in_memory(b) && !b->in_file)
 
@@ -166,7 +169,8 @@ typedef struct {
     (b->sync                                                                 \
      && !ngx_buf_in_memory(b) && !b->in_file && !b->flush && !b->last_buf)
 
-#define ngx_buf_size(b)                                                      \	//返回这个buf所含数据的大小，不管这个数据是在文件里还是在内存里。
+//返回这个buf所含数据的大小，不管这个数据是在文件里还是在内存里。
+#define ngx_buf_size(b)                                                      \	
     (ngx_buf_in_memory(b) ? (off_t) (b->last - b->pos):                      \
                             (b->file_last - b->file_pos))
 
@@ -178,7 +182,8 @@ ngx_chain_t *ngx_create_chain_of_bufs(ngx_pool_t *pool, ngx_bufs_t *bufs);
 #define ngx_calloc_buf(pool) ngx_pcalloc(pool, sizeof(ngx_buf_t))
 
 ngx_chain_t *ngx_alloc_chain_link(ngx_pool_t *pool);
-#define ngx_free_chain(pool, cl)                                             \	//释放一个ngx_chain_t类型的对象
+//释放一个ngx_chain_t类型的对象
+#define ngx_free_chain(pool, cl)                                             \	
     cl->next = pool->chain;                                                  \
     pool->chain = cl
 

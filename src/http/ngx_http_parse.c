@@ -2133,9 +2133,14 @@ ngx_http_split_args(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *args)
 }
 
 
+/*
+NGX_OK:		a chunk has been parsed successfully
+NGX_AGAIN:
+NGX_DONE:	a whole response has been parsed successfully
+NGX_ERROR:	invalid
+*/
 ngx_int_t
-ngx_http_parse_chunked(ngx_http_request_t *r, ngx_buf_t *b,
-    ngx_http_chunked_t *ctx)
+ngx_http_parse_chunked(ngx_http_request_t *r, ngx_buf_t *b, ngx_http_chunked_t *ctx)
 {
     u_char     *pos, ch, c;
     ngx_int_t   rc;
@@ -2167,8 +2172,7 @@ ngx_http_parse_chunked(ngx_http_request_t *r, ngx_buf_t *b,
 
         ch = *pos;
 
-        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "http chunked byte: %02Xd s:%d", ch, state);
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http chunked byte: %02Xd s:%d", ch, state);
 
         switch (state) {
 
@@ -2347,6 +2351,7 @@ data:
         goto invalid;
     }
 
+	//XXX: update amount of data we want to see next time
     switch (state) {
 
     case sw_chunk_start:

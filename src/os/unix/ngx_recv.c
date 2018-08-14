@@ -10,6 +10,12 @@
 #include <ngx_event.h>
 
 
+/*
+0:
+n:
+NGX_AGAIN:
+NGX_ERROR:
+*/
 ssize_t
 ngx_unix_recv(ngx_connection_t *c, u_char *buf, size_t size)
 {

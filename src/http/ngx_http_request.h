@@ -309,7 +309,6 @@ typedef struct {
 	//直接接收请求体的缓存
     ngx_buf_t                        *buf;
 	//当前剩余请求体大小
-	//根据content-length头部和已接收到的包体长度，计算出的还需要接收的包体长度
     off_t                             rest;
     off_t                             received;
     ngx_chain_t                      *free;	//XXX: free  busy 和bufs链表的关系可以参考ngx_http_request_body_length_filter
@@ -649,7 +648,7 @@ struct ngx_http_request_s {
 	//The value is inferred from the HTTP version and the value of the “Connection” header.
     unsigned                          keepalive:1;			
     unsigned                          lingering_close:1;
-    unsigned                          discard_body:1;
+    unsigned                          discard_body:1;	//XXX：表示当前正在做discard_body处理
     unsigned                          reading_body:1;
 	//Flag indicating that the current request is internal. 
 	//To enter the internal state, a request must pass through an internal redirect or be a subrequest. 
@@ -667,7 +666,11 @@ struct ngx_http_request_s {
     unsigned                          done:1;
     unsigned                          logged:1;
 
-    unsigned                          buffered:4;	//Bitmask showing which modules have buffered the output produced by the request. A number of filters can buffer output; for example, sub_filter can buffer data because of a partial string match, copy filter can buffer data because of the lack of free output buffers etc. As long as this value is non-zero, the request is not finalized pending the flush.
+	//Bitmask showing which modules have buffered the output produced by the request. 
+	//A number of filters can buffer output; for example, sub_filter can buffer data because of 
+	//a partial string match, copy filter can buffer data because of the lack of free output buffers etc.
+	//As long as this value is non-zero, the request is not finalized pending the flush.
+    unsigned                          buffered:4;	
 
 	//main_filter_need_in_memory, filter_need_in_memory — Flags requesting that the output produced in memory buffers rather than files. 
 	//This is a signal to the copy filter to read data from file buffers even if sendfile is enabled. 
