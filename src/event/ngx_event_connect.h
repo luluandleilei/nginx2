@@ -21,8 +21,7 @@
 
 typedef struct ngx_peer_connection_s  ngx_peer_connection_t;
 
-typedef ngx_int_t (*ngx_event_get_peer_pt)(ngx_peer_connection_t *pc,
-    void *data);
+typedef ngx_int_t (*ngx_event_get_peer_pt)(ngx_peer_connection_t *pc, void *data);
 typedef void (*ngx_event_free_peer_pt)(ngx_peer_connection_t *pc, void *data,
     ngx_uint_t state);
 typedef void (*ngx_event_notify_peer_pt)(ngx_peer_connection_t *pc,

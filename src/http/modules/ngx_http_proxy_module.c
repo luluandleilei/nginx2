@@ -3190,20 +3190,15 @@ ngx_http_proxy_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->upstream.force_ranges,
                               prev->upstream.force_ranges, 0);
 
-    ngx_conf_merge_ptr_value(conf->upstream.local,
-                              prev->upstream.local, NULL);
+    ngx_conf_merge_ptr_value(conf->upstream.local, prev->upstream.local, NULL);
 
-    ngx_conf_merge_msec_value(conf->upstream.connect_timeout,
-                              prev->upstream.connect_timeout, 60000);
+    ngx_conf_merge_msec_value(conf->upstream.connect_timeout, prev->upstream.connect_timeout, 60000);
 
-    ngx_conf_merge_msec_value(conf->upstream.send_timeout,
-                              prev->upstream.send_timeout, 60000);
+    ngx_conf_merge_msec_value(conf->upstream.send_timeout, prev->upstream.send_timeout, 60000);
 
-    ngx_conf_merge_msec_value(conf->upstream.read_timeout,
-                              prev->upstream.read_timeout, 60000);
+    ngx_conf_merge_msec_value(conf->upstream.read_timeout, prev->upstream.read_timeout, 60000);
 
-    ngx_conf_merge_msec_value(conf->upstream.next_upstream_timeout,
-                              prev->upstream.next_upstream_timeout, 0);
+    ngx_conf_merge_msec_value(conf->upstream.next_upstream_timeout, prev->upstream.next_upstream_timeout, 0);
 
     ngx_conf_merge_size_value(conf->upstream.send_lowat,
                               prev->upstream.send_lowat, 0);
@@ -3830,7 +3825,7 @@ ngx_http_proxy_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         }
 
 #if (NGX_HTTP_SSL)
-        plcf->ssl = 1;
+        plcf->ssl = 1;	//XXX:为什么要置为1 ?
 #endif
 
         return NGX_CONF_OK;

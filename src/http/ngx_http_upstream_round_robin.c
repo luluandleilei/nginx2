@@ -510,7 +510,7 @@ ngx_http_upstream_get_peer(ngx_http_upstream_rr_peer_data_t *rrp)
 
     for (peer = rrp->peers->peer, i = 0; peer; peer = peer->next, i++) {
         n = i / (8 * sizeof(uintptr_t));					//第几个uintptr_t
-        m = (uintptr_t) 1 << i % (8 * sizeof(uintptr_t));	//uintptr_t内的偏移量
+        m = (uintptr_t) 1 << i % (8 * sizeof(uintptr_t));	//uintptr_t内的偏移�?
 
         if (rrp->tried[n] & m) {
             continue;

@@ -997,8 +997,7 @@ ngx_ssl_ocsp_connect(ngx_ssl_ocsp_ctx_t *ctx)
 {
     ngx_int_t  rc;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_EVENT, ctx->log, 0,
-                   "ssl ocsp connect");
+    ngx_log_debug0(NGX_LOG_DEBUG_EVENT, ctx->log, 0, "ssl ocsp connect");
 
     /* TODO: use all ip addresses */
 
@@ -1011,8 +1010,7 @@ ngx_ssl_ocsp_connect(ngx_ssl_ocsp_ctx_t *ctx)
 
     rc = ngx_event_connect_peer(&ctx->peer);
 
-    ngx_log_debug0(NGX_LOG_DEBUG_EVENT, ctx->log, 0,
-                   "ssl ocsp connect peer done");
+    ngx_log_debug0(NGX_LOG_DEBUG_EVENT, ctx->log, 0, "ssl ocsp connect peer done");
 
     if (rc == NGX_ERROR || rc == NGX_BUSY || rc == NGX_DECLINED) {
         ngx_ssl_ocsp_error(ctx);
@@ -1099,12 +1097,10 @@ ngx_ssl_ocsp_read_handler(ngx_event_t *rev)
     c = rev->data;
     ctx = c->data;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_EVENT, rev->log, 0,
-                   "ssl ocsp read handler");
+    ngx_log_debug0(NGX_LOG_DEBUG_EVENT, rev->log, 0, "ssl ocsp read handler");
 
     if (rev->timedout) {
-        ngx_log_error(NGX_LOG_ERR, rev->log, NGX_ETIMEDOUT,
-                      "OCSP responder timed out");
+        ngx_log_error(NGX_LOG_ERR, rev->log, NGX_ETIMEDOUT, "OCSP responder timed out");
         ngx_ssl_ocsp_error(ctx);
         return;
     }
