@@ -192,7 +192,7 @@ ngx_chain_update_chains(ngx_pool_t *p, ngx_chain_t **free, ngx_chain_t **busy, n
 {
     ngx_chain_t  *cl;
 
-	//将out放到busy的末尾
+	//将out连接到busy的末尾
     if (*out) {
         if (*busy == NULL) {
             *busy = *out;
@@ -206,15 +206,18 @@ ngx_chain_update_chains(ngx_pool_t *p, ngx_chain_t **free, ngx_chain_t **busy, n
         *out = NULL;
     }
 
+	//检查busy链表中的buf若被消费则释放该chain节点
     while (*busy) {
         cl = *busy;
 
-        if (ngx_buf_size(cl->buf) != 0) {
+        if (ngx_buf_size(cl->buf) != 0) {	//buf中还有数据未被消费(eg: 被写入文件)
             break;
         }
 
+		/* buf中的数据已经被消费完，释放该buf及其对应的chain */
+
 		//tag不同的调用ngx_free_chain进行释放
-        if (cl->buf->tag != tag) {
+        if (cl->buf->tag != tag) {	//什么会后会出现这种情况
             *busy = cl->next;
             ngx_free_chain(p, cl);
             continue;

@@ -245,7 +245,10 @@ typedef struct {
     ngx_array_t                       cookies;
 
     ngx_str_t                         server;
-    off_t                             content_length_n;		//XXX: 请求头中content_length字段指定的请求体大小
+	//content_length模式下记录还未读取的请求体的大小,
+	//当调用ngx_http_discard_request_body()丢弃请求体全部完成后其值为0
+	//chunked模式下记录已经读取的请求体的大小
+    off_t                             content_length_n;		
     time_t                            keep_alive_n;
 
     unsigned                          connection_type:2;
@@ -301,18 +304,19 @@ typedef struct {
 typedef void (*ngx_http_client_body_handler_pt)(ngx_http_request_t *r);
 
 typedef struct {
-	//存放请求体的临时文件
+	//读取请求体时，存放请求体的临时文件
     ngx_temp_file_t                  *temp_file;	
 	//接收请求体的缓冲区链表。
 	//当请求体需要全部存放在内存中时，如果一块ngx_buf_t缓冲区无法存放完，这时就需要使用ngx_chain_t链表来存放
     ngx_chain_t                      *bufs;
 	//直接接收请求体的缓存
     ngx_buf_t                        *buf;
-	//当前剩余请求体大小
+	//读取请求体时，当前剩余请求体大小
     off_t                             rest;
     off_t                             received;
     ngx_chain_t                      *free;	//XXX: free  busy 和bufs链表的关系可以参考ngx_http_request_body_length_filter
     ngx_chain_t                      *busy;
+	//用于保存chunked模式下的状态
     ngx_http_chunked_t               *chunked;
 	//请求体接收完毕后执行的回调方法
     ngx_http_client_body_handler_pt   post_handler;
@@ -649,7 +653,7 @@ struct ngx_http_request_s {
     unsigned                          keepalive:1;			
     unsigned                          lingering_close:1;
     unsigned                          discard_body:1;	//XXX：表示当前正在做discard_body处理
-    unsigned                          reading_body:1;
+    unsigned                          reading_body:1;	//XXX：表示当前正在做discard_body处理？？
 	//Flag indicating that the current request is internal. 
 	//To enter the internal state, a request must pass through an internal redirect or be a subrequest. 
 	//Internal requests are allowed to enter internal locations.

@@ -2135,7 +2135,7 @@ ngx_http_split_args(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *args)
 
 /*
 NGX_OK:		a chunk has been parsed successfully
-NGX_AGAIN:
+NGX_AGAIN:	需要读取跟多的数据
 NGX_DONE:	a whole response has been parsed successfully
 NGX_ERROR:	invalid
 */
@@ -2344,14 +2344,16 @@ ngx_http_parse_chunked(ngx_http_request_t *r, ngx_buf_t *b, ngx_http_chunked_t *
 
 data:
 
+	//保存解析状态机的状态
     ctx->state = state;
+	//更新数据处理到的位置
     b->pos = pos;
 
     if (ctx->size > NGX_MAX_OFF_T_VALUE - 5) {
         goto invalid;
     }
 
-	//XXX: update amount of data we want to see next time
+	//XXX: calculate amount of data we want to see next time
     switch (state) {
 
     case sw_chunk_start:

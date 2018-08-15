@@ -457,7 +457,8 @@ struct ngx_http_core_loc_conf_s {
     size_t        subrequest_output_buffer_size; /* subrequest_output_buffer_size */
 
 	//the timeout for reading client request body.
-	//the timeout is set only for a period between two successive read operations, not for the transmission of the whole request body.
+	//the timeout is set only for a period between two successive read operations, 
+	//not for the transmission of the whole request body.
     ngx_msec_t    client_body_timeout;     /* client_body_timeout */
     ngx_msec_t    send_timeout;            /* send_timeout */
     ngx_msec_t    keepalive_timeout;       /* keepalive_timeout */

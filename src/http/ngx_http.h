@@ -57,9 +57,9 @@ struct ngx_http_log_ctx_s {
 
 
 struct ngx_http_chunked_s {
-    ngx_uint_t           state;		//chunk大小解析状态机
-    off_t                size;		//当前chunk剩余大小
-    off_t                length;	//amount of data we want to see next time
+    ngx_uint_t           state;		//chunked大小解析状态机
+    off_t                size;		//保存当前chunked剩余未读取大小
+    off_t                length;	//amount of data we want to see next time //当前状态下，下一次希望读取到的字节数
 };
 
 

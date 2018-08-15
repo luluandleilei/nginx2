@@ -141,6 +141,7 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_ha
         if (!r->headers_in.chunked && rb->rest > 0 && rb->rest <= (off_t) (r->header_in->end - r->header_in->last)) {
             /* the whole request body may be placed in r->header_in */
 
+			//XXX:若剩余空间比client_body_buffer_size还大，当请求体大于client_body_buffer_size时那么仍就不会被写到文件中？
             b = ngx_calloc_buf(r->pool);
             if (b == NULL) {
                 rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
@@ -185,7 +186,7 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_ha
 
 	/* rb->rest > 0 */
 
-	//XXX:分配读buf
+	//XXX:a.创建读buf
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
     size = clcf->client_body_buffer_size;
@@ -210,11 +211,11 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_ha
         goto done;
     }
 
-	//XXX:设置读写回调函数
+	//XXX:a+1.设置读写回调函数
     r->read_event_handler = ngx_http_read_client_request_body_handler;
     r->write_event_handler = ngx_http_request_empty_handler;
 
-	//XXX:
+	//XXX:a+2.
     rc = ngx_http_do_read_client_request_body(r);
 
 done:
@@ -228,7 +229,8 @@ done:
             r->reading_body = 1;
         }
 
-        r->read_event_handler = ngx_http_block_reading;
+		//
+        r->read_event_handler = ngx_http_block_reading;	
         post_handler(r);
     }
 
@@ -258,7 +260,7 @@ ngx_http_read_unbuffered_request_body(ngx_http_request_t *r)
     }
 #endif
 
-    if (r->connection->read->timedout) {
+    if (r->connection->read->timedout) {	//XXX: 这个是什么定时器？？
         r->connection->timedout = 1;
         return NGX_HTTP_REQUEST_TIME_OUT;
     }
@@ -296,7 +298,15 @@ ngx_http_read_client_request_body_handler(ngx_http_request_t *r)
 
 
 /*
-NGX_OK:	XXX:全部读完
+如果r->request_body_no_buffering == 0，则在(1)或(2)时调用filter函数
+如果r->request_body_no_buffering == 1，则在(1)或(2)或(3)时调用filter函数
+(1)‘读取到的数据等于rb->rest大小’
+(2)‘读缓冲区满’
+(3)‘没有更多数据可读’
+
+如果r->request_body_no_buffering == 1，则在
+//仅当 读取到的数据等于rb->rest 或者 读到缓冲区满 或者 无法读取跟多数据 的时候才调用filter进行处理
+NGX_OK:	XXX:请求体全部读完
 NGX_AGAIN: XXX:需要再次读取
 NGX_HTTP_*: XXX：发生错误
 */
@@ -318,8 +328,8 @@ ngx_http_do_read_client_request_body(ngx_http_request_t *r)
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0, "http read client request body");
 
     for ( ;; ) {
-        for ( ;; ) { 
-            if (rb->buf->last == rb->buf->end) {		//缓冲区已经写满
+        for ( ;; ) { 	//XXX: 为什么需要两个for循环
+            if (rb->buf->last == rb->buf->end) {		//没有位置存放新的数据
 
                 if (rb->buf->pos != rb->buf->last) {	//缓冲区中有数据
 
@@ -334,7 +344,7 @@ ngx_http_do_read_client_request_body(ngx_http_request_t *r)
                         return rc;
                     }
 
-                } else {	//缓冲区中没有数据， XXX：什么时候会这样？？？
+                } else {	//缓冲区中没有数据， XXX：什么时候会这样？？？ 当前n也等于rest，已经调用了ngx_http_request_body_filter，消费掉了数据
 
                     /* update chains */
 
@@ -345,9 +355,9 @@ ngx_http_do_read_client_request_body(ngx_http_request_t *r)
                     }
                 }
 
-                if (rb->busy != NULL) {
+                if (rb->busy != NULL) {		//XXX:调用filter后rb->busy在r->request_body_no_buffering== 0时应该为NULL（被写入了文件）。？？
                     if (r->request_body_no_buffering) {
-                        if (c->read->timer_set) {
+                        if (c->read->timer_set) {	//XXX:这里为什么要删除定时器？？？
                             ngx_del_timer(c->read);
                         }
 
@@ -361,6 +371,7 @@ ngx_http_do_read_client_request_body(ngx_http_request_t *r)
                     return NGX_HTTP_INTERNAL_SERVER_ERROR;
                 }
 
+				//重置buf缓冲区
                 rb->buf->pos = rb->buf->start;
                 rb->buf->last = rb->buf->start;
             }
@@ -374,7 +385,10 @@ ngx_http_do_read_client_request_body(ngx_http_request_t *r)
                 size = (size_t) rest;
             }
 
-            n = c->recv(c, rb->buf->last, size);
+			//XXX:读数据之前为什么不判断c->read->ready ？？
+			//对于no_buffering==1的情况，在读缓冲区满且任可以读时也会添加读事件后直接返回NGX_AGAIN
+			//对于边沿触发事件机制，再下一次有数据到来之前不会触发读事件，
+            n = c->recv(c, rb->buf->last, size);	
 
             ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0, "http client request body recv %z", n);
 
@@ -413,9 +427,13 @@ ngx_http_do_read_client_request_body(ngx_http_request_t *r)
                 break;
             }
 
+			/* rb->rest > 0 */
+			
             if (rb->buf->last < rb->buf->end) {
                 break;
             }
+
+			/* rb->buf->last == rb->buf->end */
         }
 
         ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0, "http client request body rest %O", rb->rest);
@@ -457,8 +475,10 @@ ngx_http_do_read_client_request_body(ngx_http_request_t *r)
     }
 
 	//接收到完整的包体
-	
-    if (c->read->timer_set) {
+
+	//删除XXX定时器
+	//如果一次性读完了请求体是不会添加定时器的
+    if (c->read->timer_set) {	//XXX:这是什么定时器，什么时候c->read->timer_set会为0
         ngx_del_timer(c->read);
     }
 
@@ -957,7 +977,7 @@ ngx_http_request_body_length_filter(ngx_http_request_t *r, ngx_chain_t *in)
     ll = &out;
 
 	//XXX: 为什么需要重新分配chain对象和buf对象 ？？
-	//函数参数in对应的chain和buf肯能时临时变量？需要重新修一些字段？
+	//函数参数in对应的chain和buf肯能时临时变量？需要重新修一些字段？为了跟chunked_filter一致？
     for (cl = in; cl; cl = cl->next) {
 
         if (rb->rest == 0) {
@@ -1057,6 +1077,7 @@ ngx_http_request_body_chunked_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
                 clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
+				//若当前请求体的总大小超过了client_max_body_size大小返回413
                 if (clcf->client_max_body_size && clcf->client_max_body_size - r->headers_in.content_length_n < rb->chunked->size) {
                     ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "client intended to send too large chunked " "body: %O+%O bytes", r->headers_in.content_length_n, rb->chunked->size);
 
@@ -1201,7 +1222,9 @@ ngx_http_request_body_save_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     if (rb->rest > 0) {
 
-		//这里rb->buf有可能为NULL吗？
+		//缓冲区已满，将缓冲区数据写入文件
+		//XXX：这里rb->buf有可能为NULL吗？
+		//当处理r->header_in中的请求体中的数据的时候rb->buf为NULL
         if (rb->buf && rb->buf->last == rb->buf->end && ngx_http_write_request_body(r) != NGX_OK) {
             return NGX_HTTP_INTERNAL_SERVER_ERROR;
         }
@@ -1211,7 +1234,8 @@ ngx_http_request_body_save_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     /* rb->rest == 0 */
 
-    if (rb->temp_file || r->request_body_in_file_only) {	//XXX:在rb->temp_file不为NULL的情况下，为什么还要把剩余数据写到文件中??
+	//XXX:在rb->temp_file不为NULL的情况下，为什么还要把剩余数据写到文件中??
+    if (rb->temp_file || r->request_body_in_file_only) {	
 
         if (ngx_http_write_request_body(r) != NGX_OK) {
             return NGX_HTTP_INTERNAL_SERVER_ERROR;

@@ -24,10 +24,10 @@ typedef struct {
 
 
 struct ngx_http_header_val_s {
-    ngx_http_complex_value_t   value;
-    ngx_str_t                  key;
+    ngx_http_complex_value_t   value;	//value of header
+    ngx_str_t                  key;		//name of header
     ngx_http_set_header_pt     handler;
-    ngx_uint_t                 offset;
+    ngx_uint_t                 offset;	//offset of ngx_http_headers_out_t
     ngx_uint_t                 always;  /* unsigned  always:1 */
 };
 
@@ -47,7 +47,7 @@ typedef struct {
     ngx_http_expires_t         expires;
     time_t                     expires_time;
     ngx_http_complex_value_t  *expires_value;
-    ngx_array_t               *headers;
+    ngx_array_t               *headers;		  	/* array of ngx_http_header_val_t */
     ngx_array_t               *trailers;
 } ngx_http_headers_conf_t;
 
@@ -71,53 +71,109 @@ static char *ngx_http_headers_merge_conf(ngx_conf_t *cf,
 static ngx_int_t ngx_http_headers_filter_init(ngx_conf_t *cf);
 static char *ngx_http_headers_expires(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
-static char *ngx_http_headers_add(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+static char *ngx_http_headers_add(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 
 static ngx_http_set_header_t  ngx_http_set_headers[] = {
 
     { ngx_string("Cache-Control"),
-                 offsetof(ngx_http_headers_out_t, cache_control),
-                 ngx_http_add_multi_header_lines },
+      offsetof(ngx_http_headers_out_t, cache_control),
+	  ngx_http_add_multi_header_lines },
 
     { ngx_string("Link"),
-                 offsetof(ngx_http_headers_out_t, link),
-                 ngx_http_add_multi_header_lines },
+	  offsetof(ngx_http_headers_out_t, link),
+	  ngx_http_add_multi_header_lines },
 
     { ngx_string("Last-Modified"),
-                 offsetof(ngx_http_headers_out_t, last_modified),
-                 ngx_http_set_last_modified },
+      offsetof(ngx_http_headers_out_t, last_modified),
+	  ngx_http_set_last_modified },
 
     { ngx_string("ETag"),
-                 offsetof(ngx_http_headers_out_t, etag),
-                 ngx_http_set_response_header },
+	  offsetof(ngx_http_headers_out_t, etag),
+      ngx_http_set_response_header },
 
     { ngx_null_string, 0, NULL }
 };
 
 
 static ngx_command_t  ngx_http_headers_filter_commands[] = {
+	/*
+	 Syntax:	expires [modified] time;
+	 			expires epoch | max | off;
+	 Default: 	expires off;
+	 Context:	http, server, location, if in location
 
+	 Enables or disables adding or modifying the “Expires” and “Cache-Control” response header fields provided that the response code equals 200, 201 (1.3.10), 204, 206, 301, 302, 303, 304, 307 (1.1.16, 1.0.13), or 308 (1.13.0). The parameter can be a positive or negative time.
+
+	 The time in the “Expires” field is computed as a sum of the current time and time specified in the directive. If the modified parameter is used (0.7.0, 0.6.32) then the time is computed as a sum of the file’s modification time and the time specified in the directive.
+
+	 In addition, it is possible to specify a time of day using the “@” prefix (0.7.9, 0.6.34):
+
+	expires @15h30m;
+	The epoch parameter corresponds to the absolute time “Thu, 01 Jan 1970 00:00:01 GMT”. The contents of the “Cache-Control” field depends on the sign of the specified time:
+
+	time is negative — “Cache-Control: no-cache”.
+	time is positive or zero — “Cache-Control: max-age=t”, where t is a time specified in the directive, in seconds.
+	The max parameter sets “Expires” to the value “Thu, 31 Dec 2037 23:55:55 GMT”, and “Cache-Control” to 10 years.
+
+	The off parameter disables adding or modifying the “Expires” and “Cache-Control” response header fields.
+
+	The last parameter value can contain variables (1.7.9):
+
+	map $sent_http_content_type $expires {
+	    default         off;
+	    application/pdf 42d;
+	    ~image/         max;
+	}
+
+	expires $expires;
+	*/
     { ngx_string("expires"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF
-                        |NGX_CONF_TAKE12,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF |NGX_CONF_TAKE12,
       ngx_http_headers_expires,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
       NULL },
 
+	/*
+	 Syntax: 	add_header name value [always];
+	 Default:	—
+	 Context:	http, server, location, if in location
+
+	 Adds the specified field to a response header provided that the response code equals 200, 201 
+	 (1.3.10), 204, 206, 301, 302, 303, 304, 307 (1.1.16, 1.0.13), or 308 (1.13.0). The value can 
+	 contain variables.
+	
+	 There could be several add_header directives. These directives are inherited from the previous 
+	 level if and only if there are no add_header directives defined on the current level.
+	
+	 If the always parameter is specified (1.7.5), the header field will be added regardless of the
+	 response code.
+	
+	*/
     { ngx_string("add_header"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF
-                        |NGX_CONF_TAKE23,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF |NGX_CONF_TAKE23,
       ngx_http_headers_add,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_headers_conf_t, headers),
       NULL },
 
+	/*
+	 Syntax:	add_trailer name value [always];
+	 Default:	—
+	 Context:	http, server, location, if in location
+	 This directive appeared in version 1.13.2.
+
+	 Adds the specified field to the end of a response provided that the response code equals 200, 201,
+	 206, 301, 302, 303, 307, or 308. The value can contain variables.
+
+	 There could be several add_trailer directives. These directives are inherited from the previous level
+	 if and only if there are no add_trailer directives defined on the current level.
+
+	 If the always parameter is specified the specified field will be added regardless of the response code.
+	*/
     { ngx_string("add_trailer"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF
-                        |NGX_CONF_TAKE23,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF |NGX_CONF_TAKE23,
       ngx_http_headers_add,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_headers_conf_t, trailers),
@@ -144,6 +200,9 @@ static ngx_http_module_t  ngx_http_headers_filter_module_ctx = {
 
 /*
 始终打开，可以设置expire和Cache-control头，可以添加任意名称的头
+
+The ngx_http_headers_filter_module module allows adding the “Expires” and “Cache-Control” header fields, 
+and arbitrary fields, to a response header.
 */
 ngx_module_t  ngx_http_headers_filter_module = {
     NGX_MODULE_V1,
@@ -470,8 +529,7 @@ ngx_http_set_expires(ngx_http_request_t *r, ngx_http_headers_conf_t *conf)
 
 
 static ngx_int_t
-ngx_http_parse_expires(ngx_str_t *value, ngx_http_expires_t *expires,
-    time_t *expires_time, char **err)
+ngx_http_parse_expires(ngx_str_t *value, ngx_http_expires_t *expires, time_t *expires_time, char **err)
 {
     ngx_uint_t  minus;
 
@@ -542,8 +600,7 @@ ngx_http_parse_expires(ngx_str_t *value, ngx_http_expires_t *expires,
 
 
 static ngx_int_t
-ngx_http_add_header(ngx_http_request_t *r, ngx_http_header_val_t *hv,
-    ngx_str_t *value)
+ngx_http_add_header(ngx_http_request_t *r, ngx_http_header_val_t *hv, ngx_str_t *value)
 {
     ngx_table_elt_t  *h;
 
@@ -563,8 +620,7 @@ ngx_http_add_header(ngx_http_request_t *r, ngx_http_header_val_t *hv,
 
 
 static ngx_int_t
-ngx_http_add_multi_header_lines(ngx_http_request_t *r,
-    ngx_http_header_val_t *hv, ngx_str_t *value)
+ngx_http_add_multi_header_lines(ngx_http_request_t *r, ngx_http_header_val_t *hv, ngx_str_t *value)
 {
     ngx_array_t      *pa;
     ngx_table_elt_t  *h, **ph;
@@ -576,8 +632,7 @@ ngx_http_add_multi_header_lines(ngx_http_request_t *r,
     pa = (ngx_array_t *) ((char *) &r->headers_out + hv->offset);
 
     if (pa->elts == NULL) {
-        if (ngx_array_init(pa, r->pool, 1, sizeof(ngx_table_elt_t *)) != NGX_OK)
-        {
+        if (ngx_array_init(pa, r->pool, 1, sizeof(ngx_table_elt_t *)) != NGX_OK) {
             return NGX_ERROR;
         }
     }
@@ -603,23 +658,20 @@ ngx_http_add_multi_header_lines(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_http_set_last_modified(ngx_http_request_t *r, ngx_http_header_val_t *hv,
-    ngx_str_t *value)
+ngx_http_set_last_modified(ngx_http_request_t *r, ngx_http_header_val_t *hv, ngx_str_t *value)
 {
     if (ngx_http_set_response_header(r, hv, value) != NGX_OK) {
         return NGX_ERROR;
     }
 
-    r->headers_out.last_modified_time =
-        (value->len) ? ngx_parse_http_time(value->data, value->len) : -1;
+    r->headers_out.last_modified_time = (value->len) ? ngx_parse_http_time(value->data, value->len) : -1;
 
     return NGX_OK;
 }
 
 
 static ngx_int_t
-ngx_http_set_response_header(ngx_http_request_t *r, ngx_http_header_val_t *hv,
-    ngx_str_t *value)
+ngx_http_set_response_header(ngx_http_request_t *r, ngx_http_header_val_t *hv, ngx_str_t *value)
 {
     ngx_table_elt_t  *h, **old;
 
@@ -805,8 +857,7 @@ ngx_http_headers_add(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     headers = (ngx_array_t **) ((char *) hcf + cmd->offset);
 
     if (*headers == NULL) {
-        *headers = ngx_array_create(cf->pool, 1,
-                                    sizeof(ngx_http_header_val_t));
+        *headers = ngx_array_create(cf->pool, 1, sizeof(ngx_http_header_val_t));
         if (*headers == NULL) {
             return NGX_CONF_ERROR;
         }
@@ -858,8 +909,7 @@ ngx_http_headers_add(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     if (ngx_strcmp(value[3].data, "always") != 0) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid parameter \"%V\"", &value[3]);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid parameter \"%V\"", &value[3]);
         return NGX_CONF_ERROR;
     }
 

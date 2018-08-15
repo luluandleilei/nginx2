@@ -114,8 +114,7 @@ static ngx_int_t ngx_http_gzip_ratio_variable(ngx_http_request_t *r,
 
 static ngx_int_t ngx_http_gzip_filter_init(ngx_conf_t *cf);
 static void *ngx_http_gzip_create_conf(ngx_conf_t *cf);
-static char *ngx_http_gzip_merge_conf(ngx_conf_t *cf,
-    void *parent, void *child);
+static char *ngx_http_gzip_merge_conf(ngx_conf_t *cf, void *parent, void *child);
 static char *ngx_http_gzip_window(ngx_conf_t *cf, void *post, void *data);
 static char *ngx_http_gzip_hash(ngx_conf_t *cf, void *post, void *data);
 
@@ -333,8 +332,7 @@ ngx_http_gzip_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         return ngx_http_next_body_filter(r, in);
     }
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http gzip filter");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http gzip filter");
 
     if (ctx->buffering) {
 

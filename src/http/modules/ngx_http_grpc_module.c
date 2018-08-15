@@ -1095,8 +1095,7 @@ ngx_http_grpc_body_output_filter(void *data, ngx_chain_t *in)
     ngx_http_grpc_ctx_t    *ctx;
     ngx_http_grpc_frame_t  *f;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "grpc output filter");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "grpc output filter");
 
     ctx = ngx_http_grpc_get_ctx(r);
 
