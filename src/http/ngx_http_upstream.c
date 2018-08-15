@@ -2112,8 +2112,7 @@ ngx_http_upstream_send_request_body(ngx_http_request_t *r, ngx_http_upstream_t *
 
     if (!r->reading_body) {
         if (!u->store && !r->post_action && !u->conf->ignore_client_abort) {
-            r->read_event_handler =
-                                  ngx_http_upstream_rd_check_broken_connection;
+            r->read_event_handler = ngx_http_upstream_rd_check_broken_connection;
         }
     }
 
