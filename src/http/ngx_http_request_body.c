@@ -185,7 +185,7 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_ha
 
 	/* rb->rest > 0 */
 
-	//XXX：
+	//XXX:分配读buf
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
     size = clcf->client_body_buffer_size;
@@ -210,7 +210,7 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_ha
         goto done;
     }
 
-	//XXX:
+	//XXX:设置读写回调函数
     r->read_event_handler = ngx_http_read_client_request_body_handler;
     r->write_event_handler = ngx_http_request_empty_handler;
 
@@ -296,9 +296,9 @@ ngx_http_read_client_request_body_handler(ngx_http_request_t *r)
 
 
 /*
-NGX_OK:
-NGX_AGAIN:
-NGX_HTTP_*
+NGX_OK:	XXX:全部读完
+NGX_AGAIN: XXX:需要再次读取
+NGX_HTTP_*: XXX：发生错误
 */
 static ngx_int_t
 ngx_http_do_read_client_request_body(ngx_http_request_t *r)
@@ -365,9 +365,10 @@ ngx_http_do_read_client_request_body(ngx_http_request_t *r)
                 rb->buf->last = rb->buf->start;
             }
 
-			//缓冲区还有空闲的空间，读取内核套接字缓冲区里的TCP字符流
-            size = rb->buf->end - rb->buf->last;
-            rest = rb->rest - (rb->buf->last - rb->buf->pos);
+			/* 缓冲区还有空闲的空间，读取内核套接字缓冲区里的TCP字符流 */
+			
+            size = rb->buf->end - rb->buf->last;				//缓冲区剩余空间大小
+            rest = rb->rest - (rb->buf->last - rb->buf->pos);	//请求体剩余未读取的数据大小
 
             if ((off_t) size > rest) {
                 size = (size_t) rest;
@@ -456,6 +457,7 @@ ngx_http_do_read_client_request_body(ngx_http_request_t *r)
     }
 
 	//接收到完整的包体
+	
     if (c->read->timer_set) {
         ngx_del_timer(c->read);
     }
@@ -1032,8 +1034,10 @@ ngx_http_request_body_chunked_filter(ngx_http_request_t *r, ngx_chain_t *in)
     out = NULL;
     ll = &out;
 
+	//处理每一个chain
     for (cl = in; cl; cl = cl->next) {
 
+		//处理每一个buf
         for ( ;; ) {
 
             ngx_log_debug7(NGX_LOG_DEBUG_EVENT, r->connection->log, 0,
@@ -1105,6 +1109,7 @@ ngx_http_request_body_chunked_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
                 rb->rest = 0;
 
+				//
                 tl = ngx_chain_get_free_buf(r->pool, &rb->free);
                 if (tl == NULL) {
                     return NGX_HTTP_INTERNAL_SERVER_ERROR;
