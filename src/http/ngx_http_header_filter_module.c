@@ -168,17 +168,21 @@ ngx_http_header_filter(ngx_http_request_t *r)
     ngx_http_core_srv_conf_t  *cscf;
     u_char                     addr[NGX_SOCKADDR_STRLEN];
 
-    if (r->header_sent) {
+	//如果请求的响应头部已经发送过了，直接返回NGX_OK
+	//否则将header_sent标志位置为1防止反复地发送响应头部
+    if (r->header_sent) {	
         return NGX_OK;
     }
 
-    r->header_sent = 1;
+    r->header_sent = 1;		
 
-    if (r != r->main) {
+	//the output header in a subrequest is always ignored.
+    if (r != r->main) {	  	
         return NGX_OK;
     }
 
-    if (r->http_version < NGX_HTTP_VERSION_10) {
+	//如果HTTP版本小于1.0，不需要发送响应头部，直接返回NGX_OK
+    if (r->http_version < NGX_HTTP_VERSION_10) {	
         return NGX_OK;
     }
 
@@ -196,6 +200,7 @@ ngx_http_header_filter(ngx_http_request_t *r)
         }
     }
 
+	/* 计算响应行、头部序列化后字符流长度 */
     len = sizeof("HTTP/1.x ") - 1 + sizeof(CRLF) - 1
           /* the end of the header */
           + sizeof(CRLF) - 1;
@@ -327,9 +332,7 @@ ngx_http_header_filter(ngx_http_request_t *r)
 
         port = ngx_inet_get_port(c->local_sockaddr);
 
-        len += sizeof("Location: https://") - 1
-               + host.len
-               + r->headers_out.location->value.len + 2;
+        len += sizeof("Location: https://") - 1 + host.len + r->headers_out.location->value.len + 2;
 
         if (clcf->port_in_redirect) {
 
@@ -413,11 +416,13 @@ ngx_http_header_filter(ngx_http_request_t *r)
                + sizeof(CRLF) - 1;
     }
 
+	/*在内存池上分配用于存放响应字符流的缓存*/
     b = ngx_create_temp_buf(r->pool, len);
     if (b == NULL) {
         return NGX_ERROR;
     }
 
+	/*将响应行、头部按规则序列化到缓存中*/
     /* "HTTP/1.x " */
     b->last = ngx_cpymem(b->last, "HTTP/1.1 ", sizeof("HTTP/1.x ") - 1);
 
@@ -521,17 +526,14 @@ ngx_http_header_filter(ngx_http_request_t *r)
         b->last = ngx_cpymem(b->last, "Connection: upgrade" CRLF, sizeof("Connection: upgrade" CRLF) - 1);
 
     } else if (r->keepalive) {
-        b->last = ngx_cpymem(b->last, "Connection: keep-alive" CRLF,
-                             sizeof("Connection: keep-alive" CRLF) - 1);
+        b->last = ngx_cpymem(b->last, "Connection: keep-alive" CRLF, sizeof("Connection: keep-alive" CRLF) - 1);
 
         if (clcf->keepalive_header) {
-            b->last = ngx_sprintf(b->last, "Keep-Alive: timeout=%T" CRLF,
-                                  clcf->keepalive_header);
+            b->last = ngx_sprintf(b->last, "Keep-Alive: timeout=%T" CRLF, clcf->keepalive_header);
         }
 
     } else {
-        b->last = ngx_cpymem(b->last, "Connection: close" CRLF,
-                             sizeof("Connection: close" CRLF) - 1);
+        b->last = ngx_cpymem(b->last, "Connection: close" CRLF, sizeof("Connection: close" CRLF) - 1);
     }
 
 #if (NGX_HTTP_GZIP)
@@ -582,6 +584,7 @@ ngx_http_header_filter(ngx_http_request_t *r)
     out.buf = b;
     out.next = NULL;
 
+	//调用ngx_http_write_filter方法发送构造好的缓存
     return ngx_http_write_filter(r, &out);
 }
 

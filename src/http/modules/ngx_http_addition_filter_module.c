@@ -188,6 +188,8 @@ ngx_http_addition_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         return ngx_http_next_body_filter(r, in);
     }
 
+	/* conf->after_body.len != 0 */
+
     last = 0;
 
     for (cl = in; cl; cl = cl->next) {

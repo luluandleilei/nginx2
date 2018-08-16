@@ -330,9 +330,7 @@ ngx_http_image_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
                 }
             }
 
-            return ngx_http_filter_finalize_request(r,
-                                              &ngx_http_image_filter_module,
-                                              NGX_HTTP_UNSUPPORTED_MEDIA_TYPE);
+            return ngx_http_filter_finalize_request(r, &ngx_http_image_filter_module, NGX_HTTP_UNSUPPORTED_MEDIA_TYPE);
         }
 
         /* override content type */
@@ -361,9 +359,7 @@ ngx_http_image_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         }
 
         if (rc == NGX_ERROR) {
-            return ngx_http_filter_finalize_request(r,
-                                              &ngx_http_image_filter_module,
-                                              NGX_HTTP_UNSUPPORTED_MEDIA_TYPE);
+            return ngx_http_filter_finalize_request(r, &ngx_http_image_filter_module, NGX_HTTP_UNSUPPORTED_MEDIA_TYPE);
         }
 
         /* fall through */
@@ -398,8 +394,7 @@ ngx_http_image_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
 
 static ngx_int_t
-ngx_http_image_send(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx,
-    ngx_chain_t *in)
+ngx_http_image_send(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx, ngx_chain_t *in)
 {
     ngx_int_t  rc;
 

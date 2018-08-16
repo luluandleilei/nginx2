@@ -210,8 +210,7 @@ ngx_http_gunzip_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
         cl = NULL;
 
-        ngx_chain_update_chains(r->pool, &ctx->free, &ctx->busy, &cl,
-                                (ngx_buf_tag_t) &ngx_http_gunzip_filter_module);
+        ngx_chain_update_chains(r->pool, &ctx->free, &ctx->busy, &cl, (ngx_buf_tag_t) &ngx_http_gunzip_filter_module);
         ctx->nomem = 0;
         flush = 0;
 
@@ -273,12 +272,10 @@ ngx_http_gunzip_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
             goto failed;
         }
 
-        ngx_chain_update_chains(r->pool, &ctx->free, &ctx->busy, &ctx->out,
-                                (ngx_buf_tag_t) &ngx_http_gunzip_filter_module);
+        ngx_chain_update_chains(r->pool, &ctx->free, &ctx->busy, &ctx->out, (ngx_buf_tag_t) &ngx_http_gunzip_filter_module);
         ctx->last_out = &ctx->out;
 
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "gunzip out: %p", ctx->out);
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "gunzip out: %p", ctx->out);
 
         ctx->nomem = 0;
         flush = 0;

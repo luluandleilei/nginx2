@@ -1550,8 +1550,7 @@ ngx_http_cache_send(ngx_http_request_t *r)
 
     c = r->cache;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http file cache send: %s", c->file.name.data);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http file cache send: %s", c->file.name.data);
 
     if (r != r->main && c->length - c->body_start == 0) {
         return ngx_http_send_header(r);

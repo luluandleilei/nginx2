@@ -511,9 +511,7 @@ ngx_ssl_certificate_status_callback(ngx_ssl_conn_t *ssl_conn, void *data)
         return rc;
     }
 
-    if (staple->staple.len
-        && staple->valid >= ngx_time())
-    {
+    if (staple->staple.len && staple->valid >= ngx_time()) {
         /* we have to copy ocsp response as OpenSSL will free it by itself */
 
         p = OPENSSL_malloc(staple->staple.len);
@@ -616,9 +614,7 @@ ngx_ssl_stapling_ocsp_handler(ngx_ssl_ocsp_ctx_t *ctx)
     n = OCSP_response_status(ocsp);
 
     if (n != OCSP_RESPONSE_STATUS_SUCCESSFUL) {
-        ngx_log_error(NGX_LOG_ERR, ctx->log, 0,
-                      "OCSP response not successful (%d: %s)",
-                      n, OCSP_response_status_str(n));
+        ngx_log_error(NGX_LOG_ERR, ctx->log, 0, "OCSP response not successful (%d: %s)", n, OCSP_response_status_str(n));
         goto error;
     }
 
@@ -838,8 +834,7 @@ ngx_ssl_ocsp_start(void)
 static void
 ngx_ssl_ocsp_done(ngx_ssl_ocsp_ctx_t *ctx)
 {
-    ngx_log_debug0(NGX_LOG_DEBUG_EVENT, ctx->log, 0,
-                   "ssl ocsp done");
+    ngx_log_debug0(NGX_LOG_DEBUG_EVENT, ctx->log, 0, "ssl ocsp done");
 
     if (ctx->peer.connection) {
         ngx_close_connection(ctx->peer.connection);
@@ -1153,8 +1148,7 @@ ngx_ssl_ocsp_read_handler(ngx_event_t *rev)
         return;
     }
 
-    ngx_log_error(NGX_LOG_ERR, ctx->log, 0,
-                  "OCSP responder prematurely closed connection");
+    ngx_log_error(NGX_LOG_ERR, ctx->log, 0, "OCSP responder prematurely closed connection");
 
     ngx_ssl_ocsp_error(ctx);
 }

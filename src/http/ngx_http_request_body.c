@@ -344,7 +344,7 @@ ngx_http_do_read_client_request_body(ngx_http_request_t *r)
                         return rc;
                     }
 
-                } else {	//缓冲区中没有数据， XXX：什么时候会这样？？？ 当前n也等于rest，已经调用了ngx_http_request_body_filter，消费掉了数据
+                } else {	//缓冲区中没有数据(都被消费了)， XXX：什么时候会这样？？？ 当前n也等于rest，已经调用了ngx_http_request_body_filter，消费掉了数据
 
                     /* update chains */
 
@@ -627,7 +627,7 @@ ngx_http_discard_request_body(ngx_http_request_t *r)
 
     size = r->header_in->last - r->header_in->pos;
 
-    if (size || r->headers_in.chunked) {
+    if (size || r->headers_in.chunked) { /* set r->headers_in.content_length_n for r->headers_in.chunked */
         rc = ngx_http_discard_request_body_filter(r, r->header_in);
 
         if (rc != NGX_OK) {	//XXX:发生错误
@@ -978,6 +978,12 @@ ngx_http_request_body_length_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
 	//XXX: 为什么需要重新分配chain对象和buf对象 ？？
 	//函数参数in对应的chain和buf肯能时临时变量？需要重新修一些字段？为了跟chunked_filter一致？
+	//A filter handler receives a chain of buffers. The handler is supposed to process the buffers and pass
+	//a possibly new chain to the next handler. It's worth noting that the chain links ngx_chain_t of the 
+	//incoming chain belong to the caller, and must not be reused or changed. Right after the handler 
+	//completes, the caller can use its output chain links to keep track of the buffers it has sent. To save
+	//the buffer chain or to substitute some buffers before passing to the next filter, a handler needs to 
+	//allocate its own chain links.
     for (cl = in; cl; cl = cl->next) {
 
         if (rb->rest == 0) {

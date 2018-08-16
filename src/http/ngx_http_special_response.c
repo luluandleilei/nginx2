@@ -508,8 +508,7 @@ ngx_http_special_response_handler(ngx_http_request_t *r, ngx_int_t error)
 
 
 ngx_int_t
-ngx_http_filter_finalize_request(ngx_http_request_t *r, ngx_module_t *m,
-    ngx_int_t error)
+ngx_http_filter_finalize_request(ngx_http_request_t *r, ngx_module_t *m, ngx_int_t error)
 {
     void       *ctx;
     ngx_int_t   rc;

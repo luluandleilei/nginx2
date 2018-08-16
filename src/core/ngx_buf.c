@@ -206,7 +206,7 @@ ngx_chain_update_chains(ngx_pool_t *p, ngx_chain_t **free, ngx_chain_t **busy, n
         *out = NULL;
     }
 
-	//检查busy链表中的buf若被消费则释放该chain节点
+	//检查busy链表中的buf, 若被消费则释放该chain节点
     while (*busy) {
         cl = *busy;
 
@@ -217,7 +217,9 @@ ngx_chain_update_chains(ngx_pool_t *p, ngx_chain_t **free, ngx_chain_t **busy, n
 		/* buf中的数据已经被消费完，释放该buf及其对应的chain */
 
 		//tag不同的调用ngx_free_chain进行释放
-        if (cl->buf->tag != tag) {	//什么会后会出现这种情况
+		//XXX:什么时候会出现这种情况? 
+		//未修改上个filter传递过来的buf，但是必须分配自己的chain，指向该buf，这里就是释放分配的chain
+        if (cl->buf->tag != tag) {	
             *busy = cl->next;
             ngx_free_chain(p, cl);
             continue;

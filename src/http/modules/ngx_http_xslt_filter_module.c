@@ -287,14 +287,12 @@ ngx_http_xslt_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
             xmlFreeParserCtxt(ctx->ctxt);
 
             if (wellFormed) {
-                return ngx_http_xslt_send(r, ctx,
-                                       ngx_http_xslt_apply_stylesheet(r, ctx));
+                return ngx_http_xslt_send(r, ctx, ngx_http_xslt_apply_stylesheet(r, ctx));
             }
 
             xmlFreeDoc(ctx->doc);
 
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                          "not well formed XML document");
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "not well formed XML document");
 
             return ngx_http_xslt_send(r, ctx, NULL);
         }
@@ -305,8 +303,7 @@ ngx_http_xslt_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
 
 static ngx_int_t
-ngx_http_xslt_send(ngx_http_request_t *r, ngx_http_xslt_filter_ctx_t *ctx,
-    ngx_buf_t *b)
+ngx_http_xslt_send(ngx_http_request_t *r, ngx_http_xslt_filter_ctx_t *ctx, ngx_buf_t *b)
 {
     ngx_int_t                         rc;
     ngx_chain_t                       out;
@@ -365,8 +362,7 @@ ngx_http_xslt_send(ngx_http_request_t *r, ngx_http_xslt_filter_ctx_t *ctx,
 
 
 static ngx_int_t
-ngx_http_xslt_add_chunk(ngx_http_request_t *r, ngx_http_xslt_filter_ctx_t *ctx,
-    ngx_buf_t *b)
+ngx_http_xslt_add_chunk(ngx_http_request_t *r, ngx_http_xslt_filter_ctx_t *ctx, ngx_buf_t *b)
 {
     int               err;
     xmlParserCtxtPtr  ctxt;
@@ -375,12 +371,10 @@ ngx_http_xslt_add_chunk(ngx_http_request_t *r, ngx_http_xslt_filter_ctx_t *ctx,
 
         ctxt = xmlCreatePushParserCtxt(NULL, NULL, NULL, 0, NULL);
         if (ctxt == NULL) {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                          "xmlCreatePushParserCtxt() failed");
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "xmlCreatePushParserCtxt() failed");
             return NGX_ERROR;
         }
-        xmlCtxtUseOptions(ctxt, XML_PARSE_NOENT|XML_PARSE_DTDLOAD
-                                               |XML_PARSE_NOWARNING);
+        xmlCtxtUseOptions(ctxt, XML_PARSE_NOENT|XML_PARSE_DTDLOAD |XML_PARSE_NOWARNING);
 
         ctxt->sax->externalSubset = ngx_http_xslt_sax_external_subset;
         ctxt->sax->setDocumentLocator = NULL;
@@ -392,16 +386,14 @@ ngx_http_xslt_add_chunk(ngx_http_request_t *r, ngx_http_xslt_filter_ctx_t *ctx,
         ctx->request = r;
     }
 
-    err = xmlParseChunk(ctx->ctxt, (char *) b->pos, (int) (b->last - b->pos),
-                        (b->last_buf) || (b->last_in_chain));
+    err = xmlParseChunk(ctx->ctxt, (char *) b->pos, (int) (b->last - b->pos), (b->last_buf) || (b->last_in_chain));
 
     if (err == 0) {
         b->pos = b->last;
         return NGX_OK;
     }
 
-    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                  "xmlParseChunk() failed, error:%d", err);
+    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "xmlParseChunk() failed, error:%d", err);
 
     return NGX_ERROR;
 }

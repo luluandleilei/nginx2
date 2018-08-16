@@ -2793,7 +2793,28 @@ ngx_http_send_response(ngx_http_request_t *r, ngx_uint_t status, ngx_str_t *ct, 
     return ngx_http_output_filter(r, &out);
 }
 
+/*
+发送缓存文件中内容到客户端过程:
+ ngx_http_file_cache_open->ngx_http_file_cache_read->ngx_http_file_cache_aio_read这个流程获取文件中前面的头部信息相关内容，并获取整个
+ 文件stat信息，例如文件大小等。
+ 头部部分在ngx_http_cache_send->ngx_http_send_header发送，
+ 缓存文件后面的包体部分在ngx_http_cache_send后半部代码中触发在filter模块中发送
 
+ 接收后端数据并转发到客户端触发数据发送过程:
+ ngx_event_pipe_write_to_downstream中的
+ if (p->upstream_eof || p->upstream_error || p->upstream_done) {
+    遍历p->in 或者遍历p->out，然后执行输出
+    p->output_filter(p->output_ctx, p->out);
+ }
+ */
+
+/*
+The ngx_http_send_header(r) function sends the output header. Do not call this function until r->headers_out
+contains all of the data required to produce the HTTP response header. The status field in r->headers_out 
+must always be set. If the response status indicates that a response body follows the header, content_length_n
+can be set as well. The default value for this field is -1, which means that the body size is unknown. In this
+case, chunked transfer encoding is used. To output an arbitrary header, append the headers list.
+*/
 ngx_int_t
 ngx_http_send_header(ngx_http_request_t *r)
 {
@@ -2811,10 +2832,20 @@ ngx_http_send_header(ngx_http_request_t *r)
         r->headers_out.status_line.len = 0;
     }
 
+	//invokes the header filter chain by calling the first header filter handler stored in the 
+	//ngx_http_top_header_filter variable. It's assumed that every header handler calls the next handler in 
+	//the chain until the final handler ngx_http_header_filter(r) is called. The final header handler 
+	//constructs the HTTP response based on r->headers_out and passes it to the ngx_http_writer_filter for 
+	//output.
     return ngx_http_top_header_filter(r);
 }
 
 
+/*
+To send the response body, call the ngx_http_output_filter(r, cl) function. The function can be called 
+multiple times. Each time, it sends a part of the response body in the form of a buffer chain. Set the 
+last_buf flag in the last body buffer.
+*/
 ngx_int_t
 ngx_http_output_filter(ngx_http_request_t *r, ngx_chain_t *in)
 {
@@ -2825,6 +2856,17 @@ ngx_http_output_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0, "http output filter \"%V?%V\"", &r->uri, &r->args);
 
+		
+	//invokes the body filter chain by calling the first body 
+	//filter handler stored in the ngx_http_top_body_filter variable. It's assumed that every body handler 
+	//calls the next handler in the chain until the final handler ngx_http_write_filter(r, cl) is called.
+	//
+	//A body filter handler receives a chain of buffers. The handler is supposed to process the buffers and
+	//pass a possibly new chain to the next handler. It's worth noting that the chain links ngx_chain_t of 
+	//the incoming chain belong to the caller, and must not be reused or changed. Right after the handler 
+	//completes, the caller can use its output chain links to keep track of the buffers it has sent. To save
+	//the buffer chain or to substitute some buffers before passing to the next filter, a handler needs to 
+	//allocate its own chain links.
     rc = ngx_http_top_body_filter(r, in);
 
     if (rc == NGX_ERROR) {
@@ -3499,6 +3541,7 @@ ngx_http_internal_redirect(ngx_http_request_t *r, ngx_str_t *uri, ngx_str_t *arg
     r->add_uri_to_alias = 0;
     r->main->count++;	//XXX:内部重定向为什么要增加引用计数？？？？
 
+	//从NGX_HTTP_SERVER_REWRITE_PHASE阶段开始执行
     ngx_http_handler(r);
 
     return NGX_DONE;
@@ -3544,17 +3587,20 @@ ngx_http_named_location(ngx_http_request_t *r, ngx_str_t *name)
             ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "using location: %V \"%V?%V\"", name, &r->uri, &r->args);
 
             r->internal = 1;
-            r->content_handler = NULL;
-            r->uri_changed = 0;
-            r->loc_conf = (*clcfp)->loc_conf;
+			
+			//与NGX_HTTP_FIND_CONFIG_PHASE阶段行为类似
+            r->content_handler = NULL;			
+            r->uri_changed = 0;					
+            r->loc_conf = (*clcfp)->loc_conf;	
 
             /* clear the modules contexts */
-            ngx_memzero(r->ctx, sizeof(void *) * ngx_http_max_module);
+            ngx_memzero(r->ctx, sizeof(void *) * ngx_http_max_module);	//
 
             ngx_http_update_location_config(r);
 
             cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
 
+			//从NGX_HTTP_REWRITE_PHASE阶段开始执行
             r->phase_handler = cmcf->phase_engine.location_rewrite_index;
 
             r->write_event_handler = ngx_http_core_run_phases;
@@ -4507,14 +4553,11 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
         conf->post_action = prev->post_action;
     }
 
-    ngx_conf_merge_uint_value(conf->types_hash_max_size,
-                              prev->types_hash_max_size, 1024);
+    ngx_conf_merge_uint_value(conf->types_hash_max_size, prev->types_hash_max_size, 1024);
 
-    ngx_conf_merge_uint_value(conf->types_hash_bucket_size,
-                              prev->types_hash_bucket_size, 64);
+    ngx_conf_merge_uint_value(conf->types_hash_bucket_size, prev->types_hash_bucket_size, 64);
 
-    conf->types_hash_bucket_size = ngx_align(conf->types_hash_bucket_size,
-                                             ngx_cacheline_size);
+    conf->types_hash_bucket_size = ngx_align(conf->types_hash_bucket_size, ngx_cacheline_size);
 
     /*
      * the special handling of the "types" directive in the "http" section
@@ -4625,8 +4668,7 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_conf_merge_msec_value(conf->send_timeout, prev->send_timeout, 60000);
     ngx_conf_merge_size_value(conf->send_lowat, prev->send_lowat, 0);
-    ngx_conf_merge_size_value(conf->postpone_output, prev->postpone_output,
-                              1460);
+    ngx_conf_merge_size_value(conf->postpone_output, prev->postpone_output, 1460);
     ngx_conf_merge_size_value(conf->limit_rate, prev->limit_rate, 0);
     ngx_conf_merge_size_value(conf->limit_rate_after, prev->limit_rate_after,
                               0);

@@ -151,8 +151,7 @@ static ngx_int_t ngx_http_fastcgi_create_key(ngx_http_request_t *r);
 #endif
 static ngx_int_t ngx_http_fastcgi_create_request(ngx_http_request_t *r);
 static ngx_int_t ngx_http_fastcgi_reinit_request(ngx_http_request_t *r);
-static ngx_int_t ngx_http_fastcgi_body_output_filter(void *data,
-    ngx_chain_t *in);
+static ngx_int_t ngx_http_fastcgi_body_output_filter(void *data, ngx_chain_t *in);
 static ngx_int_t ngx_http_fastcgi_process_header(ngx_http_request_t *r);
 static ngx_int_t ngx_http_fastcgi_input_filter_init(void *data);
 static ngx_int_t ngx_http_fastcgi_input_filter(ngx_event_pipe_t *p,
@@ -1347,8 +1346,7 @@ ngx_http_fastcgi_body_output_filter(void *data, ngx_chain_t *in)
     ngx_http_fastcgi_ctx_t     *f;
     ngx_http_fastcgi_header_t  *h;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "fastcgi output filter");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "fastcgi output filter");
 
     f = ngx_http_get_module_ctx(r, ngx_http_fastcgi_module);
 
@@ -1599,8 +1597,7 @@ out:
 
     rc = ngx_chain_writer(&r->upstream->writer, out);
 
-    ngx_chain_update_chains(r->pool, &f->free, &f->busy, &out,
-                         (ngx_buf_tag_t) &ngx_http_fastcgi_body_output_filter);
+    ngx_chain_update_chains(r->pool, &f->free, &f->busy, &out, (ngx_buf_tag_t) &ngx_http_fastcgi_body_output_filter);
 
     for (cl = f->free; cl; cl = cl->next) {
 

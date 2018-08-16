@@ -67,7 +67,8 @@ struct ngx_buf_s {
 	unsigned         in_file:1;		//为1时表示该buf所包含的内容是在文件中
 	//Flag indicating that all data prior to the buffer need to be flushed.
     unsigned         flush:1;		//遇到有flush字段被设置为1的的buf的chain，则该chain的数据即便不是最后结束的数据（last_buf被设置，标志所有要输出的内容都完了），也会进行输出，不会受postpone_output配置的限制，但是会受到发送速率等其他条件的限制。
-	//Flag indicating that the buffer carries no data or special signal like flush or last_buf. By default nginx considers such buffers an error condition, but this flag tells nginx to skip the error check
+	//Flag indicating that the buffer carries no data or special signal like flush or last_buf. 
+	//By default nginx considers such buffers an error condition, but this flag tells nginx to skip the error check
 	unsigned         sync:1;
 	//Flag indicating that the buffer is the last in output.
     unsigned         last_buf:1;		//数据被以多个chain传递给了过滤器，此字段为1表明这是最后一个buf

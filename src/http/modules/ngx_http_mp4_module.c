@@ -454,8 +454,7 @@ ngx_http_mp4_handler(ngx_http_request_t *r)
 
     path.len = last - path.data;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0,
-                   "http mp4 filename: \"%V\"", &path);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "http mp4 filename: \"%V\"", &path);
 
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
@@ -613,8 +612,7 @@ ngx_http_mp4_handler(ngx_http_request_t *r)
          */
 
         if (ngx_directio_on(of.fd) == NGX_FILE_ERROR) {
-            ngx_log_error(NGX_LOG_ALERT, log, ngx_errno,
-                          ngx_directio_on_n " \"%s\" failed", path.data);
+            ngx_log_error(NGX_LOG_ALERT, log, ngx_errno, ngx_directio_on_n " \"%s\" failed", path.data);
         }
 
         of.is_directio = 1;

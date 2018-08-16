@@ -223,7 +223,7 @@ struct ngx_resolver_ctx_s {
 
     ngx_int_t                 state;	//[out]域名解析结果状态 NGX_OK, NGX_AGAIN, NGX_RESOLVE_TIMEDOUT, NGX_RESOLVE_NXDOMAIN
     ngx_str_t                 name;		//[in]需要解析的域名name
-    ngx_str_t                 service;	//[in]需要XXX的service？？？
+    ngx_str_t                 service;	//[in]需要解析的service？？？
 
     time_t                    valid;	//[out?]//解析的结果的有效时间
     ngx_uint_t                naddrs;	//[out]存储name解析的结果的数组元素个数
