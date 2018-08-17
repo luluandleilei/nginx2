@@ -449,8 +449,15 @@ struct ngx_http_core_loc_conf_s {
 	//the buffer size for reading client request body.
     size_t        client_body_buffer_size; /* client_body_buffer_size */	
     size_t        send_lowat;              /* send_lowat */
+	//If possible, the transmission of client data will be postponed until nginx has at least size
+	//bytes of data to send. The zero value disables postponing data transmission.
     size_t        postpone_output;         /* postpone_output */
+	//Limits the rate of response transmission to a client. 
+	//The rate is specified in bytes per second. The zero value disables rate limiting. 
+	//The limit is set per a request, and so if a client simultaneously opens two connections, 
+	//the overall rate will be twice as much as the specified limit.
     size_t        limit_rate;              /* limit_rate */
+	//Sets the initial amount after which the further transmission of a response to a client will be rate limited.
     size_t        limit_rate_after;        /* limit_rate_after */
     size_t        sendfile_max_chunk;      /* sendfile_max_chunk */
     size_t        read_ahead;              /* read_ahead */

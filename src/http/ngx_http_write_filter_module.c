@@ -165,11 +165,12 @@ ngx_http_write_filter(ngx_http_request_t *r, ngx_chain_t *in)
         return NGX_OK;
     }
 
-    if (c->write->delayed) {	//TODO:
-        c->buffered |= NGX_HTTP_WRITE_BUFFERED;
-        return NGX_AGAIN;
+    if (c->write->delayed) {	//XXX:  如果delayed为1， 则表示这一次的epoll调度中 请求仍需要减速， 是不可以发送响应的
+        c->buffered |= NGX_HTTP_WRITE_BUFFERED;	//XXX:什么作用？
+        return NGX_AGAIN;	//XXX:这是在告诉HTTP框架out缓冲区中还有响应等待发送。
     }
 
+	//XXX:这一段什么意思？
     if (size == 0 && !(c->buffered & NGX_LOWLEVEL_BUFFERED) && !(last && c->need_last_buf)) {
         if (last || flush || sync) {
             for (cl = r->out; cl; /* void */) {
@@ -191,16 +192,18 @@ ngx_http_write_filter(ngx_http_request_t *r, ngx_chain_t *in)
         return NGX_ERROR;
     }
 
+	//计算当前能够发送的最大字节数目
     if (r->limit_rate) {
         if (r->limit_rate_after == 0) {
             r->limit_rate_after = clcf->limit_rate_after;
         }
 
+		//XXX:为什么要加1 ???
         limit = (off_t) r->limit_rate * (ngx_time() - r->start_sec + 1) - (c->sent - r->limit_rate_after);
 
-        if (limit <= 0) {
+        if (limit <= 0) {	//XXX: 什么时候会发生？？
             c->write->delayed = 1;
-            delay = (ngx_msec_t) (- limit * 1000 / r->limit_rate + 1);
+            delay = (ngx_msec_t) (- limit * 1000 / r->limit_rate + 1);	//XXX:为什么要加1 ？？
             ngx_add_timer(c->write, delay);
 
             c->buffered |= NGX_HTTP_WRITE_BUFFERED;
@@ -251,15 +254,17 @@ ngx_http_write_filter(ngx_http_request_t *r, ngx_chain_t *in)
         if (delay > 0) {
             limit = 0;
             c->write->delayed = 1;
-            ngx_add_timer(c->write, delay);
+            ngx_add_timer(c->write, delay);	//XXX: 超时回调函数是什么？
         }
     }
 
+	//XXX:什么意思？
     if (limit && c->write->ready && c->sent - sent >= limit - (off_t) (2 * ngx_pagesize)) {
         c->write->delayed = 1;
         ngx_add_timer(c->write, 1);
     }
 
+	//回收发送完的buffer对应的chain对象
     for (cl = r->out; cl && cl != chain; /* void */) {
         ln = cl;
         cl = cl->next;
@@ -268,13 +273,16 @@ ngx_http_write_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     r->out = chain;
 
+	//若还有数据未发送完，则设置标记表示还有数据需要发送
     if (chain) {
         c->buffered |= NGX_HTTP_WRITE_BUFFERED;
         return NGX_AGAIN;
     }
 
+	//
     c->buffered &= ~NGX_HTTP_WRITE_BUFFERED;
 
+	//XXX:什么意思？
     if ((c->buffered & NGX_LOWLEVEL_BUFFERED) && r->postponed == NULL) {
         return NGX_AGAIN;
     }

@@ -4617,8 +4617,7 @@ ngx_http_upstream_process_accel_expires(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_http_upstream_process_limit_rate(ngx_http_request_t *r, ngx_table_elt_t *h,
-    ngx_uint_t offset)
+ngx_http_upstream_process_limit_rate(ngx_http_request_t *r, ngx_table_elt_t *h, ngx_uint_t offset)
 {
     ngx_int_t             n;
     ngx_http_upstream_t  *u;

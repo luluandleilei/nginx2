@@ -183,8 +183,7 @@ ngx_module_t  ngx_http_map_module = {
 
 
 static ngx_int_t
-ngx_http_map_variable(ngx_http_request_t *r, ngx_http_variable_value_t *v,
-    uintptr_t data)
+ngx_http_map_variable(ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_http_map_ctx_t  *map = (ngx_http_map_ctx_t *) data;
 
@@ -226,8 +225,7 @@ ngx_http_map_variable(ngx_http_request_t *r, ngx_http_variable_value_t *v,
         *v = *value;
     }
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http map: \"%V\" \"%v\"", &val, v);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http map: \"%V\" \"%v\"", &val, v);
 
     return NGX_OK;
 }
@@ -375,9 +373,7 @@ ngx_http_map_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         hash.hash = &map->map.hash.hash;
         hash.temp_pool = NULL;
 
-        if (ngx_hash_init(&hash, ctx.keys.keys.elts, ctx.keys.keys.nelts)
-            != NGX_OK)
-        {
+        if (ngx_hash_init(&hash, ctx.keys.keys.elts, ctx.keys.keys.nelts) != NGX_OK) {
             ngx_destroy_pool(pool);
             return NGX_CONF_ERROR;
         }

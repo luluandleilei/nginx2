@@ -217,8 +217,7 @@ ngx_stream_map_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     name = value[2];
 
     if (name.data[0] != '$') {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid variable name \"%V\"", &name);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid variable name \"%V\"", &name);
         return NGX_CONF_ERROR;
     }
 
@@ -253,10 +252,7 @@ ngx_stream_map_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
 #if (NGX_PCRE)
-    if (ngx_array_init(&ctx.regexes, cf->pool, 2,
-                       sizeof(ngx_stream_map_regex_t))
-        != NGX_OK)
-    {
+    if (ngx_array_init(&ctx.regexes, cf->pool, 2, sizeof(ngx_stream_map_regex_t)) != NGX_OK) {
         ngx_destroy_pool(pool);
         return NGX_CONF_ERROR;
     }

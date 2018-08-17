@@ -289,8 +289,7 @@ ngx_http_limit_req_delay(ngx_http_request_t *r)
 {
     ngx_event_t  *wev;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "limit_req delay");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "limit_req delay");
 
     wev = r->connection->write;
 

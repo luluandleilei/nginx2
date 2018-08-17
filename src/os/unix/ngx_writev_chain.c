@@ -10,6 +10,10 @@
 #include <ngx_event.h>
 
 
+/*
+limit:	最多发送的字节数
+return：指向下一个待处理的chain
+*/
 ngx_chain_t *
 ngx_writev_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit)
 {
@@ -60,18 +64,9 @@ ngx_writev_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit)
         }
 
         if (cl && cl->buf->in_file) {
-            ngx_log_error(NGX_LOG_ALERT, c->log, 0,
-                          "file buf in writev "
-                          "t:%d r:%d f:%d %p %p-%p %p %O-%O",
-                          cl->buf->temporary,
-                          cl->buf->recycled,
-                          cl->buf->in_file,
-                          cl->buf->start,
-                          cl->buf->pos,
-                          cl->buf->last,
-                          cl->buf->file,
-                          cl->buf->file_pos,
-                          cl->buf->file_last);
+            ngx_log_error(NGX_LOG_ALERT, c->log, 0, "file buf in writev " "t:%d r:%d f:%d %p %p-%p %p %O-%O",
+				cl->buf->temporary, cl->buf->recycled, cl->buf->in_file, cl->buf->start, cl->buf->pos,
+				cl->buf->last, cl->buf->file, cl->buf->file_pos, cl->buf->file_last);
 
             ngx_debug_point();
 
@@ -86,13 +81,15 @@ ngx_writev_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit)
             return NGX_CHAIN_ERROR;
         }
 
-        sent = (n == NGX_AGAIN) ? 0 : n;
+        sent = (n == NGX_AGAIN) ? 0 : n;	//XXX:发送的字节数
 
         c->sent += sent;
 
         in = ngx_chain_update_sent(in, sent);
 
-        if (send - prev_send != sent) {
+		//XXX:为什么不是返回NGX_AGAIN的时候进行wev->ready == 0 ???
+		//XXX:发送了部分数据一定是写未准备好么？？？
+        if (send - prev_send != sent) {	
             wev->ready = 0;
             return in;
         }
@@ -104,9 +101,12 @@ ngx_writev_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit)
 }
 
 
+/*
+
+return： 指向下一个待处理的chain
+*/
 ngx_chain_t *
-ngx_output_chain_to_iovec(ngx_iovec_t *vec, ngx_chain_t *in, size_t limit,
-    ngx_log_t *log)
+ngx_output_chain_to_iovec(ngx_iovec_t *vec, ngx_chain_t *in, size_t limit, ngx_log_t *log)
 {
     size_t         total, size;
     u_char        *prev;
@@ -114,13 +114,13 @@ ngx_output_chain_to_iovec(ngx_iovec_t *vec, ngx_chain_t *in, size_t limit,
     struct iovec  *iov;
 
     iov = NULL;
-    prev = NULL;
+    prev = NULL;	
     total = 0;
     n = 0;
 
     for ( /* void */ ; in && total < limit; in = in->next) {
 
-        if (ngx_buf_special(in->buf)) {
+        if (ngx_buf_special(in->buf)) {	//XXX:为什么会有特殊buf，用来干嘛的？
             continue;
         }
 
@@ -129,18 +129,9 @@ ngx_output_chain_to_iovec(ngx_iovec_t *vec, ngx_chain_t *in, size_t limit,
         }
 
         if (!ngx_buf_in_memory(in->buf)) {
-            ngx_log_error(NGX_LOG_ALERT, log, 0,
-                          "bad buf in output chain "
-                          "t:%d r:%d f:%d %p %p-%p %p %O-%O",
-                          in->buf->temporary,
-                          in->buf->recycled,
-                          in->buf->in_file,
-                          in->buf->start,
-                          in->buf->pos,
-                          in->buf->last,
-                          in->buf->file,
-                          in->buf->file_pos,
-                          in->buf->file_last);
+            ngx_log_error(NGX_LOG_ALERT, log, 0, "bad buf in output chain " "t:%d r:%d f:%d %p %p-%p %p %O-%O",
+				in->buf->temporary, in->buf->recycled, in->buf->in_file, in->buf->start, in->buf->pos,
+				in->buf->last, in->buf->file, in->buf->file_pos, in->buf->file_last);
 
             ngx_debug_point();
 
@@ -149,11 +140,13 @@ ngx_output_chain_to_iovec(ngx_iovec_t *vec, ngx_chain_t *in, size_t limit,
 
         size = in->buf->last - in->buf->pos;
 
-        if (size > limit - total) {
+        if (size > limit - total) {	//仅这次处理的过程中的最后一个buf才会发生这种情况
             size = limit - total;
         }
 
-        if (prev == in->buf->pos) {
+		//XXX: 连续的buf，直接修改iov->iov_len
+		//XXX:prev仅在这次处理过程中的最后一个buf过程中才可能为buf中间的某个值，不会
+        if (prev == in->buf->pos) {	
             iov->iov_len += size;
 
         } else {
@@ -186,23 +179,20 @@ ngx_writev(ngx_connection_t *c, ngx_iovec_t *vec)
 
 eintr:
 
-    n = writev(c->fd, vec->iovs, vec->count);
+    n = writev(c->fd, vec->iovs, vec->count);	//XXX:返回0表示什么？
 
-    ngx_log_debug2(NGX_LOG_DEBUG_EVENT, c->log, 0,
-                   "writev: %z of %uz", n, vec->size);
+    ngx_log_debug2(NGX_LOG_DEBUG_EVENT, c->log, 0, "writev: %z of %uz", n, vec->size);
 
     if (n == -1) {
         err = ngx_errno;
 
         switch (err) {
         case NGX_EAGAIN:
-            ngx_log_debug0(NGX_LOG_DEBUG_EVENT, c->log, err,
-                           "writev() not ready");
+            ngx_log_debug0(NGX_LOG_DEBUG_EVENT, c->log, err, "writev() not ready");
             return NGX_AGAIN;
 
         case NGX_EINTR:
-            ngx_log_debug0(NGX_LOG_DEBUG_EVENT, c->log, err,
-                           "writev() was interrupted");
+            ngx_log_debug0(NGX_LOG_DEBUG_EVENT, c->log, err, "writev() was interrupted");
             goto eintr;
 
         default:

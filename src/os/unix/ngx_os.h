@@ -58,14 +58,13 @@ ngx_chain_t *ngx_udp_unix_sendmsg_chain(ngx_connection_t *c, ngx_chain_t *in, of
 
 
 typedef struct {
-    struct iovec  *iovs;
-    ngx_uint_t     count;
-    size_t         size;
-    ngx_uint_t     nalloc;
+    struct iovec  *iovs;	
+    ngx_uint_t     count;	//the count of used iovs
+    size_t         size;	//total bytes in iovs
+    ngx_uint_t     nalloc;	//total number of iovs
 } ngx_iovec_t;
 
-ngx_chain_t *ngx_output_chain_to_iovec(ngx_iovec_t *vec, ngx_chain_t *in,
-    size_t limit, ngx_log_t *log);
+ngx_chain_t *ngx_output_chain_to_iovec(ngx_iovec_t *vec, ngx_chain_t *in, size_t limit, ngx_log_t *log);
 
 
 ssize_t ngx_writev(ngx_connection_t *c, ngx_iovec_t *vec);

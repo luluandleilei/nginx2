@@ -2187,8 +2187,7 @@ ngx_http_ssi_stub_output(ngx_http_request_t *r, void *data, ngx_int_t rc)
         return rc;
     }
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "ssi stub output: \"%V?%V\"", &r->uri, &r->args);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "ssi stub output: \"%V?%V\"", &r->uri, &r->args);
 
     out = data;
 

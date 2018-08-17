@@ -206,7 +206,7 @@ struct ngx_connection_s {
     unsigned            log_error:3;	/* ngx_connection_log_error_e *///本连接记录日志时的级别, 由ngx_connection_log_error_e枚举表示 
 
     unsigned            timedout:1;		//标志位，为 1时表示连接已超时
-    unsigned            error:1;		//表示连接读或写过程中出现错误
+    unsigned            error:1;		//表示连接处理(读或写)过程中出现错误
     //(1)标志位，为 1时表示连接已经销毁。这里的连接指的是TCP连接，而不是ngx_connection_t结构体。 
     //当destroyed为 1时，结构体仍然存在，但其对应的套接字、内存池等已经不可用
     //(2)表示连接上承载的request已近销毁(subrequest or main request???)

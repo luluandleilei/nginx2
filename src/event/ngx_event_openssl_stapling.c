@@ -847,8 +847,7 @@ ngx_ssl_ocsp_done(ngx_ssl_ocsp_ctx_t *ctx)
 static void
 ngx_ssl_ocsp_error(ngx_ssl_ocsp_ctx_t *ctx)
 {
-    ngx_log_debug0(NGX_LOG_DEBUG_EVENT, ctx->log, 0,
-                   "ssl ocsp error");
+    ngx_log_debug0(NGX_LOG_DEBUG_EVENT, ctx->log, 0, "ssl ocsp error");
 
     ctx->code = 0;
     ctx->handler(ctx);

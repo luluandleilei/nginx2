@@ -98,8 +98,7 @@ ngx_int_t ngx_http_parse_multi_header_lines(ngx_array_t *headers,
     ngx_str_t *name, ngx_str_t *value);
 ngx_int_t ngx_http_parse_set_cookie_lines(ngx_array_t *headers,
     ngx_str_t *name, ngx_str_t *value);
-ngx_int_t ngx_http_arg(ngx_http_request_t *r, u_char *name, size_t len,
-    ngx_str_t *value);
+ngx_int_t ngx_http_arg(ngx_http_request_t *r, u_char *name, size_t len, ngx_str_t *value);
 void ngx_http_split_args(ngx_http_request_t *r, ngx_str_t *uri,
     ngx_str_t *args);
 ngx_int_t ngx_http_parse_chunked(ngx_http_request_t *r, ngx_buf_t *b, ngx_http_chunked_t *ctx);
