@@ -1131,6 +1131,7 @@ static ngx_command_t  ngx_http_core_commands[] = {
 	 Syntax:	send_timeout time;
 	 Default: 	send_timeout 60s;
 	 Context:	http, server, location
+	 
 	 Sets a timeout for transmitting a response to the client. 
 	 The timeout is set only between two successive write operations, not for the transmission of the whole response. 
 	 If the client does not receive anything within this time, the connection is closed.

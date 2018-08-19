@@ -178,7 +178,7 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_ha
         return NGX_OK;
     }
 
-    if (rb->rest < 0) {	//XXX:什么时候会出现？
+    if (rb->rest < 0) {		 //XXX:什么时候会出现？
         ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0, "negative request body rest");
         rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
         goto done;
@@ -190,7 +190,7 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, ngx_http_client_body_ha
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
     size = clcf->client_body_buffer_size;
-    size += size >> 2;
+    size += size >> 2;	//XXX: 为什么还要这样一下？？
 
     /* TODO: honor r->request_body_in_single_buf */
 
@@ -229,7 +229,7 @@ done:
             r->reading_body = 1;
         }
 
-		//
+		//XXX:为什么要将r->read_event_handler置为ngx_http_block_reading ？？？
         r->read_event_handler = ngx_http_block_reading;	
         post_handler(r);
     }
@@ -612,6 +612,7 @@ ngx_http_discard_request_body(ngx_http_request_t *r)
 
 	//删掉读事件上的定时器
 	//因为这时本身就不需要请求体，所以也无所谓客户端发送的快还是慢了
+	//XXX:如果rev->timer_set为真那么这个定时器是关于什么的定时器 ???
 	//XXX:太慢会不会用来作为ddos攻击？？？
     if (rev->timer_set) {	//XXX: rev->timer_set 什么时候为1？？？
         ngx_del_timer(rev);
@@ -1247,6 +1248,8 @@ ngx_http_request_body_save_filter(ngx_http_request_t *r, ngx_chain_t *in)
             return NGX_HTTP_INTERNAL_SERVER_ERROR;
         }
 
+		//XXX:创建一个文件buf，追加到rb->bufs的末尾
+		//XXX:表示当前数据在文件中
         if (rb->temp_file->file.offset != 0) {
 
             cl = ngx_chain_get_free_buf(r->pool, &rb->free);

@@ -71,7 +71,7 @@ struct ngx_event_s {
 	//Flag indicating that the event timer has expired.
     unsigned         timedout:1;	
 	//Flag indicating that the event timer is set and not yet expired. 
-    unsigned         timer_set:1;	//标志位，为1时表示这个事件存在于定时器中
+    unsigned         timer_set:1;
 
 	//Flag indicating that I/O is delayed due to rate limiting.
     unsigned         delayed:1;		//标志位，为1时表示需要延迟处理这个事件，它仅用于限速功能， //在定时器到期时才开始处理 //标志位，为1表明响应需要延迟发送

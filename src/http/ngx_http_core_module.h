@@ -467,6 +467,9 @@ struct ngx_http_core_loc_conf_s {
 	//the timeout is set only for a period between two successive read operations, 
 	//not for the transmission of the whole request body.
     ngx_msec_t    client_body_timeout;     /* client_body_timeout */
+	//a timeout for transmitting a response to the client. 
+	//the timeout is set only between two successive write operations, not for the transmission of the whole response. 
+	//if the client does not receive anything within this time, the connection is closed.
     ngx_msec_t    send_timeout;            /* send_timeout */
     ngx_msec_t    keepalive_timeout;       /* keepalive_timeout */
     ngx_msec_t    lingering_time;          /* lingering_time */

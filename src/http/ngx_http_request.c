@@ -904,7 +904,7 @@ ngx_http_process_request_line(ngx_event_t *rev)
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, rev->log, 0, "http process request line");
 
-	//Timeout for reading client request header 
+	//timeout for reading client request header 
     if (rev->timedout) {	
         ngx_log_error(NGX_LOG_INFO, c->log, NGX_ETIMEDOUT, "client timed out");
         c->timedout = 1;	//XXX: 为什么要将连接的超时位置位？？？
@@ -2123,7 +2123,7 @@ ngx_http_request_handler(ngx_event_t *ev)
     ngx_http_request_t  *r;
 
     c = ev->data;
-    r = c->data;
+    r = c->data;	//注意：c->data不一定是原始请求
 
     ngx_http_set_log_request(c->log, r);
 
@@ -2136,16 +2136,19 @@ ngx_http_request_handler(ngx_event_t *ev)
         return;
     }
 
+	//由于上一次发送响应时发送速率过快，超过了请求的limit_rate速率上限，
+	//ngx_http_write_filter方法就会设置一个超时时间将写事件添加到定时器中，
+	//这时本次的超时只是由限速导致, 清除相应标志位
     if (ev->delayed && ev->timedout) {
         ev->delayed = 0;
         ev->timedout = 0;
     }
 
     if (ev->write) {
-        r->write_event_handler(r);
+        r->write_event_handler(r);	//ngx_http_core_run_phases
 
     } else {
-        r->read_event_handler(r);
+        r->read_event_handler(r);	//ngx_http_block_reading
     }
 
     ngx_http_run_posted_requests(c);
@@ -2581,6 +2584,8 @@ ngx_http_writer(ngx_http_request_t *r)
 
     clcf = ngx_http_get_module_loc_conf(r->main, ngx_http_core_module);
 
+	//timeout for sending respond
+	//由于网络异常或者客户端长时间不接收响应，导致真实的发送响应超时；
     if (wev->timedout) {
         ngx_log_error(NGX_LOG_INFO, c->log, NGX_ETIMEDOUT, "client timed out");
         c->timedout = 1;
@@ -2603,7 +2608,9 @@ ngx_http_writer(ngx_http_request_t *r)
         return;
     }
 
-    rc = ngx_http_output_filter(r, NULL);
+	//调用ngx_http_output_filter方法发送响应，其中第2个参数（也就是表示需要发送的缓冲区）为NULL指针。
+	//这意味着，需要调用各包体过滤模块处理out缓冲区中的剩余内容，最后调用ngx_http_write filter方法把响应发送出去。
+    rc = ngx_http_output_filter(r, NULL);	//NULL表示这次没有心的数据加入到out中，直接把上次没有发送完的out发送出去即可
 
     ngx_log_debug3(NGX_LOG_DEBUG_HTTP, c->log, 0, "http writer output filter: %i, \"%V?%V\"", rc, &r->uri, &r->args);
 
@@ -2612,6 +2619,10 @@ ngx_http_writer(ngx_http_request_t *r)
         return;
     }
 
+	//发送响应后，查看ngx_http_request_t结构体中的buffered和postponed标志位，如果任一个不为0，
+	//则意味着没有发送完out中的全部响应，请求main指针指向请求自身，表示这个请求是原始请求，
+	//再检查与客户端间的连接ngx_connection-t结构体中的buffered标志位，如果buffered不为0，
+	//同样表示没有发送完out中的全部响应；除此以外，都表示out中的全部响应皆发送完毕。
     if (r->buffered || r->postponed || (r == r->main && c->buffered)) {
 
         if (!wev->delayed) {
@@ -2627,6 +2638,7 @@ ngx_http_writer(ngx_http_request_t *r)
 
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, wev->log, 0, "http writer done: \"%V?%V\"", &r->uri, &r->args);
 
+	//全部响应皆发送完毕，如果这个请求的连接上再有可写事件，将不做任何处理
     r->write_event_handler = ngx_http_request_empty_handler;
 
     ngx_http_finalize_request(r, rc);
@@ -3367,6 +3379,8 @@ ngx_http_free_request(ngx_http_request_t *r, ngx_int_t rc)
         return;
     }
 
+	//循环地遍历请求ngx_http_request_t结构体中的cleanup链表，
+	//依次调用每一个ngx_http_cleanup_pt方法释放资源。
     cln = r->cleanup;
     r->cleanup = NULL;
 
@@ -3396,6 +3410,7 @@ ngx_http_free_request(ngx_http_request_t *r, ngx_int_t rc)
 
     log->action = "logging request";
 
+	//依次 调用NGX_HTTP_LOG_PHASE阶段的所有回调方法记录日志
     ngx_http_log_request(r);
 
     log->action = "closing request";
@@ -3451,7 +3466,7 @@ ngx_http_log_request(ngx_http_request_t *r)
 }
 
 
-//
+//关闭这个TCP连接， 当且仅当HTTP请求真正结束时才会调用这个方法
 void
 ngx_http_close_connection(ngx_connection_t *c)
 {

@@ -210,11 +210,11 @@ ngx_chain_update_chains(ngx_pool_t *p, ngx_chain_t **free, ngx_chain_t **busy, n
     while (*busy) {
         cl = *busy;
 
-        if (ngx_buf_size(cl->buf) != 0) {	//buf中还有数据未被消费(eg: 被写入文件)
+        if (ngx_buf_size(cl->buf) != 0) {	//buf中还有数据还未处理完(eg: 被写入文件)
             break;
         }
 
-		/* buf中的数据已经被消费完，释放该buf及其对应的chain */
+		/* buf中的数据已经被处理完，释放该buf及其对应的chain */
 
 		//tag不同的调用ngx_free_chain进行释放
 		//XXX:什么时候会出现这种情况? 

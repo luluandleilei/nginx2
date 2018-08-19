@@ -995,7 +995,8 @@ ngx_close_connection(ngx_connection_t *c)
         return;
     }
 
-	/*将连接的定时事件移除*/
+	/*将连接的定时事件从定时器中移除*/
+	//将连接的读写事件从定时器中移除
     if (c->read->timer_set) {
         ngx_del_timer(c->read);
     }
@@ -1004,7 +1005,7 @@ ngx_close_connection(ngx_connection_t *c)
         ngx_del_timer(c->write);
     }
 
-	/*将连接的监听的读写事件移除*/
+	/*将连接的监听的读写事件从事件驱动机制中移除*/
     if (!c->shared) {
         if (ngx_del_conn) {
             ngx_del_conn(c, NGX_CLOSE_EVENT);
@@ -1020,7 +1021,8 @@ ngx_close_connection(ngx_connection_t *c)
         }
     }
 
-	//将连接在posted队列中的事件移除
+	/* 将连接在posted队列中的读/写事件移除 */
+	//XXX:什么时候会发生在调用ngx_close_connection时，读写事件还在post队列上？？
     if (c->read->posted) {
         ngx_delete_posted_event(c->read);
     }
@@ -1038,6 +1040,7 @@ ngx_close_connection(ngx_connection_t *c)
     log_error = c->log_error;
 
 	//将connection对象放到free_connection列表中
+	//将connection对象释放到空闲连接池
     ngx_free_connection(c);
 
 	//XXX:设置连接对象的文件描述符无效
@@ -1049,6 +1052,7 @@ ngx_close_connection(ngx_connection_t *c)
         return;
     }
 
+	//关闭连接描述符
     if (ngx_close_socket(fd) == -1) {
 
         err = ngx_socket_errno;
