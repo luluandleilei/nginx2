@@ -52,7 +52,8 @@ struct ngx_listening_s {
 	//Timeout for reading client request header of default server
     ngx_msec_t          post_accept_timeout;
 
-    ngx_listening_t    *previous;	//记录该listen对象继承的listen对象，用于删除侦听套接字的先前事件(继承的listen对象)，仅在单进程模式下有效
+	//记录该listen对象继承的listen对象，用于删除侦听套接字的先前事件(继承的listen对象)，仅在单进程模式下有效
+    ngx_listening_t    *previous;	
     ngx_connection_t   *connection;	//XXX:监听套接字对应的connection对象
 
     ngx_rbtree_t        rbtree;		//XXX: UDP?

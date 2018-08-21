@@ -36,11 +36,9 @@ static ngx_int_t ngx_http_auth_request_set_variables(ngx_http_request_t *r, ngx_
 static ngx_int_t ngx_http_auth_request_variable(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static void *ngx_http_auth_request_create_conf(ngx_conf_t *cf);
-static char *ngx_http_auth_request_merge_conf(ngx_conf_t *cf,
-    void *parent, void *child);
+static char *ngx_http_auth_request_merge_conf(ngx_conf_t *cf, void *parent, void *child);
 static ngx_int_t ngx_http_auth_request_init(ngx_conf_t *cf);
-static char *ngx_http_auth_request(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+static char *ngx_http_auth_request(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_http_auth_request_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 

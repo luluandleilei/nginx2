@@ -150,8 +150,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
                 ngx_sigalrm = 0;
             }
 
-            ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
-                           "termination cycle: %M", delay);
+            ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0, "termination cycle: %M", delay);
 
             itv.it_interval.tv_sec = 0;
             itv.it_interval.tv_usec = 0;
@@ -159,8 +158,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
             itv.it_value.tv_usec = (delay % 1000 ) * 1000;
 
             if (setitimer(ITIMER_REAL, &itv, NULL) == -1) {
-                ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                              "setitimer() failed");
+                ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "setitimer() failed");
             }
         }
 
