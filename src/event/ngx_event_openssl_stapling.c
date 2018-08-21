@@ -1324,8 +1324,7 @@ ngx_ssl_ocsp_parse_status_line(ngx_ssl_ocsp_ctx_t *ctx)
         sw_almost_done
     } state;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_EVENT, ctx->log, 0,
-                   "ssl ocsp process status line");
+    ngx_log_debug0(NGX_LOG_DEBUG_EVENT, ctx->log, 0, "ssl ocsp process status line");
 
     state = ctx->state;
     b = ctx->response;
@@ -1513,8 +1512,7 @@ ngx_ssl_ocsp_process_headers(ngx_ssl_ocsp_ctx_t *ctx)
     size_t     len;
     ngx_int_t  rc;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_EVENT, ctx->log, 0,
-                   "ssl ocsp process headers");
+    ngx_log_debug0(NGX_LOG_DEBUG_EVENT, ctx->log, 0, "ssl ocsp process headers");
 
     for ( ;; ) {
         rc = ngx_ssl_ocsp_parse_header_line(ctx);
@@ -1570,8 +1568,7 @@ ngx_ssl_ocsp_process_headers(ngx_ssl_ocsp_ctx_t *ctx)
 
         /* rc == NGX_ERROR */
 
-        ngx_log_error(NGX_LOG_ERR, ctx->log, 0,
-                      "OCSP responder sent invalid response");
+        ngx_log_error(NGX_LOG_ERR, ctx->log, 0, "OCSP responder sent invalid response");
 
         return NGX_ERROR;
     }

@@ -46,22 +46,17 @@ typedef struct {
 
 
 static ngx_int_t ngx_http_access_handler(ngx_http_request_t *r);
-static ngx_int_t ngx_http_access_inet(ngx_http_request_t *r,
-    ngx_http_access_loc_conf_t *alcf, in_addr_t addr);
+static ngx_int_t ngx_http_access_inet(ngx_http_request_t *r, ngx_http_access_loc_conf_t *alcf, in_addr_t addr);
 #if (NGX_HAVE_INET6)
-static ngx_int_t ngx_http_access_inet6(ngx_http_request_t *r,
-    ngx_http_access_loc_conf_t *alcf, u_char *p);
+static ngx_int_t ngx_http_access_inet6(ngx_http_request_t *r, ngx_http_access_loc_conf_t *alcf, u_char *p);
 #endif
 #if (NGX_HAVE_UNIX_DOMAIN)
-static ngx_int_t ngx_http_access_unix(ngx_http_request_t *r,
-    ngx_http_access_loc_conf_t *alcf);
+static ngx_int_t ngx_http_access_unix(ngx_http_request_t *r, ngx_http_access_loc_conf_t *alcf);
 #endif
 static ngx_int_t ngx_http_access_found(ngx_http_request_t *r, ngx_uint_t deny);
-static char *ngx_http_access_rule(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+static char *ngx_http_access_rule(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static void *ngx_http_access_create_loc_conf(ngx_conf_t *cf);
-static char *ngx_http_access_merge_loc_conf(ngx_conf_t *cf,
-    void *parent, void *child);
+static char *ngx_http_access_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
 static ngx_int_t ngx_http_access_init(ngx_conf_t *cf);
 
 
@@ -118,6 +113,9 @@ static ngx_http_module_t  ngx_http_access_module_ctx = {
 
 /*
  The ngx_http_access_module module allows limiting access to certain client addresses.
+
+ Access can also be limited by password, by the result of subrequest, or by JWT. Simultaneous
+ limitation of access by address and by password is controlled by the satisfy directive.
 */
 ngx_module_t  ngx_http_access_module = {
     NGX_MODULE_V1,
@@ -196,8 +194,7 @@ ngx_http_access_handler(ngx_http_request_t *r)
 
 
 static ngx_int_t
-ngx_http_access_inet(ngx_http_request_t *r, ngx_http_access_loc_conf_t *alcf,
-    in_addr_t addr)
+ngx_http_access_inet(ngx_http_request_t *r, ngx_http_access_loc_conf_t *alcf, in_addr_t addr)
 {
     ngx_uint_t               i;
     ngx_http_access_rule_t  *rule;

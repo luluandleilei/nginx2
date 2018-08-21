@@ -108,7 +108,11 @@ static ngx_http_module_t  ngx_http_realip_module_ctx = {
 };
 
 /*
-The ngx_http_realip_module module is used to change the client address and optional port to those sent in the specified header field.
+The ngx_http_realip_module module is used to change the client address and optional port to 
+those sent in the specified header field.
+
+This module is not built by default, it should be enabled with the --with-http_realip_module 
+configuration parameter.
 */
 ngx_module_t  ngx_http_realip_module = {
     NGX_MODULE_V1,

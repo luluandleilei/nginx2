@@ -163,8 +163,7 @@ struct ngx_resolver_s {
     ngx_int_t                 ident;
 
     /* simple round robin DNS peers balancer */
-	//array of ngx_resolver_connection_t
-    ngx_array_t               connections;	
+    ngx_array_t               connections;	 //array of ngx_resolver_connection_t
     ngx_uint_t                last_connection;
 
 	//XXX:name查询的缓存？？？

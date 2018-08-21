@@ -476,7 +476,7 @@ ngx_http_do_read_client_request_body(ngx_http_request_t *r)
 
 	//接收到完整的包体
 
-	//删除XXX定时器
+	//删除client_body_timeout定时器
 	//如果一次性读完了请求体是不会添加定时器的
     if (c->read->timer_set) {	//XXX:这是什么定时器，什么时候c->read->timer_set会为0
         ngx_del_timer(c->read);

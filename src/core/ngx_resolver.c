@@ -1251,7 +1251,7 @@ ngx_resolver_send_query(ngx_resolver_t *r, ngx_resolver_node_t *rn)
     }
 
 	//XXX:发送ipv4域名地址查询
-    if (rn->naddrs == (u_short) -1) {
+    if (rn->naddrs == (u_short) -1) {	//XXX:为什么要先判断，不能省略判断直接发送吗？
         rc = rn->tcp ? ngx_resolver_send_tcp_query(r, rec, rn->query, rn->qlen) 
 				: ngx_resolver_send_udp_query(r, rec, rn->query, rn->qlen);
 

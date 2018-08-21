@@ -1206,14 +1206,11 @@ ngx_stream_proxy_resolve_handler(ngx_resolver_ctx_t *ctx)
     u = s->upstream;
     ur = u->resolved;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_STREAM, s->connection->log, 0,
-                   "stream upstream resolve");
+    ngx_log_debug0(NGX_LOG_DEBUG_STREAM, s->connection->log, 0, "stream upstream resolve");
 
     if (ctx->state) {
-        ngx_log_error(NGX_LOG_ERR, s->connection->log, 0,
-                      "%V could not be resolved (%i: %s)",
-                      &ctx->name, ctx->state,
-                      ngx_resolver_strerror(ctx->state));
+        ngx_log_error(NGX_LOG_ERR, s->connection->log, 0, "%V could not be resolved (%i: %s)", 
+			&ctx->name, ctx->state, ngx_resolver_strerror(ctx->state));
 
         ngx_stream_proxy_finalize(s, NGX_STREAM_INTERNAL_SERVER_ERROR);
         return;
