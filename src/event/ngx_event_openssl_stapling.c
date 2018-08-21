@@ -1033,7 +1033,7 @@ static void
 ngx_ssl_ocsp_write_handler(ngx_event_t *wev)
 {
     ssize_t              n, size;
-    ngx_connection_t    *c;
+     ngx_connection_t    *c;
     ngx_ssl_ocsp_ctx_t  *ctx;
 
     c = wev->data;
