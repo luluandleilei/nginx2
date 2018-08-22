@@ -43,9 +43,17 @@ struct ngx_cycle_s {
     void                  ****conf_ctx;	
     ngx_pool_t               *pool;		//Cycle pool. Created for each new cycle.
 
-    ngx_log_t                *log;		//Cycle log. Initially inherited from the old cycle, it is set to point to new_log after the configuration is read. //日志模块中提供了生成基本ngx_log_t日志对象的功能，这里的log实际上是在还没有执行ngx_init_cycle方法前，也就是还没有解析配置前，如果有信需要输出到日志，就会暂时使用log对象，它会输出到屏幕。在ngx_init_cycle方法执行后，将会根据nginx.conf配置文件中的配置项，构造出正确的日志文件，此时会对log重新赋值
-    ngx_log_t                 new_log;	//Cycle log, created by the configuration. It's affected by the root-scope error_log directive. //由nginx.conf配置文件读取到日志文件路径后，将开始初始化error_log日志文件，由于log对象还在用于输出日志到屏幕，这时会用new_log对象暂时性的替代log日志，待初始化成功后，会用new_log的地址覆盖上面的log指针
+	//Cycle log. Initially inherited from the old cycle, it is set to point to new_log after the configuration is read. 
+	//日志模块中提供了生成基本ngx_log_t日志对象的功能，这里的log实际上是在还没有执行ngx_init_cycle方法前，也就是还没有解析配置前，
+	//如果有信需要输出到日志，就会暂时使用log对象，它会输出到屏幕。在ngx_init_cycle方法执行后，将会根据nginx.conf配置文件中的配置项，
+	//构造出正确的日志文件，此时会对log重新赋值
+    ngx_log_t                *log;		
+	//Cycle log, created by the configuration. It's affected by the root-scope error_log directive. 
+	//由nginx.conf配置文件读取到日志文件路径后，将开始初始化error_log日志文件，由于log对象还在用于输出日志到屏幕，
+	//这时会用new_log对象暂时性的替代log日志，待初始化成功后，会用new_log的地址覆盖上面的log指针
+    ngx_log_t                 new_log;	
 
+	//XXX:表明我们在error_log指令中使用了stderr，因此我们不能将stderr进行重定向(ngx_log_redirect_stderr)		
     ngx_uint_t                log_use_stderr;  /* unsigned  log_use_stderr:1; */
 
 	//Array for mapping file descriptors to nginx connections. This mapping is used by the event modules, having the 

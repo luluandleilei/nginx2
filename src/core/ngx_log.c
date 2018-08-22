@@ -32,7 +32,31 @@ typedef struct {
 
 
 static ngx_command_t  ngx_errlog_commands[] = {
+	/*
+	 Syntax:	error_log file [level];
+	 Default: 	error_log logs/error.log error;
+	 Context:	main, http, mail, stream, server, location
 
+	 Configures logging. Several logs can be specified on the same level (1.5.2). If on the main 
+	 configuration level writing a log to a file is not explicitly defined, the default file will
+	 be used.
+
+	 The first parameter defines a 'file' that will store the log. The special value 'stderr' selects 
+	 the standard error file. Logging to 'syslog' can be configured by specifying the “syslog:” prefix.
+	 Logging to a 'cyclic memory buffer' can be configured by specifying the “memory:” prefix and 'buffer' 
+	 size, and is generally used for debugging (1.7.11).
+
+	 The second parameter determines the level of logging, and can be one of the following: debug, info,
+	 notice, warn, error, crit, alert, or emerg. Log levels above are listed in the order of increasing 
+	 severity. Setting a certain log level will cause all messages of the specified and more severe log 
+	 levels to be logged. For example, the default level error will cause error, crit, alert, and emerg 
+	 messages to be logged. If this parameter is omitted then error is used.
+
+	 For debug logging to work, nginx needs to be built with --with-debug, see “A debugging log”.
+
+	 The directive can be specified on the stream level starting from version 1.7.11, and on the mail 
+	 level starting from version 1.9.0.
+	*/
     { ngx_string("error_log"),
       NGX_MAIN_CONF|NGX_CONF_1MORE,
       ngx_error_log,
@@ -69,7 +93,7 @@ ngx_module_t  ngx_errlog_module = {
 
 static ngx_log_t        ngx_log;
 static ngx_open_file_t  ngx_log_file;
-ngx_uint_t              ngx_use_stderr = 1;
+ngx_uint_t              ngx_use_stderr = 1;	//XXX:表示当前是否可以向stderr输出信息
 
 
 static ngx_str_t err_levels[] = {
@@ -93,14 +117,12 @@ static const char *debug_levels[] = {
 #if (NGX_HAVE_VARIADIC_MACROS)
 
 void
-ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
-    const char *fmt, ...)
+ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err, const char *fmt, ...)
 
 #else
 
 void
-ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
-    const char *fmt, va_list args)
+ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err, const char *fmt, va_list args)
 
 #endif
 {
@@ -119,8 +141,7 @@ ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
     p = ngx_slprintf(p, last, " [%V] ", &err_levels[level]);
 
     /* pid#tid */
-    p = ngx_slprintf(p, last, "%P#" NGX_TID_T_FMT ": ",
-                    ngx_log_pid, ngx_log_tid);
+    p = ngx_slprintf(p, last, "%P#" NGX_TID_T_FMT ": ", ngx_log_pid, ngx_log_tid);
 
     if (log->connection) {
         p = ngx_slprintf(p, last, "*%uA ", log->connection);
@@ -154,7 +175,7 @@ ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
 
     ngx_linefeed(p);
 
-    wrote_stderr = 0;
+    wrote_stderr = 0;	//表示在
     debug_connection = (log->log_level & NGX_LOG_DEBUG_CONNECTION) != 0;
 
     while (log) {
@@ -194,10 +215,9 @@ ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
         log = log->next;
     }
 
-    if (!ngx_use_stderr
-        || level > NGX_LOG_WARN
-        || wrote_stderr)
-    {
+	//XXX：在当前运行向stderr输出信息且错误级别不大于warn且没有向stderr输出过信息时
+	//同时向标准错误输出信息
+    if (!ngx_use_stderr || level > NGX_LOG_WARN || wrote_stderr) {
         return;
     }
 
@@ -212,8 +232,7 @@ ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
 #if !(NGX_HAVE_VARIADIC_MACROS)
 
 void ngx_cdecl
-ngx_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
-    const char *fmt, ...)
+ngx_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err, const char *fmt, ...)
 {
     va_list  args;
 
@@ -321,7 +340,7 @@ ngx_log_init(u_char *prefix)
     ngx_log.file = &ngx_log_file;
     ngx_log.log_level = NGX_LOG_NOTICE;
 
-    name = (u_char *) NGX_ERROR_LOG_PATH;
+    name = (u_char *) NGX_ERROR_LOG_PATH;	//默认情况下为“logs/error.log”
 
     /*
      * we use ngx_strlen() here since BCC warns about
@@ -329,7 +348,7 @@ ngx_log_init(u_char *prefix)
      */
 
     nlen = ngx_strlen(name);
-
+	
     if (nlen == 0) {
         ngx_log_file.fd = ngx_stderr;
         return &ngx_log;
@@ -398,11 +417,13 @@ ngx_log_open_default(ngx_cycle_t *cycle)
     ngx_log_t         *log;
     static ngx_str_t   error_log = ngx_string(NGX_ERROR_LOG_PATH);
 
+	//(1)若已经指定了日志文件，直接返回
     if (ngx_log_get_file_log(&cycle->new_log) != NULL) {
         return NGX_OK;
     }
 
-    if (cycle->new_log.log_level != 0) {
+	//(2)
+    if (cycle->new_log.log_level != 0) {	//XXX: 什么时候会发生这种情况
         /* there are some error logs, but no files */
 
         log = ngx_pcalloc(cycle->pool, sizeof(ngx_log_t));
@@ -415,6 +436,7 @@ ngx_log_open_default(ngx_cycle_t *cycle)
         log = &cycle->new_log;
     }
 
+	//(3)XXX:设置为默认。。。
     log->log_level = NGX_LOG_ERR;
 
     log->file = ngx_conf_open_file(cycle, &error_log);
@@ -444,8 +466,7 @@ ngx_log_redirect_stderr(ngx_cycle_t *cycle)
 
     if (fd != ngx_stderr) {
         if (ngx_set_stderr(fd) == NGX_FILE_ERROR) {
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                          ngx_set_stderr_n " failed");
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, ngx_set_stderr_n " failed");
 
             return NGX_ERROR;
         }
@@ -490,9 +511,7 @@ ngx_log_set_levels(ngx_conf_t *cf, ngx_log_t *log)
             if (ngx_strcmp(value[i].data, err_levels[n].data) == 0) {
 
                 if (log->log_level != 0) {
-                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                       "duplicate log level \"%V\"",
-                                       &value[i]);
+                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "duplicate log level \"%V\"", &value[i]);
                     return NGX_CONF_ERROR;
                 }
 
@@ -505,9 +524,7 @@ ngx_log_set_levels(ngx_conf_t *cf, ngx_log_t *log)
         for (n = 0, d = NGX_LOG_DEBUG_FIRST; d <= NGX_LOG_DEBUG_LAST; d <<= 1) {
             if (ngx_strcmp(value[i].data, debug_levels[n++]) == 0) {
                 if (log->log_level & ~NGX_LOG_DEBUG_ALL) {
-                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                       "invalid log level \"%V\"",
-                                       &value[i]);
+                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid log level \"%V\"", &value[i]);
                     return NGX_CONF_ERROR;
                 }
 
@@ -519,8 +536,7 @@ ngx_log_set_levels(ngx_conf_t *cf, ngx_log_t *log)
 
 
         if (!found) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "invalid log level \"%V\"", &value[i]);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid log level \"%V\"", &value[i]);
             return NGX_CONF_ERROR;
         }
     }
@@ -596,8 +612,7 @@ ngx_log_set_log(ngx_conf_t *cf, ngx_log_t **head)
         size = ngx_parse_size(&value[1]);
 
         if (size == (size_t) NGX_ERROR || size < needed) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "invalid buffer size \"%V\"", &value[1]);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid buffer size \"%V\"", &value[1]);
             return NGX_CONF_ERROR;
         }
 

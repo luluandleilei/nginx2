@@ -662,6 +662,7 @@ ngx_http_upstream_init_request(ngx_http_request_t *r)
         ngx_memzero(u->state, sizeof(ngx_http_upstream_state_t));
     }
 
+	//XXX:设置当产生upstream的request提前结束时， 清除掉对应的upstream对象的回调函数
     cln = ngx_http_cleanup_add(r, 0);
     if (cln == NULL) {
         ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
@@ -3995,9 +3996,7 @@ ngx_http_upstream_next(ngx_http_request_t *r, ngx_http_upstream_t *u, ngx_uint_t
 
     if (u->peer.sockaddr) {
 
-        if (ft_type == NGX_HTTP_UPSTREAM_FT_HTTP_403
-            || ft_type == NGX_HTTP_UPSTREAM_FT_HTTP_404)
-        {
+        if (ft_type == NGX_HTTP_UPSTREAM_FT_HTTP_403 || ft_type == NGX_HTTP_UPSTREAM_FT_HTTP_404) {
             state = NGX_PEER_NEXT;
 
         } else {
@@ -4149,6 +4148,7 @@ ngx_http_upstream_finalize_request(ngx_http_request_t *r, ngx_http_upstream_t *u
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "finalize http upstream request: %i", rc);
 
+	//XXX:什么时候会出现这种情况？
     if (u->cleanup == NULL) {
         /* the request was already finalized */
         ngx_http_finalize_request(r, NGX_DONE);

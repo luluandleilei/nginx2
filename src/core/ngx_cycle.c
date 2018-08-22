@@ -382,7 +382,10 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
         }
 
 #if !(NGX_WIN32)
-        if (fcntl(file[i].fd, F_SETFD, FD_CLOEXEC) == -1) {	//XXX:为什么要设置FD_CLOEXEC标志？？
+		//XXX:为什么要设置FD_CLOEXEC标志？？
+		//XXX:当重新加载新的nginx二进制文件时，关闭这些文件
+		//XXX：对于监听套接字就没有设置这些标志，在重新加载nginx二进制文件时，通过环境变量获取以前的套接字，来复用
+        if (fcntl(file[i].fd, F_SETFD, FD_CLOEXEC) == -1) {
             ngx_log_error(NGX_LOG_EMERG, log, ngx_errno, "fcntl(FD_CLOEXEC) \"%s\" failed", file[i].name.data);
             goto failed;
         }
@@ -595,6 +598,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
         (void) ngx_log_redirect_stderr(cycle);
     }
 
+	//XXX:为什么又赋值一遍？？？
     pool->log = cycle->log;
 
     if (ngx_init_modules(cycle) != NGX_OK) {

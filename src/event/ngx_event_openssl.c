@@ -173,24 +173,21 @@ ngx_ssl_init(ngx_log_t *log)
     ngx_ssl_server_conf_index = SSL_CTX_get_ex_new_index(0, NULL, NULL, NULL,
                                                          NULL);
     if (ngx_ssl_server_conf_index == -1) {
-        ngx_ssl_error(NGX_LOG_ALERT, log, 0,
-                      "SSL_CTX_get_ex_new_index() failed");
+        ngx_ssl_error(NGX_LOG_ALERT, log, 0, "SSL_CTX_get_ex_new_index() failed");
         return NGX_ERROR;
     }
 
     ngx_ssl_session_cache_index = SSL_CTX_get_ex_new_index(0, NULL, NULL, NULL,
                                                            NULL);
     if (ngx_ssl_session_cache_index == -1) {
-        ngx_ssl_error(NGX_LOG_ALERT, log, 0,
-                      "SSL_CTX_get_ex_new_index() failed");
+        ngx_ssl_error(NGX_LOG_ALERT, log, 0, "SSL_CTX_get_ex_new_index() failed");
         return NGX_ERROR;
     }
 
     ngx_ssl_session_ticket_keys_index = SSL_CTX_get_ex_new_index(0, NULL, NULL,
                                                                  NULL, NULL);
     if (ngx_ssl_session_ticket_keys_index == -1) {
-        ngx_ssl_error(NGX_LOG_ALERT, log, 0,
-                      "SSL_CTX_get_ex_new_index() failed");
+        ngx_ssl_error(NGX_LOG_ALERT, log, 0, "SSL_CTX_get_ex_new_index() failed");
         return NGX_ERROR;
     }
 

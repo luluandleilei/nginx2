@@ -374,6 +374,7 @@ main(int argc, char *const *argv)
 
     ngx_debug_init();
 
+	//XXX:在ngx_get_options中若配置错误，则在输出错误信息到标准错误时会使用到该信息
     if (ngx_strerror_init() != NGX_OK) {
         return 1;
     }
@@ -405,7 +406,7 @@ main(int argc, char *const *argv)
 	主进程启动的时候，此时还没有读取配置文件，即没有指定日志打印在哪里。
 	nginx这时候虽然可以将一些出错内容或者结果输到标准输出，但是如果要记录一些系统初始化情况，socket监听状况，还是需要写到日志文件中去的。
 	在nginx的main函数中，首先会调用ngx_log_init 函数，默认日志文件为：安装路径/logs/error.log，如果这个文件没有权限访问的话，会直接报错退出（//XXX:使用标准错误？）。
-	在mian函数结尾处，在ngx_master_process_cycle函数调用之前，会close掉这个日志文件。
+	在main函数结尾处，在ngx_master_process_cycle函数调用之前，会close掉这个日志文件。
 	*/
     log = ngx_log_init(ngx_prefix);
     if (log == NULL) {
