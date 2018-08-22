@@ -872,10 +872,12 @@ ngx_conf_open_file(ngx_cycle_t *cycle, ngx_str_t *name)
     if (name->len) {
         full = *name;
 
+		//XXX:获取文件名绝对路径
         if (ngx_conf_full_name(cycle, &full, 0) != NGX_OK) {
             return NULL;
         }
 
+		//XXX:检查若已经添加过同名file对象，则直接返回该对象
         part = &cycle->open_files.part;
         file = part->elts;
 
@@ -900,6 +902,7 @@ ngx_conf_open_file(ngx_cycle_t *cycle, ngx_str_t *name)
         }
     }
 
+	//XXX:添加一个新的file对象
     file = ngx_list_push(&cycle->open_files);
     if (file == NULL) {
         return NULL;

@@ -1657,8 +1657,10 @@ ngx_http_add_listening(ngx_conf_t *cf, ngx_http_conf_addr_t *addr)
 
     clcf = cscf->ctx->loc_conf[ngx_http_core_module.ctx_index];
 
-    ls->logp = clcf->error_log;
-    ls->log.data = &ls->addr_text;
+    ls->logp = clcf->error_log;	//server下的location的error_log
+	//XXX：ls->log.data和handler好像没有被使用？？？
+	//XXX:在函数中被ngx_configure_listening_sockets中data,handler被清零
+    ls->log.data = &ls->addr_text;	
     ls->log.handler = ngx_accept_log_error;
 
 #if (NGX_WIN32)

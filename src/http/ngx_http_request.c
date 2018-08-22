@@ -3523,8 +3523,7 @@ ngx_http_log_error(ngx_log_t *log, u_char *buf, size_t len)
         return r->log_handler(r, ctx->current_request, p, len);
 
     } else {
-        p = ngx_snprintf(p, len, ", server: %V",
-                         &ctx->connection->listening->addr_text);
+        p = ngx_snprintf(p, len, ", server: %V", &ctx->connection->listening->addr_text);
     }
 
     return p;

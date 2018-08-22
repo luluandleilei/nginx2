@@ -58,8 +58,7 @@ ngx_destroy_pool(ngx_pool_t *pool)
 
     for (c = pool->cleanup; c; c = c->next) {
         if (c->handler) {
-            ngx_log_debug1(NGX_LOG_DEBUG_ALLOC, pool->log, 0,
-                           "run cleanup: %p", c);
+            ngx_log_debug1(NGX_LOG_DEBUG_ALLOC, pool->log, 0, "run cleanup: %p", c);
             c->handler(c->data);
         }
     }
