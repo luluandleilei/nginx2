@@ -13,6 +13,7 @@
 #include <ngx_core.h>
 
 
+//An alias for the Operating System error code, err on *nix systems
 typedef int               ngx_err_t;
 
 #define NGX_EPERM         EPERM

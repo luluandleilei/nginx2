@@ -108,8 +108,7 @@ typedef struct {
 } ngx_conf_dump_t;
 
 
-typedef char *(*ngx_conf_handler_pt)(ngx_conf_t *cf,
-    ngx_command_t *dummy, void *conf);
+typedef char *(*ngx_conf_handler_pt)(ngx_conf_t *cf, ngx_command_t *dummy, void *conf);
 
 
 struct ngx_conf_s {

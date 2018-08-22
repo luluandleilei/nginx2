@@ -1966,10 +1966,8 @@ ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u, ng
 
     if (c->tcp_nopush == NGX_TCP_NOPUSH_SET) {
         if (ngx_tcp_push(c->fd) == -1) {
-            ngx_log_error(NGX_LOG_CRIT, c->log, ngx_socket_errno,
-                          ngx_tcp_push_n " failed");
-            ngx_http_upstream_finalize_request(r, u,
-                                               NGX_HTTP_INTERNAL_SERVER_ERROR);
+            ngx_log_error(NGX_LOG_CRIT, c->log, ngx_socket_errno, ngx_tcp_push_n " failed");
+            ngx_http_upstream_finalize_request(r, u, NGX_HTTP_INTERNAL_SERVER_ERROR);
             return;
         }
 
@@ -1981,8 +1979,7 @@ ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u, ng
     }
 
     if (ngx_handle_write_event(c->write, 0) != NGX_OK) {
-        ngx_http_upstream_finalize_request(r, u,
-                                           NGX_HTTP_INTERNAL_SERVER_ERROR);
+        ngx_http_upstream_finalize_request(r, u, NGX_HTTP_INTERNAL_SERVER_ERROR);
         return;
     }
 
@@ -3984,8 +3981,7 @@ ngx_http_upstream_store(ngx_http_request_t *r, ngx_http_upstream_t *u)
 static void
 ngx_http_upstream_dummy_handler(ngx_http_request_t *r, ngx_http_upstream_t *u)
 {
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http upstream dummy handler");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http upstream dummy handler");
 }
 
 
