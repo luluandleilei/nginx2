@@ -3539,8 +3539,7 @@ ngx_http_mp4_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_http_mp4_conf_t *conf = child;
 
     ngx_conf_merge_size_value(conf->buffer_size, prev->buffer_size, 512 * 1024);
-    ngx_conf_merge_size_value(conf->max_buffer_size, prev->max_buffer_size,
-                              10 * 1024 * 1024);
+    ngx_conf_merge_size_value(conf->max_buffer_size, prev->max_buffer_size, 10 * 1024 * 1024);
 
     return NGX_CONF_OK;
 }

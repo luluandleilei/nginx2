@@ -546,6 +546,11 @@ done:
 }
 
 
+/*
+NGX_OK:
+NGX_AGAIN:
+NGX_ERROR:
+*/
 static ngx_int_t
 ngx_resolve_name_locked(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx, ngx_str_t *name)
 {
@@ -1251,7 +1256,10 @@ ngx_resolver_send_query(ngx_resolver_t *r, ngx_resolver_node_t *rn)
     }
 
 	//XXX:发送ipv4域名地址查询
-    if (rn->naddrs == (u_short) -1) {	//XXX:为什么要先判断，不能省略判断直接发送吗？
+	//XXX:为什么要先判断，不能省略判断直接发送吗？
+	//XXX:是因为可能解析到正确的ipv4地址，但是ipv6地址，
+	//XXX:然后resend，在resend时不需要重新发送ipv4地址解析请求
+    if (rn->naddrs == (u_short) -1) {	
         rc = rn->tcp ? ngx_resolver_send_tcp_query(r, rec, rn->query, rn->qlen) 
 				: ngx_resolver_send_udp_query(r, rec, rn->query, rn->qlen);
 
@@ -1278,6 +1286,10 @@ ngx_resolver_send_query(ngx_resolver_t *r, ngx_resolver_node_t *rn)
 }
 
 
+/*
+NGX_OK:
+NGX_ERROR:
+*/
 static ngx_int_t
 ngx_resolver_send_udp_query(ngx_resolver_t *r, ngx_resolver_connection_t  *rec, u_char *query, u_short qlen)
 {
@@ -1600,7 +1612,8 @@ ngx_resolver_tcp_write(ngx_event_t *wev)
         b->pos += n;
     }
 
-	//XXX:将剩余的数据移动到缓冲区头，因为可能会调用ngx_resolver_send_tcp_query()追加需要发送的数据
+	//XXX:将剩余的数据移动到缓冲区头，
+	//因为连接是被多个请求复用的，可能会有其他请求调用ngx_resolver_send_tcp_query()追加需要发送的数据
     if (b->pos != b->start) {
         b->last = ngx_movemem(b->start, b->pos, b->last - b->pos);
         b->pos = b->start;
