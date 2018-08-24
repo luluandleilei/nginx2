@@ -3198,8 +3198,7 @@ ngx_http_lingering_close_handler(ngx_event_t *rev)
     c = rev->data;
     r = c->data;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "http lingering close handler");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0, "http lingering close handler");
 
     if (rev->timedout) {
         ngx_http_close_request(r, 0);

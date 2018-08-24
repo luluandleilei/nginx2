@@ -1467,7 +1467,7 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http upstream connect: %i", rc);
 
-    if (rc == NGX_ERROR) {
+    if (rc == NGX_ERROR) {	//NGX_HTTP_INTERNAL_SERVER_ERROR
         ngx_http_upstream_finalize_request(r, u, NGX_HTTP_INTERNAL_SERVER_ERROR);
         return;
     }
@@ -4061,9 +4061,7 @@ ngx_http_upstream_next(ngx_http_request_t *r, ngx_http_upstream_t *u, ngx_uint_t
 
     timeout = u->conf->next_upstream_timeout;
 
-    if (u->request_sent
-        && (r->method & (NGX_HTTP_POST|NGX_HTTP_LOCK|NGX_HTTP_PATCH)))
-    {
+    if (u->request_sent && (r->method & (NGX_HTTP_POST|NGX_HTTP_LOCK|NGX_HTTP_PATCH))) {
         ft_type |= NGX_HTTP_UPSTREAM_FT_NON_IDEMPOTENT;
     }
 

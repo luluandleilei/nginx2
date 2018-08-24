@@ -22,9 +22,7 @@ ngx_udp_unix_send(ngx_connection_t *c, u_char *buf, size_t size)
     for ( ;; ) {
         n = sendto(c->fd, buf, size, 0, c->sockaddr, c->socklen);
 
-        ngx_log_debug4(NGX_LOG_DEBUG_EVENT, c->log, 0,
-                       "sendto: fd:%d %z of %uz to \"%V\"",
-                       c->fd, n, size, &c->addr_text);
+        ngx_log_debug4(NGX_LOG_DEBUG_EVENT, c->log, 0, "sendto: fd:%d %z of %uz to \"%V\"", c->fd, n, size, &c->addr_text);
 
         if (n >= 0) {
             if ((size_t) n != size) {
@@ -38,12 +36,13 @@ ngx_udp_unix_send(ngx_connection_t *c, u_char *buf, size_t size)
             return n;
         }
 
+		/* n == -1 */
+		
         err = ngx_socket_errno;
 
         if (err == NGX_EAGAIN) {
             wev->ready = 0;
-            ngx_log_debug0(NGX_LOG_DEBUG_EVENT, c->log, NGX_EAGAIN,
-                           "sendto() not ready");
+            ngx_log_debug0(NGX_LOG_DEBUG_EVENT, c->log, NGX_EAGAIN, "sendto() not ready");
             return NGX_AGAIN;
         }
 

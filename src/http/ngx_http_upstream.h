@@ -356,12 +356,9 @@ struct ngx_http_upstream_s {
     ngx_int_t                      (*reinit_request)(ngx_http_request_t *r);
     ngx_int_t                      (*process_header)(ngx_http_request_t *r);
     void                           (*abort_request)(ngx_http_request_t *r);
-    void                           (*finalize_request)(ngx_http_request_t *r,
-                                         ngx_int_t rc);
-    ngx_int_t                      (*rewrite_redirect)(ngx_http_request_t *r,
-                                         ngx_table_elt_t *h, size_t prefix);
-    ngx_int_t                      (*rewrite_cookie)(ngx_http_request_t *r,
-                                         ngx_table_elt_t *h);
+    void                           (*finalize_request)(ngx_http_request_t *r, ngx_int_t rc);
+    ngx_int_t                      (*rewrite_redirect)(ngx_http_request_t *r, ngx_table_elt_t *h, size_t prefix);
+    ngx_int_t                      (*rewrite_cookie)(ngx_http_request_t *r, ngx_table_elt_t *h);
 
     ngx_msec_t                       timeout;
 

@@ -52,6 +52,8 @@ ngx_unix_send(ngx_connection_t *c, u_char *buf, size_t size)
             return n;
         }
 
+		/* n < 0 */
+		
         if (err == NGX_EAGAIN || err == NGX_EINTR) {
             wev->ready = 0;
 

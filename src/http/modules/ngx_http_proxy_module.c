@@ -1210,7 +1210,7 @@ ngx_http_proxy_handler(ngx_http_request_t *r)
 
     rc = ngx_http_read_client_request_body(r, ngx_http_upstream_init);
 
-    if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
+    if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {	//XXX:发生错误
         return rc;
     }
 

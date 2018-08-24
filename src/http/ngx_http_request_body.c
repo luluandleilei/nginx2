@@ -461,9 +461,11 @@ ngx_http_do_read_client_request_body(ngx_http_request_t *r)
                 }
             }
 
+			//XXX:添加请求体读定时器
             clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
             ngx_add_timer(c->read, clcf->client_body_timeout);
 
+			//XXX:添加读事件
             if (ngx_handle_read_event(c->read, 0) != NGX_OK) {
                 return NGX_HTTP_INTERNAL_SERVER_ERROR;
             }
