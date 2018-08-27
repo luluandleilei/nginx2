@@ -70,8 +70,7 @@ static void ngx_http_upstream_store(ngx_http_request_t *r,
     ngx_http_upstream_t *u);
 static void ngx_http_upstream_dummy_handler(ngx_http_request_t *r,
     ngx_http_upstream_t *u);
-static void ngx_http_upstream_next(ngx_http_request_t *r,
-    ngx_http_upstream_t *u, ngx_uint_t ft_type);
+static void ngx_http_upstream_next(ngx_http_request_t *r, ngx_http_upstream_t *u, ngx_uint_t ft_type);
 static void ngx_http_upstream_cleanup(void *data);
 static void ngx_http_upstream_finalize_request(ngx_http_request_t *r, ngx_http_upstream_t *u, ngx_int_t rc);
 
@@ -1832,17 +1831,11 @@ ngx_http_upstream_reinit(ngx_http_request_t *r, ngx_http_upstream_t *u)
     u->headers_in.content_length_n = -1;
     u->headers_in.last_modified_time = -1;
 
-    if (ngx_list_init(&u->headers_in.headers, r->pool, 8,
-                      sizeof(ngx_table_elt_t))
-        != NGX_OK)
-    {
+    if (ngx_list_init(&u->headers_in.headers, r->pool, 8, sizeof(ngx_table_elt_t)) != NGX_OK) {
         return NGX_ERROR;
     }
 
-    if (ngx_list_init(&u->headers_in.trailers, r->pool, 2,
-                      sizeof(ngx_table_elt_t))
-        != NGX_OK)
-    {
+    if (ngx_list_init(&u->headers_in.trailers, r->pool, 2, sizeof(ngx_table_elt_t)) != NGX_OK) {
         return NGX_ERROR;
     }
 
@@ -2597,9 +2590,7 @@ ngx_http_upstream_process_headers(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     umcf = ngx_http_get_module_main_conf(r, ngx_http_upstream_module);
 
-    if (u->headers_in.x_accel_redirect
-        && !(u->conf->ignore_headers & NGX_HTTP_UPSTREAM_IGN_XA_REDIRECT))
-    {
+    if (u->headers_in.x_accel_redirect && !(u->conf->ignore_headers & NGX_HTTP_UPSTREAM_IGN_XA_REDIRECT)) {
         ngx_http_upstream_finalize_request(r, u, NGX_DECLINED);
 
         part = &u->headers_in.headers.part;
@@ -2617,13 +2608,11 @@ ngx_http_upstream_process_headers(ngx_http_request_t *r, ngx_http_upstream_t *u)
                 i = 0;
             }
 
-            hh = ngx_hash_find(&umcf->headers_in_hash, h[i].hash,
-                               h[i].lowcase_key, h[i].key.len);
+            hh = ngx_hash_find(&umcf->headers_in_hash, h[i].hash, h[i].lowcase_key, h[i].key.len);
 
             if (hh && hh->redirect) {
                 if (hh->copy_handler(r, &h[i], hh->conf) != NGX_OK) {
-                    ngx_http_finalize_request(r,
-                                              NGX_HTTP_INTERNAL_SERVER_ERROR);
+                    ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
                     return NGX_DONE;
                 }
             }
@@ -2670,19 +2659,15 @@ ngx_http_upstream_process_headers(ngx_http_request_t *r, ngx_http_upstream_t *u)
             i = 0;
         }
 
-        if (ngx_hash_find(&u->conf->hide_headers_hash, h[i].hash,
-                          h[i].lowcase_key, h[i].key.len))
-        {
+        if (ngx_hash_find(&u->conf->hide_headers_hash, h[i].hash, h[i].lowcase_key, h[i].key.len)) {
             continue;
         }
 
-        hh = ngx_hash_find(&umcf->headers_in_hash, h[i].hash,
-                           h[i].lowcase_key, h[i].key.len);
+        hh = ngx_hash_find(&umcf->headers_in_hash, h[i].hash, h[i].lowcase_key, h[i].key.len);
 
         if (hh) {
             if (hh->copy_handler(r, &h[i], hh->conf) != NGX_OK) {
-                ngx_http_upstream_finalize_request(r, u,
-                                               NGX_HTTP_INTERNAL_SERVER_ERROR);
+                ngx_http_upstream_finalize_request(r, u, NGX_HTTP_INTERNAL_SERVER_ERROR);
                 return NGX_DONE;
             }
 
@@ -2690,8 +2675,7 @@ ngx_http_upstream_process_headers(ngx_http_request_t *r, ngx_http_upstream_t *u)
         }
 
         if (ngx_http_upstream_copy_header_line(r, &h[i], 0) != NGX_OK) {
-            ngx_http_upstream_finalize_request(r, u,
-                                               NGX_HTTP_INTERNAL_SERVER_ERROR);
+            ngx_http_upstream_finalize_request(r, u, NGX_HTTP_INTERNAL_SERVER_ERROR);
             return NGX_DONE;
         }
     }
@@ -3763,8 +3747,7 @@ ngx_http_upstream_process_upstream(ngx_http_request_t *r,
     p = u->pipe;
     rev = c->read;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "http upstream process upstream");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0, "http upstream process upstream");
 
     c->log->action = "reading upstream";
 
@@ -3777,8 +3760,7 @@ ngx_http_upstream_process_upstream(ngx_http_request_t *r,
 
         if (rev->delayed) {
 
-            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                           "http upstream delayed");
+            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0, "http upstream delayed");
 
             if (ngx_handle_read_event(rev, 0) != NGX_OK) {
                 ngx_http_upstream_finalize_request(r, u, NGX_ERROR);

@@ -18,10 +18,8 @@ static ngx_int_t ngx_stream_upstream_response_time_variable(
 static ngx_int_t ngx_stream_upstream_bytes_variable(ngx_stream_session_t *s,
     ngx_stream_variable_value_t *v, uintptr_t data);
 
-static char *ngx_stream_upstream(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *dummy);
-static char *ngx_stream_upstream_server(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+static char *ngx_stream_upstream(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy);
+static char *ngx_stream_upstream_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static void *ngx_stream_upstream_create_main_conf(ngx_conf_t *cf);
 static char *ngx_stream_upstream_init_main_conf(ngx_conf_t *cf, void *conf);
 
@@ -391,8 +389,7 @@ ngx_stream_upstream(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
     }
 
     if (uscf->servers->nelts == 0) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "no servers are inside upstream");
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "no servers are inside upstream");
         return NGX_CONF_ERROR;
     }
 

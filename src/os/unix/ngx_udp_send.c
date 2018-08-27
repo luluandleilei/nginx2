@@ -10,6 +10,11 @@
 #include <ngx_event.h>
 
 
+/*
+NGX_AGAIN:
+NGX_ERROR:
+n >= 0: 
+*/
 ssize_t
 ngx_udp_unix_send(ngx_connection_t *c, u_char *buf, size_t size)
 {

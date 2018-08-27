@@ -10,21 +10,15 @@
 #include <ngx_stream.h>
 
 
-static ngx_int_t ngx_stream_script_init_arrays(
-    ngx_stream_script_compile_t *sc);
+static ngx_int_t ngx_stream_script_init_arrays( ngx_stream_script_compile_t *sc);
 static ngx_int_t ngx_stream_script_done(ngx_stream_script_compile_t *sc);
-static ngx_int_t ngx_stream_script_add_copy_code(
-    ngx_stream_script_compile_t *sc, ngx_str_t *value, ngx_uint_t last);
-static ngx_int_t ngx_stream_script_add_var_code(
-    ngx_stream_script_compile_t *sc, ngx_str_t *name);
+static ngx_int_t ngx_stream_script_add_copy_code( ngx_stream_script_compile_t *sc, ngx_str_t *value, ngx_uint_t last);
+static ngx_int_t ngx_stream_script_add_var_code( ngx_stream_script_compile_t *sc, ngx_str_t *name);
 #if (NGX_PCRE)
-static ngx_int_t ngx_stream_script_add_capture_code(
-    ngx_stream_script_compile_t *sc, ngx_uint_t n);
+static ngx_int_t ngx_stream_script_add_capture_code( ngx_stream_script_compile_t *sc, ngx_uint_t n);
 #endif
-static ngx_int_t ngx_stream_script_add_full_name_code(
-    ngx_stream_script_compile_t *sc);
-static size_t ngx_stream_script_full_name_len_code(
-    ngx_stream_script_engine_t *e);
+static ngx_int_t ngx_stream_script_add_full_name_code( ngx_stream_script_compile_t *sc);
+static size_t ngx_stream_script_full_name_len_code( ngx_stream_script_engine_t *e);
 static void ngx_stream_script_full_name_code(ngx_stream_script_engine_t *e);
 
 
