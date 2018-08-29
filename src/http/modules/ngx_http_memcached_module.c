@@ -30,8 +30,7 @@ static ngx_int_t ngx_http_memcached_process_header(ngx_http_request_t *r);
 static ngx_int_t ngx_http_memcached_filter_init(void *data);
 static ngx_int_t ngx_http_memcached_filter(void *data, ssize_t bytes);
 static void ngx_http_memcached_abort_request(ngx_http_request_t *r);
-static void ngx_http_memcached_finalize_request(ngx_http_request_t *r,
-    ngx_int_t rc);
+static void ngx_http_memcached_finalize_request(ngx_http_request_t *r, ngx_int_t rc);
 
 static void *ngx_http_memcached_create_loc_conf(ngx_conf_t *cf);
 static char *ngx_http_memcached_merge_loc_conf(ngx_conf_t *cf,
@@ -276,14 +275,12 @@ ngx_http_memcached_create_request(ngx_http_request_t *r)
         b->last = ngx_copy(b->last, vv->data, vv->len);
 
     } else {
-        b->last = (u_char *) ngx_escape_uri(b->last, vv->data, vv->len,
-                                            NGX_ESCAPE_MEMCACHED);
+        b->last = (u_char *) ngx_escape_uri(b->last, vv->data, vv->len, NGX_ESCAPE_MEMCACHED);
     }
 
     ctx->key.len = b->last - ctx->key.data;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http memcached request: \"%V\"", &ctx->key);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http memcached request: \"%V\"", &ctx->key);
 
     *b->last++ = CR; *b->last++ = LF;
 
@@ -477,13 +474,8 @@ ngx_http_memcached_filter(void *data, ssize_t bytes)
 
     if (u->length == (ssize_t) ctx->rest) {
 
-        if (ngx_strncmp(b->last,
-                   ngx_http_memcached_end + NGX_HTTP_MEMCACHED_END - ctx->rest,
-                   bytes)
-            != 0)
-        {
-            ngx_log_error(NGX_LOG_ERR, ctx->request->connection->log, 0,
-                          "memcached sent invalid trailer");
+        if (ngx_strncmp(b->last, ngx_http_memcached_end + NGX_HTTP_MEMCACHED_END - ctx->rest, bytes) != 0) {
+            ngx_log_error(NGX_LOG_ERR, ctx->request->connection->log, 0, "memcached sent invalid trailer");
 
             u->length = 0;
             ctx->rest = 0;
@@ -560,8 +552,7 @@ ngx_http_memcached_filter(void *data, ssize_t bytes)
 static void
 ngx_http_memcached_abort_request(ngx_http_request_t *r)
 {
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "abort http memcached request");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "abort http memcached request");
     return;
 }
 
@@ -569,8 +560,7 @@ ngx_http_memcached_abort_request(ngx_http_request_t *r)
 static void
 ngx_http_memcached_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
 {
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "finalize http memcached request");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "finalize http memcached request");
     return;
 }
 

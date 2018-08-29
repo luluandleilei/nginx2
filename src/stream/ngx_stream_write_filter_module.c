@@ -16,8 +16,7 @@ typedef struct {
 } ngx_stream_write_filter_ctx_t;
 
 
-static ngx_int_t ngx_stream_write_filter(ngx_stream_session_t *s,
-    ngx_chain_t *in, ngx_uint_t from_upstream);
+static ngx_int_t ngx_stream_write_filter(ngx_stream_session_t *s, ngx_chain_t *in, ngx_uint_t from_upstream);
 static ngx_int_t ngx_stream_write_filter_init(ngx_conf_t *cf);
 
 
@@ -50,8 +49,7 @@ ngx_module_t  ngx_stream_write_filter_module = {
 
 
 static ngx_int_t
-ngx_stream_write_filter(ngx_stream_session_t *s, ngx_chain_t *in,
-    ngx_uint_t from_upstream)
+ngx_stream_write_filter(ngx_stream_session_t *s, ngx_chain_t *in, ngx_uint_t from_upstream)
 {
     off_t                           size;
     ngx_uint_t                      last, flush, sync;
@@ -62,8 +60,7 @@ ngx_stream_write_filter(ngx_stream_session_t *s, ngx_chain_t *in,
     ctx = ngx_stream_get_module_ctx(s, ngx_stream_write_filter_module);
 
     if (ctx == NULL) {
-        ctx = ngx_pcalloc(s->connection->pool,
-                          sizeof(ngx_stream_write_filter_ctx_t));
+        ctx = ngx_pcalloc(s->connection->pool, sizeof(ngx_stream_write_filter_ctx_t));
         if (ctx == NULL) {
             return NGX_ERROR;
         }
@@ -95,29 +92,15 @@ ngx_stream_write_filter(ngx_stream_session_t *s, ngx_chain_t *in,
     for (cl = *out; cl; cl = cl->next) {
         ll = &cl->next;
 
-        ngx_log_debug7(NGX_LOG_DEBUG_EVENT, c->log, 0,
-                       "write old buf t:%d f:%d %p, pos %p, size: %z "
-                       "file: %O, size: %O",
-                       cl->buf->temporary, cl->buf->in_file,
-                       cl->buf->start, cl->buf->pos,
-                       cl->buf->last - cl->buf->pos,
-                       cl->buf->file_pos,
-                       cl->buf->file_last - cl->buf->file_pos);
+        ngx_log_debug7(NGX_LOG_DEBUG_EVENT, c->log, 0, "write old buf t:%d f:%d %p, pos %p, size: %z "
+			"file: %O, size: %O", cl->buf->temporary, cl->buf->in_file, cl->buf->start, cl->buf->pos,
+			cl->buf->last - cl->buf->pos, cl->buf->file_pos, cl->buf->file_last - cl->buf->file_pos);
 
 #if 1
         if (ngx_buf_size(cl->buf) == 0 && !ngx_buf_special(cl->buf)) {
-            ngx_log_error(NGX_LOG_ALERT, c->log, 0,
-                          "zero size buf in writer "
-                          "t:%d r:%d f:%d %p %p-%p %p %O-%O",
-                          cl->buf->temporary,
-                          cl->buf->recycled,
-                          cl->buf->in_file,
-                          cl->buf->start,
-                          cl->buf->pos,
-                          cl->buf->last,
-                          cl->buf->file,
-                          cl->buf->file_pos,
-                          cl->buf->file_last);
+            ngx_log_error(NGX_LOG_ALERT, c->log, 0, "zero size buf in writer " "t:%d r:%d f:%d %p %p-%p %p %O-%O",
+				cl->buf->temporary, cl->buf->recycled, cl->buf->in_file, cl->buf->start, cl->buf->pos,
+				cl->buf->last, cl->buf->file, cl->buf->file_pos, cl->buf->file_last);
 
             ngx_debug_point();
             return NGX_ERROR;
@@ -197,13 +180,9 @@ ngx_stream_write_filter(ngx_stream_session_t *s, ngx_chain_t *in,
 
     *ll = NULL;
 
-    ngx_log_debug3(NGX_LOG_DEBUG_STREAM, c->log, 0,
-                   "stream write filter: l:%ui f:%ui s:%O", last, flush, size);
+    ngx_log_debug3(NGX_LOG_DEBUG_STREAM, c->log, 0, "stream write filter: l:%ui f:%ui s:%O", last, flush, size);
 
-    if (size == 0
-        && !(c->buffered & NGX_LOWLEVEL_BUFFERED)
-        && !(last && c->need_last_buf))
-    {
+    if (size == 0 && !(c->buffered & NGX_LOWLEVEL_BUFFERED) && !(last && c->need_last_buf)) {
         if (last || flush || sync) {
             for (cl = *out; cl; /* void */) {
                 ln = cl;
@@ -217,8 +196,7 @@ ngx_stream_write_filter(ngx_stream_session_t *s, ngx_chain_t *in,
             return NGX_OK;
         }
 
-        ngx_log_error(NGX_LOG_ALERT, c->log, 0,
-                      "the stream output chain is empty");
+        ngx_log_error(NGX_LOG_ALERT, c->log, 0, "the stream output chain is empty");
 
         ngx_debug_point();
 
@@ -227,8 +205,7 @@ ngx_stream_write_filter(ngx_stream_session_t *s, ngx_chain_t *in,
 
     chain = c->send_chain(c, *out, 0);
 
-    ngx_log_debug1(NGX_LOG_DEBUG_STREAM, c->log, 0,
-                   "stream write filter %p", chain);
+    ngx_log_debug1(NGX_LOG_DEBUG_STREAM, c->log, 0, "stream write filter %p", chain);
 
     if (chain == NGX_CHAIN_ERROR) {
         c->error = 1;
@@ -245,8 +222,7 @@ ngx_stream_write_filter(ngx_stream_session_t *s, ngx_chain_t *in,
 
     if (chain) {
         if (c->shared) {
-            ngx_log_error(NGX_LOG_ALERT, c->log, 0,
-                          "shared connection is busy");
+            ngx_log_error(NGX_LOG_ALERT, c->log, 0, "shared connection is busy");
             return NGX_ERROR;
         }
 

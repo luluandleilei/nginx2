@@ -11,9 +11,9 @@
 
 
 /*
-NGX_AGAIN:
-NGX_ERROR:
-n >= 0:
+NGX_ERROR：
+NGX_AGAIN：
+n >= 0: bytes have send
 */
 ssize_t
 ngx_unix_send(ngx_connection_t *c, u_char *buf, size_t size)
@@ -51,15 +51,16 @@ ngx_unix_send(ngx_connection_t *c, u_char *buf, size_t size)
 
         err = ngx_socket_errno;
 
-        if (n == 0) {	//XXX： n == 0 什么意思？ 
+        if (n == 0) {	//XXX：n == 0 ? 是因为size为0吗？如果size不为0，可能会返回n == 0，还是 n == -1 && err == NGX_AGAIN ?
             ngx_log_error(NGX_LOG_ALERT, c->log, err, "send() returned zero");
             wev->ready = 0;
             return n;
         }
 
-		/* n < 0 */
+		/* n == -1 */
 		
         if (err == NGX_EAGAIN || err == NGX_EINTR) {
+			//XXX:在err == NGX_EINTR情况下，设置wev->ready = 0;是不是有问题？
             wev->ready = 0;
 
             ngx_log_debug0(NGX_LOG_DEBUG_EVENT, c->log, err, "send() not ready");

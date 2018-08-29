@@ -1509,6 +1509,7 @@ ngx_resolver_resend(ngx_resolver_t *r, ngx_rbtree_t *tree, ngx_queue_t *queue)
 
         rn = ngx_queue_data(q, ngx_resolver_node_t, queue);
 
+		//还未到重传时间，返回距离重传的时间间隔
         if (now < rn->expire) {
             return rn->expire - now;
         }
@@ -1532,6 +1533,7 @@ ngx_resolver_resend(ngx_resolver_t *r, ngx_rbtree_t *tree, ngx_queue_t *queue)
             continue;
         }
 
+		//上层没有结点关心该解析结点，释放该结点
         ngx_rbtree_delete(tree, &rn->node);
 
         ngx_resolver_free_node(r, rn);
@@ -1801,7 +1803,7 @@ found:
         goto done;
     }
 
-	//XXX: 这里的2表示什么？
+	//XXX: 这里的2表示什么？2表示域名的大小
     if (i + sizeof(ngx_resolver_qs_t) + nan * (2 + sizeof(ngx_resolver_an_t)) > (ngx_uint_t) n) {
         goto short_response;
     }

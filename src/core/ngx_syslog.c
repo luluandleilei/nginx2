@@ -244,8 +244,7 @@ ngx_syslog_add_header(ngx_syslog_peer_t *peer, u_char *buf)
 
 
 void
-ngx_syslog_writer(ngx_log_t *log, ngx_uint_t level, u_char *buf,
-    size_t len)
+ngx_syslog_writer(ngx_log_t *log, ngx_uint_t level, u_char *buf, size_t len)
 {
     u_char             *p, msg[NGX_SYSLOG_MAX_STR];
     ngx_uint_t          head_len;
@@ -319,20 +318,17 @@ ngx_syslog_init_peer(ngx_syslog_peer_t *peer)
 
     fd = ngx_socket(peer->server.sockaddr->sa_family, SOCK_DGRAM, 0);
     if (fd == (ngx_socket_t) -1) {
-        ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, ngx_socket_errno,
-                      ngx_socket_n " failed");
+        ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, ngx_socket_errno, ngx_socket_n " failed");
         return NGX_ERROR;
     }
 
     if (ngx_nonblocking(fd) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, ngx_socket_errno,
-                      ngx_nonblocking_n " failed");
+        ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, ngx_socket_errno, ngx_nonblocking_n " failed");
         goto failed;
     }
 
     if (connect(fd, peer->server.sockaddr, peer->server.socklen) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, ngx_socket_errno,
-                      "connect() failed");
+        ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, ngx_socket_errno, "connect() failed");
         goto failed;
     }
 
@@ -346,8 +342,7 @@ ngx_syslog_init_peer(ngx_syslog_peer_t *peer)
 failed:
 
     if (ngx_close_socket(fd) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, ngx_socket_errno,
-                      ngx_close_socket_n " failed");
+        ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, ngx_socket_errno, ngx_close_socket_n " failed");
     }
 
     return NGX_ERROR;

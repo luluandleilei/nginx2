@@ -10,8 +10,7 @@
 #include <ngx_event.h>
 
 
-static ngx_chain_t *ngx_udp_output_chain_to_iovec(ngx_iovec_t *vec,
-    ngx_chain_t *in, ngx_log_t *log);
+static ngx_chain_t *ngx_udp_output_chain_to_iovec(ngx_iovec_t *vec, ngx_chain_t *in, ngx_log_t *log);
 static ssize_t ngx_sendmsg(ngx_connection_t *c, ngx_iovec_t *vec);
 
 
@@ -34,8 +33,7 @@ ngx_udp_unix_sendmsg_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit)
 #if (NGX_HAVE_KQUEUE)
 
     if ((ngx_event_flags & NGX_USE_KQUEUE_EVENT) && wev->pending_eof) {
-        (void) ngx_connection_error(c, wev->kq_errno,
-                               "kevent() reported about an closed connection");
+        (void) ngx_connection_error(c, wev->kq_errno, "kevent() reported about an closed connection");
         wev->error = 1;
         return NGX_CHAIN_ERROR;
     }
@@ -141,18 +139,9 @@ ngx_udp_output_chain_to_iovec(ngx_iovec_t *vec, ngx_chain_t *in, ngx_log_t *log)
         }
 
         if (!ngx_buf_in_memory(in->buf)) {
-            ngx_log_error(NGX_LOG_ALERT, log, 0,
-                          "bad buf in output chain "
-                          "t:%d r:%d f:%d %p %p-%p %p %O-%O",
-                          in->buf->temporary,
-                          in->buf->recycled,
-                          in->buf->in_file,
-                          in->buf->start,
-                          in->buf->pos,
-                          in->buf->last,
-                          in->buf->file,
-                          in->buf->file_pos,
-                          in->buf->file_last);
+            ngx_log_error(NGX_LOG_ALERT, log, 0, "bad buf in output chain " "t:%d r:%d f:%d %p %p-%p %p %O-%O",
+				in->buf->temporary, in->buf->recycled, in->buf->in_file, in->buf->start, in->buf->pos,
+				in->buf->last, in->buf->file, in->buf->file_pos, in->buf->file_last);
 
             ngx_debug_point();
 
@@ -166,8 +155,7 @@ ngx_udp_output_chain_to_iovec(ngx_iovec_t *vec, ngx_chain_t *in, ngx_log_t *log)
 
         } else {
             if (n == vec->nalloc) {
-                ngx_log_error(NGX_LOG_ALERT, log, 0,
-                              "too many parts in a datagram");
+                ngx_log_error(NGX_LOG_ALERT, log, 0, "too many parts in a datagram");
                 return NGX_CHAIN_ERROR;
             }
 
@@ -307,21 +295,18 @@ eintr:
 
     n = sendmsg(c->fd, &msg, 0);
 
-    ngx_log_debug2(NGX_LOG_DEBUG_EVENT, c->log, 0,
-                   "sendmsg: %z of %uz", n, vec->size);
+    ngx_log_debug2(NGX_LOG_DEBUG_EVENT, c->log, 0, "sendmsg: %z of %uz", n, vec->size);
 
     if (n == -1) {
         err = ngx_errno;
 
         switch (err) {
         case NGX_EAGAIN:
-            ngx_log_debug0(NGX_LOG_DEBUG_EVENT, c->log, err,
-                           "sendmsg() not ready");
+            ngx_log_debug0(NGX_LOG_DEBUG_EVENT, c->log, err, "sendmsg() not ready");
             return NGX_AGAIN;
 
         case NGX_EINTR:
-            ngx_log_debug0(NGX_LOG_DEBUG_EVENT, c->log, err,
-                           "sendmsg() was interrupted");
+            ngx_log_debug0(NGX_LOG_DEBUG_EVENT, c->log, err, "sendmsg() was interrupted");
             goto eintr;
 
         default:
