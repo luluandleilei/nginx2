@@ -10,6 +10,11 @@
 #include <ngx_event.h>
 
 
+/*
+NGX_AGAIN:
+NGX_ERROR:
+n >= 0:
+*/
 ssize_t
 ngx_unix_send(ngx_connection_t *c, u_char *buf, size_t size)
 {
@@ -46,7 +51,7 @@ ngx_unix_send(ngx_connection_t *c, u_char *buf, size_t size)
 
         err = ngx_socket_errno;
 
-        if (n == 0) {
+        if (n == 0) {	//XXX： n == 0 什么意思？ 
             ngx_log_error(NGX_LOG_ALERT, c->log, err, "send() returned zero");
             wev->ready = 0;
             return n;

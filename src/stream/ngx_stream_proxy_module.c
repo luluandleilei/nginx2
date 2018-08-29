@@ -1287,8 +1287,7 @@ ngx_stream_proxy_process_connection(ngx_event_t *ev, ngx_uint_t from_upstream)
 
             if (!ev->ready) {
                 if (ngx_handle_read_event(ev, 0) != NGX_OK) {
-                    ngx_stream_proxy_finalize(s,
-                                              NGX_STREAM_INTERNAL_SERVER_ERROR);
+                    ngx_stream_proxy_finalize(s, NGX_STREAM_INTERNAL_SERVER_ERROR);
                     return;
                 }
 
@@ -1344,8 +1343,7 @@ ngx_stream_proxy_process_connection(ngx_event_t *ev, ngx_uint_t from_upstream)
 
     } else if (ev->delayed) {
 
-        ngx_log_debug0(NGX_LOG_DEBUG_STREAM, c->log, 0,
-                       "stream connection delayed");
+        ngx_log_debug0(NGX_LOG_DEBUG_STREAM, c->log, 0, "stream connection delayed");
 
         if (ngx_handle_read_event(ev, 0) != NGX_OK) {
             ngx_stream_proxy_finalize(s, NGX_STREAM_INTERNAL_SERVER_ERROR);
@@ -1435,8 +1433,7 @@ ngx_stream_proxy_test_connect(ngx_connection_t *c)
 
 
 static void
-ngx_stream_proxy_process(ngx_stream_session_t *s, ngx_uint_t from_upstream,
-    ngx_uint_t do_write)
+ngx_stream_proxy_process(ngx_stream_session_t *s, ngx_uint_t from_upstream, ngx_uint_t do_write)
 {
     char                         *recv_action, *send_action;
     off_t                        *received, limit;

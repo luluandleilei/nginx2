@@ -114,8 +114,7 @@ static ngx_int_t ngx_http_upstream_copy_content_type(ngx_http_request_t *r,
     ngx_table_elt_t *h, ngx_uint_t offset);
 static ngx_int_t ngx_http_upstream_copy_last_modified(ngx_http_request_t *r,
     ngx_table_elt_t *h, ngx_uint_t offset);
-static ngx_int_t ngx_http_upstream_rewrite_location(ngx_http_request_t *r,
-    ngx_table_elt_t *h, ngx_uint_t offset);
+static ngx_int_t ngx_http_upstream_rewrite_location(ngx_http_request_t *r, ngx_table_elt_t *h, ngx_uint_t offset);
 static ngx_int_t ngx_http_upstream_rewrite_refresh(ngx_http_request_t *r,
     ngx_table_elt_t *h, ngx_uint_t offset);
 static ngx_int_t ngx_http_upstream_rewrite_set_cookie(ngx_http_request_t *r,
@@ -1559,7 +1558,8 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
     u->request_body_sent = 0;
     u->request_body_blocked = 0;
 
-    if (rc == NGX_AGAIN) {
+    if (rc == NGX_AGAIN) {	
+		//XXX: ngx_event_connect_peer 返回 NGX_AGAIN的时候，为什么设置写事件的超时，而不是读事件的超时？
         ngx_add_timer(c->write, u->conf->connect_timeout);
         return;
     }
@@ -2617,8 +2617,7 @@ ngx_http_upstream_process_headers(ngx_http_request_t *r, ngx_http_upstream_t *u)
                 i = 0;
             }
 
-            hh = ngx_hash_find(&umcf->headers_in_hash, h[i].hash,
-                               h[i].lowcase_key, h[i].key.len);
+            hh = ngx_hash_find(&umcf->headers_in_hash, h[i].hash, h[i].lowcase_key, h[i].key.len);
 
             if (hh && hh->redirect) {
                 if (hh->copy_handler(r, &h[i], hh->conf) != NGX_OK) {
@@ -2669,19 +2668,15 @@ ngx_http_upstream_process_headers(ngx_http_request_t *r, ngx_http_upstream_t *u)
             i = 0;
         }
 
-        if (ngx_hash_find(&u->conf->hide_headers_hash, h[i].hash,
-                          h[i].lowcase_key, h[i].key.len))
-        {
+        if (ngx_hash_find(&u->conf->hide_headers_hash, h[i].hash, h[i].lowcase_key, h[i].key.len)) {
             continue;
         }
 
-        hh = ngx_hash_find(&umcf->headers_in_hash, h[i].hash,
-                           h[i].lowcase_key, h[i].key.len);
+        hh = ngx_hash_find(&umcf->headers_in_hash, h[i].hash, h[i].lowcase_key, h[i].key.len);
 
         if (hh) {
             if (hh->copy_handler(r, &h[i], hh->conf) != NGX_OK) {
-                ngx_http_upstream_finalize_request(r, u,
-                                               NGX_HTTP_INTERNAL_SERVER_ERROR);
+                ngx_http_upstream_finalize_request(r, u, NGX_HTTP_INTERNAL_SERVER_ERROR);
                 return NGX_DONE;
             }
 
@@ -2689,8 +2684,7 @@ ngx_http_upstream_process_headers(ngx_http_request_t *r, ngx_http_upstream_t *u)
         }
 
         if (ngx_http_upstream_copy_header_line(r, &h[i], 0) != NGX_OK) {
-            ngx_http_upstream_finalize_request(r, u,
-                                               NGX_HTTP_INTERNAL_SERVER_ERROR);
+            ngx_http_upstream_finalize_request(r, u, NGX_HTTP_INTERNAL_SERVER_ERROR);
             return NGX_DONE;
         }
     }
@@ -3323,17 +3317,14 @@ ngx_http_upstream_process_upgraded(ngx_http_request_t *r,
         || (downstream->read->eof && u->from_client.pos == u->from_client.last)
         || (downstream->read->eof && upstream->read->eof))
     {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                       "http upstream upgraded done");
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0, "http upstream upgraded done");
         ngx_http_upstream_finalize_request(r, u, 0);
         return;
     }
 
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
-    if (ngx_handle_write_event(upstream->write, u->conf->send_lowat)
-        != NGX_OK)
-    {
+    if (ngx_handle_write_event(upstream->write, u->conf->send_lowat) != NGX_OK) {
         ngx_http_upstream_finalize_request(r, u, NGX_ERROR);
         return;
     }
@@ -4881,8 +4872,7 @@ ngx_http_upstream_copy_last_modified(ngx_http_request_t *r, ngx_table_elt_t *h,
 
 
 static ngx_int_t
-ngx_http_upstream_rewrite_location(ngx_http_request_t *r, ngx_table_elt_t *h,
-    ngx_uint_t offset)
+ngx_http_upstream_rewrite_location(ngx_http_request_t *r, ngx_table_elt_t *h, ngx_uint_t offset)
 {
     ngx_int_t         rc;
     ngx_table_elt_t  *ho;
@@ -4904,8 +4894,7 @@ ngx_http_upstream_rewrite_location(ngx_http_request_t *r, ngx_table_elt_t *h,
         if (rc == NGX_OK) {
             r->headers_out.location = ho;
 
-            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                           "rewritten location: \"%V\"", &ho->value);
+            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "rewritten location: \"%V\"", &ho->value);
         }
 
         return rc;

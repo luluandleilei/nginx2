@@ -2016,8 +2016,7 @@ ngx_http_proxy_process_status_line(ngx_http_request_t *r)
 
 #endif
 
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                      "upstream sent no valid HTTP/1.0 header");
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "upstream sent no valid HTTP/1.0 header");
 
 #if 0
         if (u->accel) {
