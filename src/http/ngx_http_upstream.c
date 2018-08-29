@@ -2622,8 +2622,7 @@ ngx_http_upstream_process_headers(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
             if (hh && hh->redirect) {
                 if (hh->copy_handler(r, &h[i], hh->conf) != NGX_OK) {
-                    ngx_http_finalize_request(r,
-                                              NGX_HTTP_INTERNAL_SERVER_ERROR);
+                    ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
                     return NGX_DONE;
                 }
             }

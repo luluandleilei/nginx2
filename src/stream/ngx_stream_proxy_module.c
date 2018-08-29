@@ -364,8 +364,7 @@ ngx_stream_proxy_handler(ngx_stream_session_t *s)
 
     pscf = ngx_stream_get_module_srv_conf(s, ngx_stream_proxy_module);
 
-    ngx_log_debug0(NGX_LOG_DEBUG_STREAM, c->log, 0,
-                   "proxy connection handler");
+    ngx_log_debug0(NGX_LOG_DEBUG_STREAM, c->log, 0, "proxy connection handler");
 
     u = ngx_pcalloc(c->pool, sizeof(ngx_stream_upstream_t));
     if (u == NULL) {
@@ -393,8 +392,7 @@ ngx_stream_proxy_handler(ngx_stream_session_t *s)
     c->write->handler = ngx_stream_proxy_downstream_handler;
     c->read->handler = ngx_stream_proxy_downstream_handler;
 
-    s->upstream_states = ngx_array_create(c->pool, 1,
-                                          sizeof(ngx_stream_upstream_state_t));
+    s->upstream_states = ngx_array_create(c->pool, 1, sizeof(ngx_stream_upstream_state_t));
     if (s->upstream_states == NULL) {
         ngx_stream_proxy_finalize(s, NGX_STREAM_INTERNAL_SERVER_ERROR);
         return;
@@ -453,18 +451,13 @@ ngx_stream_proxy_handler(ngx_stream_session_t *s)
 
         if (u->resolved->sockaddr) {
 
-            if (u->resolved->port == 0
-                && u->resolved->sockaddr->sa_family != AF_UNIX)
-            {
-                ngx_log_error(NGX_LOG_ERR, c->log, 0,
-                              "no port in upstream \"%V\"", host);
+            if (u->resolved->port == 0 && u->resolved->sockaddr->sa_family != AF_UNIX) {
+                ngx_log_error(NGX_LOG_ERR, c->log, 0, "no port in upstream \"%V\"", host);
                 ngx_stream_proxy_finalize(s, NGX_STREAM_INTERNAL_SERVER_ERROR);
                 return;
             }
 
-            if (ngx_stream_upstream_create_round_robin_peer(s, u->resolved)
-                != NGX_OK)
-            {
+            if (ngx_stream_upstream_create_round_robin_peer(s, u->resolved) != NGX_OK) {
                 ngx_stream_proxy_finalize(s, NGX_STREAM_INTERNAL_SERVER_ERROR);
                 return;
             }
@@ -475,8 +468,7 @@ ngx_stream_proxy_handler(ngx_stream_session_t *s)
         }
 
         if (u->resolved->port == 0) {
-            ngx_log_error(NGX_LOG_ERR, c->log, 0,
-                          "no port in upstream \"%V\"", host);
+            ngx_log_error(NGX_LOG_ERR, c->log, 0, "no port in upstream \"%V\"", host);
             ngx_stream_proxy_finalize(s, NGX_STREAM_INTERNAL_SERVER_ERROR);
             return;
         }
@@ -492,8 +484,7 @@ ngx_stream_proxy_handler(ngx_stream_session_t *s)
         }
 
         if (ctx == NGX_NO_RESOLVER) {
-            ngx_log_error(NGX_LOG_ERR, c->log, 0,
-                          "no resolver defined to resolve %V", host);
+            ngx_log_error(NGX_LOG_ERR, c->log, 0, "no resolver defined to resolve %V", host);
             ngx_stream_proxy_finalize(s, NGX_STREAM_INTERNAL_SERVER_ERROR);
             return;
         }
@@ -535,9 +526,7 @@ found:
 
     u->peer.start_time = ngx_current_msec;
 
-    if (pscf->next_upstream_tries
-        && u->peer.tries > pscf->next_upstream_tries)
-    {
+    if (pscf->next_upstream_tries && u->peer.tries > pscf->next_upstream_tries) {
         u->peer.tries = pscf->next_upstream_tries;
     }
 
@@ -1390,8 +1379,7 @@ ngx_stream_proxy_connect_handler(ngx_event_t *ev)
 
     ngx_del_timer(c->write);
 
-    ngx_log_debug0(NGX_LOG_DEBUG_STREAM, c->log, 0,
-                   "stream proxy connect upstream");
+    ngx_log_debug0(NGX_LOG_DEBUG_STREAM, c->log, 0, "stream proxy connect upstream");
 
     if (ngx_stream_proxy_test_connect(c) != NGX_OK) {
         ngx_stream_proxy_next_upstream(s);
@@ -1525,8 +1513,7 @@ ngx_stream_proxy_process(ngx_stream_session_t *s, ngx_uint_t from_upstream,
                     return;
                 }
 
-                ngx_chain_update_chains(c->pool, &u->free, busy, out,
-                                      (ngx_buf_tag_t) &ngx_stream_proxy_module);
+                ngx_chain_update_chains(c->pool, &u->free, busy, out, (ngx_buf_tag_t) &ngx_stream_proxy_module);
 
                 if (*busy == NULL) {
                     b->pos = b->start;
@@ -1537,12 +1524,9 @@ ngx_stream_proxy_process(ngx_stream_session_t *s, ngx_uint_t from_upstream,
 
         size = b->end - b->last;
 
-        if (size && src->read->ready && !src->read->delayed
-            && !src->read->error)
-        {
+        if (size && src->read->ready && !src->read->delayed && !src->read->error) {
             if (limit_rate) {
-                limit = (off_t) limit_rate * (ngx_time() - u->start_sec + 1)
-                        - *received;
+                limit = (off_t) limit_rate * (ngx_time() - u->start_sec + 1) - *received;
 
                 if (limit <= 0) {
                     src->read->delayed = 1;
@@ -1581,8 +1565,7 @@ ngx_stream_proxy_process(ngx_stream_session_t *s, ngx_uint_t from_upstream,
 
                 if (from_upstream) {
                     if (u->state->first_byte_time == (ngx_msec_t) -1) {
-                        u->state->first_byte_time = ngx_current_msec
-                                                    - u->state->response_time;
+                        u->state->first_byte_time = ngx_current_msec - u->state->response_time;
                     }
                 }
 
@@ -1590,8 +1573,7 @@ ngx_stream_proxy_process(ngx_stream_session_t *s, ngx_uint_t from_upstream,
 
                 cl = ngx_chain_get_free_buf(c->pool, &u->free);
                 if (cl == NULL) {
-                    ngx_stream_proxy_finalize(s,
-                                              NGX_STREAM_INTERNAL_SERVER_ERROR);
+                    ngx_stream_proxy_finalize(s, NGX_STREAM_INTERNAL_SERVER_ERROR);
                     return;
                 }
 
@@ -1691,8 +1673,7 @@ ngx_stream_proxy_next_upstream(ngx_stream_session_t *s)
     ngx_stream_upstream_t        *u;
     ngx_stream_proxy_srv_conf_t  *pscf;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_STREAM, s->connection->log, 0,
-                   "stream proxy next upstream");
+    ngx_log_debug0(NGX_LOG_DEBUG_STREAM, s->connection->log, 0, "stream proxy next upstream");
 
     u = s->upstream;
     pc = u->peer.connection;
@@ -1726,8 +1707,7 @@ ngx_stream_proxy_next_upstream(ngx_stream_session_t *s)
     }
 
     if (pc) {
-        ngx_log_debug1(NGX_LOG_DEBUG_STREAM, s->connection->log, 0,
-                       "close proxy upstream connection: %d", pc->fd);
+        ngx_log_debug1(NGX_LOG_DEBUG_STREAM, s->connection->log, 0, "close proxy upstream connection: %d", pc->fd);
 
 #if (NGX_STREAM_SSL)
         if (pc->ssl) {
@@ -1903,29 +1883,21 @@ ngx_stream_proxy_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_stream_proxy_srv_conf_t *prev = parent;
     ngx_stream_proxy_srv_conf_t *conf = child;
 
-    ngx_conf_merge_msec_value(conf->connect_timeout,
-                              prev->connect_timeout, 60000);
+    ngx_conf_merge_msec_value(conf->connect_timeout, prev->connect_timeout, 60000);
 
-    ngx_conf_merge_msec_value(conf->timeout,
-                              prev->timeout, 10 * 60000);
+    ngx_conf_merge_msec_value(conf->timeout, prev->timeout, 10 * 60000);
 
-    ngx_conf_merge_msec_value(conf->next_upstream_timeout,
-                              prev->next_upstream_timeout, 0);
+    ngx_conf_merge_msec_value(conf->next_upstream_timeout, prev->next_upstream_timeout, 0);
 
-    ngx_conf_merge_size_value(conf->buffer_size,
-                              prev->buffer_size, 16384);
+    ngx_conf_merge_size_value(conf->buffer_size, prev->buffer_size, 16384);
 
-    ngx_conf_merge_size_value(conf->upload_rate,
-                              prev->upload_rate, 0);
+    ngx_conf_merge_size_value(conf->upload_rate, prev->upload_rate, 0);
 
-    ngx_conf_merge_size_value(conf->download_rate,
-                              prev->download_rate, 0);
+    ngx_conf_merge_size_value(conf->download_rate, prev->download_rate, 0);
 
-    ngx_conf_merge_uint_value(conf->responses,
-                              prev->responses, NGX_MAX_INT32_VALUE);
+    ngx_conf_merge_uint_value(conf->responses, prev->responses, NGX_MAX_INT32_VALUE);
 
-    ngx_conf_merge_uint_value(conf->next_upstream_tries,
-                              prev->next_upstream_tries, 0);
+    ngx_conf_merge_uint_value(conf->next_upstream_tries, prev->next_upstream_tries, 0);
 
     ngx_conf_merge_value(conf->next_upstream, prev->next_upstream, 1);
 

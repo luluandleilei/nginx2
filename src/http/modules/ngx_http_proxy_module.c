@@ -451,6 +451,15 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       offsetof(ngx_http_proxy_loc_conf_t, upstream.connect_timeout),
       NULL },
 
+	/*
+	 Syntax:	proxy_send_timeout time;
+	 Default: 	proxy_send_timeout 60s;
+	 Context:	http, server, location
+
+	 Sets a timeout for transmitting a request to the proxied server. The timeout is set only between 
+	 two successive write operations, not for the transmission of the whole request. If the proxied 
+	 server does not receive anything within this time, the connection is closed.
+	*/
     { ngx_string("proxy_send_timeout"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_msec_slot,
@@ -598,6 +607,15 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       offsetof(ngx_http_proxy_loc_conf_t, upstream.buffer_size),
       NULL },
 
+	/*
+	 Syntax:	proxy_read_timeout time;
+	 Default: 	proxy_read_timeout 60s;
+	 Context:	http, server, location
+	 
+	 Defines a timeout for reading a response from the proxied server. The timeout is set only between
+	 two successive read operations, not for the transmission of the whole response. If the proxied 
+	 server does not transmit anything within this time, the connection is closed.
+	*/
     { ngx_string("proxy_read_timeout"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_msec_slot,
@@ -873,6 +891,15 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       offsetof(ngx_http_proxy_loc_conf_t, upstream.next_upstream_tries),
       NULL },
 
+	/*
+	 Syntax:	proxy_next_upstream_timeout time;
+	 Default: 	proxy_next_upstream_timeout 0;
+	 Context:	http, server, location
+	 This directive appeared in version 1.7.5.
+
+	 Limits the time during which a request can be passed to the next server. The 0 value turns off 
+	 this limitation.
+	*/
     { ngx_string("proxy_next_upstream_timeout"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_msec_slot,
