@@ -1244,8 +1244,7 @@ ngx_ssl_ocsp_create_request(ngx_ssl_ocsp_ctx_t *ctx)
         p = ngx_cpymem(p, base64.data, base64.len);
 
     } else {
-        p = (u_char *) ngx_escape_uri(p, base64.data, base64.len,
-                                      NGX_ESCAPE_URI_COMPONENT);
+        p = (u_char *) ngx_escape_uri(p, base64.data, base64.len, NGX_ESCAPE_URI_COMPONENT);
     }
 
     p = ngx_cpymem(p, " HTTP/1.0" CRLF, sizeof(" HTTP/1.0" CRLF) - 1);

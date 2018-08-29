@@ -332,6 +332,7 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
       NULL },
+      
 	/*
 	 Syntax:	proxy_store on | off | string;
 	 Default: 	proxy_store off;
@@ -824,6 +825,7 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       NULL },
 
 #endif
+
 	/*
 	 Syntax:	proxy_temp_path path [level1 [level2 [level3]]];
 	 Default: proxy_temp_path proxy_temp;
