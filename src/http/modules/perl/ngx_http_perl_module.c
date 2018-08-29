@@ -922,8 +922,7 @@ ngx_http_perl(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     value = cf->args->elts;
 
     if (plcf->handler.data) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "duplicate perl handler \"%V\"", &value[1]);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "duplicate perl handler \"%V\"", &value[1]);
         return NGX_CONF_ERROR;
     }
 
@@ -946,8 +945,7 @@ ngx_http_perl(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_http_perl_eval_anon_sub(aTHX_ &value[1], &plcf->sub);
 
     if (plcf->sub == &PL_sv_undef) {
-        ngx_conf_log_error(NGX_LOG_ERR, cf, 0,
-                           "eval_pv(\"%V\") failed", &value[1]);
+        ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "eval_pv(\"%V\") failed", &value[1]);
         return NGX_CONF_ERROR;
     }
 

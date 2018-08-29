@@ -1512,8 +1512,7 @@ ngx_stream_proxy_process(ngx_stream_session_t *s, ngx_uint_t from_upstream, ngx_
 
         if (size && src->read->ready && !src->read->delayed && !src->read->error) {
             if (limit_rate) {
-                limit = (off_t) limit_rate * (ngx_time() - u->start_sec + 1)
-                        - *received;
+                limit = (off_t) limit_rate * (ngx_time() - u->start_sec + 1) - *received;
 
                 if (limit <= 0) {
                     src->read->delayed = 1;
@@ -1552,8 +1551,7 @@ ngx_stream_proxy_process(ngx_stream_session_t *s, ngx_uint_t from_upstream, ngx_
 
                 if (from_upstream) {
                     if (u->state->first_byte_time == (ngx_msec_t) -1) {
-                        u->state->first_byte_time = ngx_current_msec
-                                                    - u->state->response_time;
+                        u->state->first_byte_time = ngx_current_msec - u->state->response_time;
                     }
                 }
 
@@ -1863,29 +1861,21 @@ ngx_stream_proxy_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_stream_proxy_srv_conf_t *prev = parent;
     ngx_stream_proxy_srv_conf_t *conf = child;
 
-    ngx_conf_merge_msec_value(conf->connect_timeout,
-                              prev->connect_timeout, 60000);
+    ngx_conf_merge_msec_value(conf->connect_timeout, prev->connect_timeout, 60000);
 
-    ngx_conf_merge_msec_value(conf->timeout,
-                              prev->timeout, 10 * 60000);
+    ngx_conf_merge_msec_value(conf->timeout, prev->timeout, 10 * 60000);
 
-    ngx_conf_merge_msec_value(conf->next_upstream_timeout,
-                              prev->next_upstream_timeout, 0);
+    ngx_conf_merge_msec_value(conf->next_upstream_timeout, prev->next_upstream_timeout, 0);
 
-    ngx_conf_merge_size_value(conf->buffer_size,
-                              prev->buffer_size, 16384);
+    ngx_conf_merge_size_value(conf->buffer_size, prev->buffer_size, 16384);
 
-    ngx_conf_merge_size_value(conf->upload_rate,
-                              prev->upload_rate, 0);
+    ngx_conf_merge_size_value(conf->upload_rate, prev->upload_rate, 0);
 
-    ngx_conf_merge_size_value(conf->download_rate,
-                              prev->download_rate, 0);
+    ngx_conf_merge_size_value(conf->download_rate, prev->download_rate, 0);
 
-    ngx_conf_merge_uint_value(conf->responses,
-                              prev->responses, NGX_MAX_INT32_VALUE);
+    ngx_conf_merge_uint_value(conf->responses, prev->responses, NGX_MAX_INT32_VALUE);
 
-    ngx_conf_merge_uint_value(conf->next_upstream_tries,
-                              prev->next_upstream_tries, 0);
+    ngx_conf_merge_uint_value(conf->next_upstream_tries, prev->next_upstream_tries, 0);
 
     ngx_conf_merge_value(conf->next_upstream, prev->next_upstream, 1);
 

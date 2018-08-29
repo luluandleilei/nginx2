@@ -627,8 +627,7 @@ ngx_ssl_stapling_ocsp_handler(ngx_ssl_ocsp_ctx_t *ctx)
 
     store = SSL_CTX_get_cert_store(staple->ssl_ctx);
     if (store == NULL) {
-        ngx_ssl_error(NGX_LOG_CRIT, ctx->log, 0,
-                      "SSL_CTX_get_cert_store() failed");
+        ngx_ssl_error(NGX_LOG_CRIT, ctx->log, 0, "SSL_CTX_get_cert_store() failed");
         goto error;
     }
 
@@ -1074,6 +1073,8 @@ ngx_ssl_ocsp_write_handler(ngx_event_t *wev)
         }
     }
 
+	/* XXX: n == NGX_AGAIN, n == 0 */
+	
     if (!wev->timer_set) {
         ngx_add_timer(wev, ctx->timeout);
     }
@@ -1156,8 +1157,7 @@ ngx_ssl_ocsp_read_handler(ngx_event_t *rev)
 static void
 ngx_ssl_ocsp_dummy_handler(ngx_event_t *ev)
 {
-    ngx_log_debug0(NGX_LOG_DEBUG_EVENT, ev->log, 0,
-                   "ssl ocsp dummy handler");
+    ngx_log_debug0(NGX_LOG_DEBUG_EVENT, ev->log, 0, "ssl ocsp dummy handler");
 }
 
 
@@ -1278,11 +1278,8 @@ ngx_ssl_ocsp_process_status_line(ngx_ssl_ocsp_ctx_t *ctx)
     rc = ngx_ssl_ocsp_parse_status_line(ctx);
 
     if (rc == NGX_OK) {
-        ngx_log_debug3(NGX_LOG_DEBUG_EVENT, ctx->log, 0,
-                       "ssl ocsp status %ui \"%*s\"",
-                       ctx->code,
-                       ctx->header_end - ctx->header_start,
-                       ctx->header_start);
+        ngx_log_debug3(NGX_LOG_DEBUG_EVENT, ctx->log, 0, "ssl ocsp status %ui \"%*s\"",
+			ctx->code, ctx->header_end - ctx->header_start, ctx->header_start);
 
         ctx->process = ngx_ssl_ocsp_process_headers;
         return ctx->process(ctx);
@@ -1527,10 +1524,7 @@ ngx_ssl_ocsp_process_headers(ngx_ssl_ocsp_ctx_t *ctx)
             len = ctx->header_name_end - ctx->header_name_start;
 
             if (len == sizeof("Content-Type") - 1
-                && ngx_strncasecmp(ctx->header_name_start,
-                                   (u_char *) "Content-Type",
-                                   sizeof("Content-Type") - 1)
-                   == 0)
+                && ngx_strncasecmp(ctx->header_name_start, (u_char *) "Content-Type", sizeof("Content-Type") - 1) == 0)
             {
                 len = ctx->header_end - ctx->header_start;
 

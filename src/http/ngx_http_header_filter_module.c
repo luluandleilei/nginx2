@@ -170,6 +170,7 @@ ngx_http_header_filter(ngx_http_request_t *r)
 
 	//如果请求的响应头部已经发送过了，直接返回NGX_OK
 	//否则将header_sent标志位置为1防止反复地发送响应头部
+	//XXX:为什么会多次发送请求头？
     if (r->header_sent) {	
         return NGX_OK;
     }

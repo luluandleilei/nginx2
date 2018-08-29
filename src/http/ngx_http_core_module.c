@@ -2937,7 +2937,7 @@ ngx_http_map_uri_to_path(ngx_http_request_t *r, ngx_str_t *path, size_t *root_le
 
     } else {	//
 
-        if (alias == NGX_MAX_SIZE_T_VALUE) {
+        if (alias == NGX_MAX_SIZE_T_VALUE) {		//XXX:正则
             reserved += r->add_uri_to_alias ? r->uri.len + 1 : 1;
 
         } else {
@@ -5250,7 +5250,7 @@ ngx_http_core_root(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
-    if (clcf->named && alias) {	//XXX: 为什么alias 不能用于named location
+    if (clcf->named && alias) {	//XXX: 为什么alias 不能用于named location, named location 是干嘛用的？
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "the \"alias\" directive cannot be used " "inside the named location");
 
         return NGX_CONF_ERROR;

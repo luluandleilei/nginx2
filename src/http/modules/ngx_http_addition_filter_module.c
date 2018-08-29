@@ -80,6 +80,10 @@ static ngx_command_t  ngx_http_addition_commands[] = {
 };
 
 
+/*
+The ngx_http_addition_module module is a filter that adds text before and after a response. 
+This module is not built by default, it should be enabled with the --with-http_addition_module configuration parameter.
+*/
 static ngx_http_module_t  ngx_http_addition_filter_module_ctx = {
     NULL,                                  /* preconfiguration */
     ngx_http_addition_filter_init,         /* postconfiguration */
