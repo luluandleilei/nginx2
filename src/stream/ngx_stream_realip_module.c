@@ -116,10 +116,7 @@ ngx_stream_realip_handler(ngx_stream_session_t *s)
         return NGX_DECLINED;
     }
 
-    if (ngx_parse_addr(c->pool, &addr, c->proxy_protocol_addr.data,
-                       c->proxy_protocol_addr.len)
-        != NGX_OK)
-    {
+    if (ngx_parse_addr(c->pool, &addr, c->proxy_protocol_addr.data, c->proxy_protocol_addr.len) != NGX_OK) {
         return NGX_DECLINED;
     }
 

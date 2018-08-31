@@ -490,6 +490,7 @@ ngx_resolve_name_done(ngx_resolver_ctx_t *ctx)
 
 	//ctx提前结束，
 	//将ctx从node->waiting中删除
+	//ctx->state == NGX_AGAIN表明正在进行DNS解析
     if (ctx->state == NGX_AGAIN || ctx->state == NGX_RESOLVE_TIMEDOUT) {
 		
         rn = ctx->node;

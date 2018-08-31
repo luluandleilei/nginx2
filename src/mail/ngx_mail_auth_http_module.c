@@ -779,8 +779,7 @@ ngx_mail_auth_http_process_headers(ngx_mail_session_t *s,
                 return;
             }
 
-            rc = ngx_parse_addr(s->connection->pool, peer,
-                                ctx->addr.data, ctx->addr.len);
+            rc = ngx_parse_addr(s->connection->pool, peer, ctx->addr.data, ctx->addr.len);
 
             switch (rc) {
             case NGX_OK:

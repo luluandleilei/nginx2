@@ -335,8 +335,7 @@ ngx_http_geo_addr(ngx_http_request_t *r, ngx_http_geo_ctx_t *ctx,
 
 
 static ngx_int_t
-ngx_http_geo_real_addr(ngx_http_request_t *r, ngx_http_geo_ctx_t *ctx,
-    ngx_addr_t *addr)
+ngx_http_geo_real_addr(ngx_http_request_t *r, ngx_http_geo_ctx_t *ctx, ngx_addr_t *addr)
 {
     ngx_http_variable_value_t  *v;
 
