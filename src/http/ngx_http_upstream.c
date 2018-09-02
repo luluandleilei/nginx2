@@ -4264,8 +4264,7 @@ ngx_http_upstream_finalize_request(ngx_http_request_t *r, ngx_http_upstream_t *u
 
 
 static ngx_int_t
-ngx_http_upstream_process_header_line(ngx_http_request_t *r, ngx_table_elt_t *h,
-    ngx_uint_t offset)
+ngx_http_upstream_process_header_line(ngx_http_request_t *r, ngx_table_elt_t *h, ngx_uint_t offset)
 {
     ngx_table_elt_t  **ph;
 
@@ -4280,8 +4279,7 @@ ngx_http_upstream_process_header_line(ngx_http_request_t *r, ngx_table_elt_t *h,
 
 
 static ngx_int_t
-ngx_http_upstream_ignore_header_line(ngx_http_request_t *r, ngx_table_elt_t *h,
-    ngx_uint_t offset)
+ngx_http_upstream_ignore_header_line(ngx_http_request_t *r, ngx_table_elt_t *h, ngx_uint_t offset)
 {
     return NGX_OK;
 }
@@ -4903,8 +4901,7 @@ ngx_http_upstream_rewrite_location(ngx_http_request_t *r, ngx_table_elt_t *h, ng
 
 
 static ngx_int_t
-ngx_http_upstream_rewrite_refresh(ngx_http_request_t *r, ngx_table_elt_t *h,
-    ngx_uint_t offset)
+ngx_http_upstream_rewrite_refresh(ngx_http_request_t *r, ngx_table_elt_t *h, ngx_uint_t offset)
 {
     u_char           *p;
     ngx_int_t         rc;

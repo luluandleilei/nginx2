@@ -2115,8 +2115,7 @@ ngx_http_proxy_process_header(ngx_http_request_t *r)
                 ngx_strlow(h->lowcase_key, h->key.data, h->key.len);
             }
 
-            hh = ngx_hash_find(&umcf->headers_in_hash, h->hash,
-                               h->lowcase_key, h->key.len);
+            hh = ngx_hash_find(&umcf->headers_in_hash, h->hash, h->lowcase_key, h->key.len);
 
             if (hh && hh->handler(r, h, hh->offset) != NGX_OK) {
                 return NGX_ERROR;
@@ -2133,8 +2132,7 @@ ngx_http_proxy_process_header(ngx_http_request_t *r)
 
             /* a whole header has been parsed successfully */
 
-            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                           "http proxy header done");
+            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http proxy header done");
 
             /*
              * if no "Server" and "Date" in header line,
@@ -2147,8 +2145,7 @@ ngx_http_proxy_process_header(ngx_http_request_t *r)
                     return NGX_ERROR;
                 }
 
-                h->hash = ngx_hash(ngx_hash(ngx_hash(ngx_hash(
-                                    ngx_hash('s', 'e'), 'r'), 'v'), 'e'), 'r');
+                h->hash = ngx_hash(ngx_hash(ngx_hash(ngx_hash( ngx_hash('s', 'e'), 'r'), 'v'), 'e'), 'r');
 
                 ngx_str_set(&h->key, "Server");
                 ngx_str_null(&h->value);
@@ -2186,8 +2183,7 @@ ngx_http_proxy_process_header(ngx_http_request_t *r)
             if (u->headers_in.status_n == NGX_HTTP_NO_CONTENT
                 || u->headers_in.status_n == NGX_HTTP_NOT_MODIFIED
                 || ctx->head
-                || (!u->headers_in.chunked
-                    && u->headers_in.content_length_n == 0))
+                || (!u->headers_in.chunked && u->headers_in.content_length_n == 0))
             {
                 u->keepalive = !u->headers_in.connection_close;
             }

@@ -2135,8 +2135,7 @@ ngx_http_ssi_include(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx, ngx_str_t *
         if (psr->data == NULL) {
 
             if (mctx->variables == NULL) {
-                mctx->variables = ngx_list_create(r->pool, 4,
-                                                  sizeof(ngx_http_ssi_var_t));
+                mctx->variables = ngx_list_create(r->pool, 4, sizeof(ngx_http_ssi_var_t));
                 if (mctx->variables == NULL) {
                     return NGX_ERROR;
                 }
@@ -2170,8 +2169,7 @@ ngx_http_ssi_include(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx, ngx_str_t *
         return NGX_AGAIN;
 
     } else {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                      "can only wait for one subrequest at a time");
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "can only wait for one subrequest at a time");
     }
 
     return NGX_OK;
@@ -2210,9 +2208,7 @@ ngx_http_ssi_set_variable(ngx_http_request_t *r, void *data, ngx_int_t rc)
 {
     ngx_str_t  *value = data;
 
-    if (r->headers_out.status < NGX_HTTP_SPECIAL_RESPONSE
-        && r->out && r->out->buf)
-    {
+    if (r->headers_out.status < NGX_HTTP_SPECIAL_RESPONSE && r->out && r->out->buf) {
         value->len = r->out->buf->last - r->out->buf->pos;
         value->data = r->out->buf->pos;
     }
