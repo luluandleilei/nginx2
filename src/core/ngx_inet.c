@@ -643,8 +643,7 @@ ngx_parse_addr(ngx_pool_t *pool, ngx_addr_t *addr, u_char *text, size_t len)
 
 
 ngx_int_t
-ngx_parse_addr_port(ngx_pool_t *pool, ngx_addr_t *addr, u_char *text,
-    size_t len)
+ngx_parse_addr_port(ngx_pool_t *pool, ngx_addr_t *addr, u_char *text, size_t len)
 {
     u_char     *p, *last;
     size_t      plen;

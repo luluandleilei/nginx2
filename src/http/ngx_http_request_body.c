@@ -582,6 +582,8 @@ HTTP模块调用的ngx_http_discard_request_body方法用于第一次启动丢�
 求的read_event_handler方法的，在有新的可读事件时会调用它处理包体。ngx_http_read discarded_request_body方法则是根据上述两个方法
 通用部分提取出的公共方法，用来读取包体且不做任何处理。
 
+NGX_OK:
+NGX_HTTP_*:
 */
 ngx_int_t
 ngx_http_discard_request_body(ngx_http_request_t *r)
