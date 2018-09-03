@@ -1107,8 +1107,7 @@ ngx_stream_variables_add_core_vars(ngx_conf_t *cf)
 
     cmcf = ngx_stream_conf_get_module_main_conf(cf, ngx_stream_core_module);
 
-    cmcf->variables_keys = ngx_pcalloc(cf->temp_pool,
-                                       sizeof(ngx_hash_keys_arrays_t));
+    cmcf->variables_keys = ngx_pcalloc(cf->temp_pool, sizeof(ngx_hash_keys_arrays_t));
     if (cmcf->variables_keys == NULL) {
         return NGX_ERROR;
     }
@@ -1122,10 +1121,7 @@ ngx_stream_variables_add_core_vars(ngx_conf_t *cf)
         return NGX_ERROR;
     }
 
-    if (ngx_array_init(&cmcf->prefix_variables, cf->pool, 8,
-                       sizeof(ngx_stream_variable_t))
-        != NGX_OK)
-    {
+    if (ngx_array_init(&cmcf->prefix_variables, cf->pool, 8, sizeof(ngx_stream_variable_t)) != NGX_OK) {
         return NGX_ERROR;
     }
 

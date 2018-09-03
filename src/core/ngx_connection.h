@@ -35,7 +35,7 @@ struct ngx_listening_s {
 #endif
 
     /* handler of accepted connection */
-    ngx_connection_handler_pt   handler;
+    ngx_connection_handler_pt   handler;	//ngx_http_init_connection, ngx_stream_init_connection
 
 	/* array of ngx_http_in_addr_t, for example */
 	//XXX：每个ngx_http_in_addr_t记录了对应的ip，默认server,及。。。

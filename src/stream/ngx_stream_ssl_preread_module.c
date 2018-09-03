@@ -30,16 +30,12 @@ typedef struct {
 
 
 static ngx_int_t ngx_stream_ssl_preread_handler(ngx_stream_session_t *s);
-static ngx_int_t ngx_stream_ssl_preread_parse_record(
-    ngx_stream_ssl_preread_ctx_t *ctx, u_char *pos, u_char *last);
-static ngx_int_t ngx_stream_ssl_preread_server_name_variable(
-    ngx_stream_session_t *s, ngx_stream_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_stream_ssl_preread_alpn_protocols_variable(
-    ngx_stream_session_t *s, ngx_stream_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_stream_ssl_preread_parse_record( ngx_stream_ssl_preread_ctx_t *ctx, u_char *pos, u_char *last);
+static ngx_int_t ngx_stream_ssl_preread_server_name_variable( ngx_stream_session_t *s, ngx_stream_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_stream_ssl_preread_alpn_protocols_variable( ngx_stream_session_t *s, ngx_stream_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_stream_ssl_preread_add_variables(ngx_conf_t *cf);
 static void *ngx_stream_ssl_preread_create_srv_conf(ngx_conf_t *cf);
-static char *ngx_stream_ssl_preread_merge_srv_conf(ngx_conf_t *cf, void *parent,
-    void *child);
+static char *ngx_stream_ssl_preread_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child);
 static ngx_int_t ngx_stream_ssl_preread_init(ngx_conf_t *cf);
 
 
@@ -144,15 +140,13 @@ ngx_stream_ssl_preread_handler(ngx_stream_session_t *s)
     while (last - p >= 5) {
 
         if (p[0] != 0x16) {
-            ngx_log_debug0(NGX_LOG_DEBUG_STREAM, ctx->log, 0,
-                           "ssl preread: not a handshake");
+            ngx_log_debug0(NGX_LOG_DEBUG_STREAM, ctx->log, 0, "ssl preread: not a handshake");
             ngx_stream_set_ctx(s, NULL, ngx_stream_ssl_preread_module);
             return NGX_DECLINED;
         }
 
         if (p[1] != 3) {
-            ngx_log_debug0(NGX_LOG_DEBUG_STREAM, ctx->log, 0,
-                           "ssl preread: unsupported SSL version");
+            ngx_log_debug0(NGX_LOG_DEBUG_STREAM, ctx->log, 0, "ssl preread: unsupported SSL version");
             ngx_stream_set_ctx(s, NULL, ngx_stream_ssl_preread_module);
             return NGX_DECLINED;
         }
@@ -187,8 +181,7 @@ ngx_stream_ssl_preread_handler(ngx_stream_session_t *s)
 
 
 static ngx_int_t
-ngx_stream_ssl_preread_parse_record(ngx_stream_ssl_preread_ctx_t *ctx,
-    u_char *pos, u_char *last)
+ngx_stream_ssl_preread_parse_record(ngx_stream_ssl_preread_ctx_t *ctx, u_char *pos, u_char *last)
 {
     size_t   left, n, size, ext;
     u_char  *dst, *p;
@@ -213,8 +206,7 @@ ngx_stream_ssl_preread_parse_record(ngx_stream_ssl_preread_ctx_t *ctx,
         sw_alpn_proto_data  /* ALPN protocol_name */
     } state;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_STREAM, ctx->log, 0,
-                   "ssl preread: state %ui left %z", ctx->state, ctx->left);
+    ngx_log_debug2(NGX_LOG_DEBUG_STREAM, ctx->log, 0, "ssl preread: state %ui left %z", ctx->state, ctx->left);
 
     state = ctx->state;
     size = ctx->size;
@@ -249,8 +241,7 @@ ngx_stream_ssl_preread_parse_record(ngx_stream_ssl_preread_ctx_t *ctx,
 
         case sw_header:
             if (p[0] != 1) {
-                ngx_log_debug0(NGX_LOG_DEBUG_STREAM, ctx->log, 0,
-                               "ssl preread: not a client hello");
+                ngx_log_debug0(NGX_LOG_DEBUG_STREAM, ctx->log, 0, "ssl preread: not a client hello");
                 return NGX_DECLINED;
             }
 
@@ -348,16 +339,14 @@ ngx_stream_ssl_preread_parse_record(ngx_stream_ssl_preread_ctx_t *ctx,
 
         case sw_sni_host_head:
             if (p[0] != 0) {
-                ngx_log_debug0(NGX_LOG_DEBUG_STREAM, ctx->log, 0,
-                               "ssl preread: SNI hostname type is not DNS");
+                ngx_log_debug0(NGX_LOG_DEBUG_STREAM, ctx->log, 0, "ssl preread: SNI hostname type is not DNS");
                 return NGX_DECLINED;
             }
 
             size = (p[1] << 8) + p[2];
 
             if (ext < 3 + size) {
-                ngx_log_debug0(NGX_LOG_DEBUG_STREAM, ctx->log, 0,
-                               "ssl preread: SNI format error");
+                ngx_log_debug0(NGX_LOG_DEBUG_STREAM, ctx->log, 0, "ssl preread: SNI format error");
                 return NGX_DECLINED;
             }
             ext -= 3 + size;
@@ -374,8 +363,7 @@ ngx_stream_ssl_preread_parse_record(ngx_stream_ssl_preread_ctx_t *ctx,
         case sw_sni_host:
             ctx->host.len = (p[1] << 8) + p[2];
 
-            ngx_log_debug1(NGX_LOG_DEBUG_STREAM, ctx->log, 0,
-                           "ssl preread: SNI hostname \"%V\"", &ctx->host);
+            ngx_log_debug1(NGX_LOG_DEBUG_STREAM, ctx->log, 0, "ssl preread: SNI hostname \"%V\"", &ctx->host);
 
             state = sw_ext;
             dst = NULL;
@@ -399,14 +387,12 @@ ngx_stream_ssl_preread_parse_record(ngx_stream_ssl_preread_ctx_t *ctx,
             size = p[0];
 
             if (size == 0) {
-                ngx_log_debug0(NGX_LOG_DEBUG_STREAM, ctx->log, 0,
-                               "ssl preread: ALPN empty protocol");
+                ngx_log_debug0(NGX_LOG_DEBUG_STREAM, ctx->log, 0, "ssl preread: ALPN empty protocol");
                 return NGX_DECLINED;
             }
 
             if (ext < 1 + size) {
-                ngx_log_debug0(NGX_LOG_DEBUG_STREAM, ctx->log, 0,
-                               "ssl preread: ALPN format error");
+                ngx_log_debug0(NGX_LOG_DEBUG_STREAM, ctx->log, 0, "ssl preread: ALPN format error");
                 return NGX_DECLINED;
             }
             ext -= 1 + size;
@@ -418,8 +404,7 @@ ngx_stream_ssl_preread_parse_record(ngx_stream_ssl_preread_ctx_t *ctx,
         case sw_alpn_proto_data:
             ctx->alpn.len += p[0];
 
-            ngx_log_debug1(NGX_LOG_DEBUG_STREAM, ctx->log, 0,
-                           "ssl preread: ALPN protocols \"%V\"", &ctx->alpn);
+            ngx_log_debug1(NGX_LOG_DEBUG_STREAM, ctx->log, 0, "ssl preread: ALPN protocols \"%V\"", &ctx->alpn);
 
             if (ext) {
                 ctx->alpn.data[ctx->alpn.len++] = ',';
@@ -437,8 +422,7 @@ ngx_stream_ssl_preread_parse_record(ngx_stream_ssl_preread_ctx_t *ctx,
         }
 
         if (left < size) {
-            ngx_log_debug0(NGX_LOG_DEBUG_STREAM, ctx->log, 0,
-                           "ssl preread: failed to parse handshake");
+            ngx_log_debug0(NGX_LOG_DEBUG_STREAM, ctx->log, 0, "ssl preread: failed to parse handshake");
             return NGX_DECLINED;
         }
     }
@@ -454,8 +438,7 @@ ngx_stream_ssl_preread_parse_record(ngx_stream_ssl_preread_ctx_t *ctx,
 
 
 static ngx_int_t
-ngx_stream_ssl_preread_server_name_variable(ngx_stream_session_t *s,
-    ngx_variable_value_t *v, uintptr_t data)
+ngx_stream_ssl_preread_server_name_variable(ngx_stream_session_t *s, ngx_variable_value_t *v, uintptr_t data)
 {
     ngx_stream_ssl_preread_ctx_t  *ctx;
 
@@ -477,8 +460,7 @@ ngx_stream_ssl_preread_server_name_variable(ngx_stream_session_t *s,
 
 
 static ngx_int_t
-ngx_stream_ssl_preread_alpn_protocols_variable(ngx_stream_session_t *s,
-    ngx_variable_value_t *v, uintptr_t data)
+ngx_stream_ssl_preread_alpn_protocols_variable(ngx_stream_session_t *s, ngx_variable_value_t *v, uintptr_t data)
 {
     ngx_stream_ssl_preread_ctx_t  *ctx;
 

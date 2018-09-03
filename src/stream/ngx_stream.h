@@ -278,12 +278,9 @@ typedef struct {
 
 
 void ngx_stream_core_run_phases(ngx_stream_session_t *s);
-ngx_int_t ngx_stream_core_generic_phase(ngx_stream_session_t *s,
-    ngx_stream_phase_handler_t *ph);
-ngx_int_t ngx_stream_core_preread_phase(ngx_stream_session_t *s,
-    ngx_stream_phase_handler_t *ph);
-ngx_int_t ngx_stream_core_content_phase(ngx_stream_session_t *s,
-    ngx_stream_phase_handler_t *ph);
+ngx_int_t ngx_stream_core_generic_phase(ngx_stream_session_t *s, ngx_stream_phase_handler_t *ph);
+ngx_int_t ngx_stream_core_preread_phase(ngx_stream_session_t *s, ngx_stream_phase_handler_t *ph);
+ngx_int_t ngx_stream_core_content_phase(ngx_stream_session_t *s, ngx_stream_phase_handler_t *ph);
 
 
 void ngx_stream_init_connection(ngx_connection_t *c);
@@ -296,8 +293,7 @@ extern ngx_uint_t    ngx_stream_max_module;
 extern ngx_module_t  ngx_stream_core_module;
 
 
-typedef ngx_int_t (*ngx_stream_filter_pt)(ngx_stream_session_t *s,
-    ngx_chain_t *chain, ngx_uint_t from_upstream);
+typedef ngx_int_t (*ngx_stream_filter_pt)(ngx_stream_session_t *s, ngx_chain_t *chain, ngx_uint_t from_upstream);
 
 
 extern ngx_stream_filter_pt  ngx_stream_top_filter;

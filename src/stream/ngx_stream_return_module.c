@@ -29,6 +29,13 @@ static char *ngx_stream_return(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 static ngx_command_t  ngx_stream_return_commands[] = {
 
+	/*
+	 Syntax:	return value;
+	 Default:	—
+	 Context:	server
+
+	 Specifies a value to send to the client. The value can contain text, variables, and their combination.
+	*/
     { ngx_string("return"),
       NGX_STREAM_SRV_CONF|NGX_CONF_TAKE1,
       ngx_stream_return,
@@ -52,6 +59,10 @@ static ngx_stream_module_t  ngx_stream_return_module_ctx = {
 };
 
 
+/*
+The ngx_stream_return_module module (1.11.2) allows sending a specified value to the client and then closing
+the connection.
+*/
 ngx_module_t  ngx_stream_return_module = {
     NGX_MODULE_V1,
     &ngx_stream_return_module_ctx,         /* module context */
@@ -88,8 +99,7 @@ ngx_stream_return_handler(ngx_stream_session_t *s)
         return;
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_STREAM, c->log, 0,
-                   "stream return text: \"%V\"", &text);
+    ngx_log_debug1(NGX_LOG_DEBUG_STREAM, c->log, 0, "stream return text: \"%V\"", &text);
 
     if (text.len == 0) {
         ngx_stream_finalize_session(s, NGX_STREAM_OK);
@@ -156,8 +166,7 @@ ngx_stream_return_write_handler(ngx_event_t *ev)
     ctx->out = NULL;
 
     if (!c->buffered) {
-        ngx_log_debug0(NGX_LOG_DEBUG_STREAM, c->log, 0,
-                       "stream return done sending");
+        ngx_log_debug0(NGX_LOG_DEBUG_STREAM, c->log, 0, "stream return done sending");
         ngx_stream_finalize_session(s, NGX_STREAM_OK);
         return;
     }

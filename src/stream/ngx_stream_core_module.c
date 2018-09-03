@@ -16,14 +16,10 @@ static char *ngx_stream_core_init_main_conf(ngx_conf_t *cf, void *conf);
 static void *ngx_stream_core_create_srv_conf(ngx_conf_t *cf);
 static char *ngx_stream_core_merge_srv_conf(ngx_conf_t *cf, void *parent,
     void *child);
-static char *ngx_stream_core_error_log(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
-static char *ngx_stream_core_server(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
-static char *ngx_stream_core_listen(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
-static char *ngx_stream_core_resolver(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+static char *ngx_stream_core_error_log(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *ngx_stream_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *ngx_stream_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *ngx_stream_core_resolver(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 
 static ngx_command_t  ngx_stream_core_commands[] = {
@@ -49,6 +45,82 @@ static ngx_command_t  ngx_stream_core_commands[] = {
       0,
       NULL },
 
+	/*
+	 Syntax:	listen address:port [ssl] [udp] [proxy_protocol] [backlog=number] [rcvbuf=size] [sndbuf=size] [bind] [ipv6only=on|off] [reuseport] [so_keepalive=on|off|[keepidle]:[keepintvl]:[keepcnt]];
+	 Default:	—
+	 Context:	server
+
+	 Sets the address and port for the socket on which the server will accept connections. 
+	 It is possible to specify just the port. The address can also be a hostname, for example:
+		listen 127.0.0.1:12345;
+		listen *:12345;
+		listen 12345;     # same as *:12345
+		listen localhost:12345;
+	
+	 IPv6 addresses are specified in square brackets:
+		listen [::1]:12345;
+		listen [::]:12345;
+		
+	 UNIX-domain sockets are specified with the “unix:” prefix:
+		listen unix:/var/run/nginx.sock;
+		
+	 The ssl parameter allows specifying that all connections accepted on this port should work in SSL mode.
+
+	 The udp parameter configures a listening socket for working with datagrams (1.9.13).
+
+	 The proxy_protocol parameter (1.11.4) allows specifying that all connections accepted on this port should use the PROXY protocol.
+	 The PROXY protocol version 2 is supported since version 1.13.11.
+	
+	 The listen directive can have several additional parameters specific to socket-related system calls.
+
+	 backlog=number
+		sets the backlog parameter in the listen() call that limits the maximum length for the queue of pending connections (1.9.2). 
+		By default, backlog is set to -1 on FreeBSD, DragonFly BSD, and macOS, and to 511 on other platforms.
+
+	 rcvbuf=size
+		sets the receive buffer size (the SO_RCVBUF option) for the listening socket (1.11.13).
+		
+	 sndbuf=size
+		sets the send buffer size (the SO_SNDBUF option) for the listening socket (1.11.13).
+
+	 bind
+		this parameter instructs to make a separate bind() call for a given address:port pair. The fact is that
+		if there are several listen directives with the same port but different addresses, and one of the listen
+		directives listens on all addresses for the given port (*:port), nginx will bind() only to *:port. It 
+		should be noted that the getsockname() system call will be made in this case to determine the address 
+		that accepted the connection. If the ipv6only or so_keepalive parameters are used then for a given 
+		address:port pair a separate bind() call will always be made.
+
+	 ipv6only=on|off
+		this parameter determines (via the IPV6_V6ONLY socket option) whether an IPv6 socket listening on a 
+		wildcard address [::] will accept only IPv6 connections or both IPv6 and IPv4 connections. This 
+		parameter is turned on by default. It can only be set once on start.
+
+	 reuseport
+		this parameter (1.9.1) instructs to create an individual listening socket for each worker process 
+		(using the SO_REUSEPORT socket option on Linux 3.9+ and DragonFly BSD, or SO_REUSEPORT_LB on FreeBSD 
+		12+), allowing a kernel to distribute incoming connections between worker processes. This currently 
+		works only on Linux 3.9+, DragonFly BSD, and FreeBSD 12+ (1.15.1).
+
+		Inappropriate use of this option may have its security implications.
+
+	 so_keepalive=on|off|[keepidle]:[keepintvl]:[keepcnt]
+		this parameter configures the “TCP keepalive” behavior for the listening socket. If this parameter is 
+		omitted then the operating system’s settings will be in effect for the socket. If it is set to the value
+		“on”, the SO_KEEPALIVE option is turned on for the socket. If it is set to the value “off”, the SO_KEEPALIVE 
+		option is turned off for the socket. Some operating systems support setting of TCP keepalive parameters 
+		on a per-socket basis using the TCP_KEEPIDLE, TCP_KEEPINTVL, and TCP_KEEPCNT socket options. On such systems
+		(currently, Linux 2.4+, NetBSD 5+, and FreeBSD 9.0-STABLE), they can be configured using the keepidle, 
+		keepintvl, and keepcnt parameters. One or two parameters may be omitted, in which case the system default 
+		setting for the corresponding socket option will be in effect. For example,
+
+			so_keepalive=30m::10
+
+		will set the idle timeout (TCP_KEEPIDLE) to 30 minutes, leave the probe interval (TCP_KEEPINTVL) at its 
+		system default, and set the probes count (TCP_KEEPCNT) to 10 probes.
+
+	Different servers must listen on different address:port pairs.
+	*/
     { ngx_string("listen"),
       NGX_STREAM_SRV_CONF|NGX_CONF_1MORE,
       ngx_stream_core_listen,
@@ -77,12 +149,22 @@ static ngx_command_t  ngx_stream_core_commands[] = {
       offsetof(ngx_stream_core_srv_conf_t, resolver_timeout),
       NULL },
 
+	/*
+	 Syntax:	proxy_protocol_timeout timeout;
+	 Default: 	proxy_protocol_timeout 30s;
+	 Context:	stream, server
+	 This directive appeared in version 1.11.4.
+
+	 Specifies a timeout for reading the PROXY protocol header to complete. If no entire header is 
+	 transmitted within this time, the connection is closed.
+	*/
     { ngx_string("proxy_protocol_timeout"),
       NGX_STREAM_MAIN_CONF|NGX_STREAM_SRV_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_msec_slot,
       NGX_STREAM_SRV_CONF_OFFSET,
       offsetof(ngx_stream_core_srv_conf_t, proxy_protocol_timeout),
       NULL },
+
 
     { ngx_string("tcp_nodelay"),
       NGX_STREAM_MAIN_CONF|NGX_STREAM_SRV_CONF|NGX_CONF_FLAG,
@@ -91,6 +173,14 @@ static ngx_command_t  ngx_stream_core_commands[] = {
       offsetof(ngx_stream_core_srv_conf_t, tcp_nodelay),
       NULL },
 
+	/*
+	 Syntax:	preread_buffer_size size;
+	 Default: 	preread_buffer_size 16k;
+	 Context:	stream, server
+	 This directive appeared in version 1.11.5.
+
+	 Specifies a size of the preread buffer.
+	*/
     { ngx_string("preread_buffer_size"),
       NGX_STREAM_MAIN_CONF|NGX_STREAM_SRV_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_size_slot,
@@ -98,6 +188,14 @@ static ngx_command_t  ngx_stream_core_commands[] = {
       offsetof(ngx_stream_core_srv_conf_t, preread_buffer_size),
       NULL },
 
+	/*
+	 Syntax:	preread_timeout timeout;
+	 Default: 	preread_timeout 30s;
+	 Context:	stream, server
+	 This directive appeared in version 1.11.5.
+
+	 Specifies a timeout of the preread phase.
+	*/
     { ngx_string("preread_timeout"),
       NGX_STREAM_MAIN_CONF|NGX_STREAM_SRV_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_msec_slot,
@@ -160,8 +258,7 @@ ngx_stream_core_run_phases(ngx_stream_session_t *s)
 
 
 ngx_int_t
-ngx_stream_core_generic_phase(ngx_stream_session_t *s,
-    ngx_stream_phase_handler_t *ph)
+ngx_stream_core_generic_phase(ngx_stream_session_t *s, ngx_stream_phase_handler_t *ph)
 {
     ngx_int_t  rc;
 
@@ -170,8 +267,7 @@ ngx_stream_core_generic_phase(ngx_stream_session_t *s,
      * used by all phases, except for preread and content
      */
 
-    ngx_log_debug1(NGX_LOG_DEBUG_STREAM, s->connection->log, 0,
-                   "generic phase: %ui", s->phase_handler);
+    ngx_log_debug1(NGX_LOG_DEBUG_STREAM, s->connection->log, 0, "generic phase: %ui", s->phase_handler);
 
     rc = ph->handler(s);
 
@@ -200,8 +296,7 @@ ngx_stream_core_generic_phase(ngx_stream_session_t *s,
 
 
 ngx_int_t
-ngx_stream_core_preread_phase(ngx_stream_session_t *s,
-    ngx_stream_phase_handler_t *ph)
+ngx_stream_core_preread_phase(ngx_stream_session_t *s, ngx_stream_phase_handler_t *ph)
 {
     size_t                       size;
     ssize_t                      n;
@@ -318,10 +413,7 @@ ngx_stream_core_content_phase(ngx_stream_session_t *s,
 
     cscf = ngx_stream_get_module_srv_conf(s, ngx_stream_core_module);
 
-    if (c->type == SOCK_STREAM
-        && cscf->tcp_nodelay
-        && ngx_tcp_nodelay(c) != NGX_OK)
-    {
+    if (c->type == SOCK_STREAM && cscf->tcp_nodelay && ngx_tcp_nodelay(c) != NGX_OK) {
         ngx_stream_finalize_session(s, NGX_STREAM_INTERNAL_SERVER_ERROR);
         return NGX_OK;
     }
@@ -349,16 +441,11 @@ ngx_stream_core_create_main_conf(ngx_conf_t *cf)
         return NULL;
     }
 
-    if (ngx_array_init(&cmcf->servers, cf->pool, 4,
-                       sizeof(ngx_stream_core_srv_conf_t *))
-        != NGX_OK)
-    {
+    if (ngx_array_init(&cmcf->servers, cf->pool, 4, sizeof(ngx_stream_core_srv_conf_t *)) != NGX_OK) {
         return NULL;
     }
 
-    if (ngx_array_init(&cmcf->listen, cf->pool, 4, sizeof(ngx_stream_listen_t))
-        != NGX_OK)
-    {
+    if (ngx_array_init(&cmcf->listen, cf->pool, 4, sizeof(ngx_stream_listen_t)) != NGX_OK) {
         return NULL;
     }
 
@@ -377,8 +464,7 @@ ngx_stream_core_init_main_conf(ngx_conf_t *cf, void *conf)
     ngx_conf_init_uint_value(cmcf->variables_hash_max_size, 1024);
     ngx_conf_init_uint_value(cmcf->variables_hash_bucket_size, 64);
 
-    cmcf->variables_hash_bucket_size =
-               ngx_align(cmcf->variables_hash_bucket_size, ngx_cacheline_size);
+    cmcf->variables_hash_bucket_size = ngx_align(cmcf->variables_hash_bucket_size, ngx_cacheline_size);
 
     if (cmcf->ncaptures) {
         cmcf->ncaptures = (cmcf->ncaptures + 1) * 3;
@@ -445,9 +531,7 @@ ngx_stream_core_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
     }
 
     if (conf->handler == NULL) {
-        ngx_log_error(NGX_LOG_EMERG, cf->log, 0,
-                      "no handler for server in %s:%ui",
-                      conf->file_name, conf->line);
+        ngx_log_error(NGX_LOG_EMERG, cf->log, 0, "no handler for server in %s:%ui", conf->file_name, conf->line);
         return NGX_CONF_ERROR;
     }
 
@@ -505,8 +589,7 @@ ngx_stream_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     /* the server{}'s srv_conf */
 
-    ctx->srv_conf = ngx_pcalloc(cf->pool,
-                                sizeof(void *) * ngx_stream_max_module);
+    ctx->srv_conf = ngx_pcalloc(cf->pool, sizeof(void *) * ngx_stream_max_module);
     if (ctx->srv_conf == NULL) {
         return NGX_CONF_ERROR;
     }
@@ -554,9 +637,7 @@ ngx_stream_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     *cf = pcf;
 
     if (rv == NGX_CONF_OK && !cscf->listen) {
-        ngx_log_error(NGX_LOG_EMERG, cf->log, 0,
-                      "no \"listen\" is defined for server in %s:%ui",
-                      cscf->file_name, cscf->line);
+        ngx_log_error(NGX_LOG_EMERG, cf->log, 0, "no \"listen\" is defined for server in %s:%ui", cscf->file_name, cscf->line);
         return NGX_CONF_ERROR;
     }
 
@@ -636,8 +717,7 @@ ngx_stream_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             ls->bind = 1;
 
             if (ls->backlog == NGX_ERROR || ls->backlog == 0) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "invalid backlog \"%V\"", &value[i]);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid backlog \"%V\"", &value[i]);
                 return NGX_CONF_ERROR;
             }
 
@@ -654,8 +734,7 @@ ngx_stream_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             ls->bind = 1;
 
             if (ls->rcvbuf == NGX_ERROR) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "invalid rcvbuf \"%V\"", &value[i]);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid rcvbuf \"%V\"", &value[i]);
                 return NGX_CONF_ERROR;
             }
 
@@ -670,8 +749,7 @@ ngx_stream_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             ls->bind = 1;
 
             if (ls->sndbuf == NGX_ERROR) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "invalid sndbuf \"%V\"", &value[i]);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid sndbuf \"%V\"", &value[i]);
                 return NGX_CONF_ERROR;
             }
 
@@ -692,21 +770,16 @@ ngx_stream_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
                     ls->ipv6only = 0;
 
                 } else {
-                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                       "invalid ipv6only flags \"%s\"",
-                                       &value[i].data[9]);
+                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid ipv6only flags \"%s\"", &value[i].data[9]);
                     return NGX_CONF_ERROR;
                 }
 
                 ls->bind = 1;
 
             } else {
-                len = ngx_sock_ntop(&ls->sockaddr.sockaddr, ls->socklen, buf,
-                                    NGX_SOCKADDR_STRLEN, 1);
+                len = ngx_sock_ntop(&ls->sockaddr.sockaddr, ls->socklen, buf, NGX_SOCKADDR_STRLEN, 1);
 
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "ipv6only is not supported "
-                                   "on addr \"%*s\", ignored", len, buf);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "ipv6only is not supported " "on addr \"%*s\", ignored", len, buf);
             }
 
             continue;
@@ -734,8 +807,7 @@ ngx_stream_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 #if (NGX_STREAM_SSL)
             ngx_stream_ssl_conf_t  *sslcf;
 
-            sslcf = ngx_stream_conf_get_module_srv_conf(cf,
-                                                        ngx_stream_ssl_module);
+            sslcf = ngx_stream_conf_get_module_srv_conf(cf, ngx_stream_ssl_module);
 
             sslcf->listen = 1;
             sslcf->file = cf->conf_file->file.name.data;
@@ -745,9 +817,7 @@ ngx_stream_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
             continue;
 #else
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "the \"ssl\" parameter requires "
-                               "ngx_stream_ssl_module");
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "the \"ssl\" parameter requires " "ngx_stream_ssl_module");
             return NGX_CONF_ERROR;
 #endif
         }
@@ -835,9 +905,7 @@ ngx_stream_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 #if (NGX_HAVE_KEEPALIVE_TUNABLE)
         invalid_so_keepalive:
 
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "invalid so_keepalive value: \"%s\"",
-                               &value[i].data[13]);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid so_keepalive value: \"%s\"", &value[i].data[13]);
             return NGX_CONF_ERROR;
 #endif
         }
@@ -847,8 +915,7 @@ ngx_stream_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             continue;
         }
 
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "the invalid \"%V\" parameter", &value[i]);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "the invalid \"%V\" parameter", &value[i]);
         return NGX_CONF_ERROR;
     }
 
@@ -879,15 +946,11 @@ ngx_stream_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             continue;
         }
 
-        if (ngx_cmp_sockaddr(&als[i].sockaddr.sockaddr, als[i].socklen,
-                             &ls->sockaddr.sockaddr, ls->socklen, 1)
-            != NGX_OK)
-        {
+        if (ngx_cmp_sockaddr(&als[i].sockaddr.sockaddr, als[i].socklen, &ls->sockaddr.sockaddr, ls->socklen, 1) != NGX_OK) {
             continue;
         }
 
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "duplicate \"%V\" address and port pair", &u.url);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "duplicate \"%V\" address and port pair", &u.url);
         return NGX_CONF_ERROR;
     }
 

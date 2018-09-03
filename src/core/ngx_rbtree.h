@@ -31,8 +31,7 @@ struct ngx_rbtree_node_s {
 
 typedef struct ngx_rbtree_s  ngx_rbtree_t;
 
-typedef void (*ngx_rbtree_insert_pt) (ngx_rbtree_node_t *root,
-    ngx_rbtree_node_t *node, ngx_rbtree_node_t *sentinel);
+typedef void (*ngx_rbtree_insert_pt) (ngx_rbtree_node_t *root, ngx_rbtree_node_t *node, ngx_rbtree_node_t *sentinel);
 
 struct ngx_rbtree_s {
     ngx_rbtree_node_t     *root;
@@ -50,12 +49,9 @@ struct ngx_rbtree_s {
 
 void ngx_rbtree_insert(ngx_rbtree_t *tree, ngx_rbtree_node_t *node);
 void ngx_rbtree_delete(ngx_rbtree_t *tree, ngx_rbtree_node_t *node);
-void ngx_rbtree_insert_value(ngx_rbtree_node_t *root, ngx_rbtree_node_t *node,
-    ngx_rbtree_node_t *sentinel);
-void ngx_rbtree_insert_timer_value(ngx_rbtree_node_t *root,
-    ngx_rbtree_node_t *node, ngx_rbtree_node_t *sentinel);
-ngx_rbtree_node_t *ngx_rbtree_next(ngx_rbtree_t *tree,
-    ngx_rbtree_node_t *node);
+void ngx_rbtree_insert_value(ngx_rbtree_node_t *root, ngx_rbtree_node_t *node, ngx_rbtree_node_t *sentinel);
+void ngx_rbtree_insert_timer_value(ngx_rbtree_node_t *root, ngx_rbtree_node_t *node, ngx_rbtree_node_t *sentinel);
+ngx_rbtree_node_t *ngx_rbtree_next(ngx_rbtree_t *tree, ngx_rbtree_node_t *node);
 
 
 #define ngx_rbt_red(node)               ((node)->color = 1)

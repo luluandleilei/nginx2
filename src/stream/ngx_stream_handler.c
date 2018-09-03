@@ -160,9 +160,7 @@ ngx_stream_init_connection(ngx_connection_t *c)
 
     cmcf = ngx_stream_get_module_main_conf(s, ngx_stream_core_module);
 
-    s->variables = ngx_pcalloc(s->connection->pool,
-                               cmcf->variables.nelts
-                               * sizeof(ngx_stream_variable_value_t));
+    s->variables = ngx_pcalloc(s->connection->pool, cmcf->variables.nelts * sizeof(ngx_stream_variable_value_t));
 
     if (s->variables == NULL) {
         ngx_stream_close_connection(c);
@@ -185,8 +183,7 @@ ngx_stream_init_connection(ngx_connection_t *c)
             ngx_add_timer(rev, cscf->proxy_protocol_timeout);
 
             if (ngx_handle_read_event(rev, 0) != NGX_OK) {
-                ngx_stream_finalize_session(s,
-                                            NGX_STREAM_INTERNAL_SERVER_ERROR);
+                ngx_stream_finalize_session(s, NGX_STREAM_INTERNAL_SERVER_ERROR);
             }
 
             return;
@@ -296,8 +293,7 @@ ngx_stream_session_handler(ngx_event_t *rev)
 void
 ngx_stream_finalize_session(ngx_stream_session_t *s, ngx_uint_t rc)
 {
-    ngx_log_debug1(NGX_LOG_DEBUG_STREAM, s->connection->log, 0,
-                   "finalize stream session: %i", rc);
+    ngx_log_debug1(NGX_LOG_DEBUG_STREAM, s->connection->log, 0, "finalize stream session: %i", rc);
 
     s->status = rc;
 

@@ -79,8 +79,7 @@ static u_char *ngx_stream_proxy_log_error(ngx_log_t *log, u_char *buf,
 static void *ngx_stream_proxy_create_srv_conf(ngx_conf_t *cf);
 static char *ngx_stream_proxy_merge_srv_conf(ngx_conf_t *cf, void *parent,
     void *child);
-static char *ngx_stream_proxy_pass(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+static char *ngx_stream_proxy_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_stream_proxy_bind(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 
@@ -2037,8 +2036,7 @@ ngx_stream_proxy_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     if (cv.lengths) {
-        pscf->upstream_value = ngx_palloc(cf->pool,
-                                          sizeof(ngx_stream_complex_value_t));
+        pscf->upstream_value = ngx_palloc(cf->pool, sizeof(ngx_stream_complex_value_t));
         if (pscf->upstream_value == NULL) {
             return NGX_CONF_ERROR;
         }

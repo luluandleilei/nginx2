@@ -19,23 +19,17 @@ typedef ngx_int_t (*ngx_ssl_variable_handler_pt)(ngx_connection_t *c,
 
 
 static ngx_int_t ngx_stream_ssl_handler(ngx_stream_session_t *s);
-static ngx_int_t ngx_stream_ssl_init_connection(ngx_ssl_t *ssl,
-    ngx_connection_t *c);
+static ngx_int_t ngx_stream_ssl_init_connection(ngx_ssl_t *ssl, ngx_connection_t *c);
 static void ngx_stream_ssl_handshake_handler(ngx_connection_t *c);
-static ngx_int_t ngx_stream_ssl_static_variable(ngx_stream_session_t *s,
-    ngx_stream_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_stream_ssl_variable(ngx_stream_session_t *s,
-    ngx_stream_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_stream_ssl_static_variable(ngx_stream_session_t *s, ngx_stream_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_stream_ssl_variable(ngx_stream_session_t *s, ngx_stream_variable_value_t *v, uintptr_t data);
 
 static ngx_int_t ngx_stream_ssl_add_variables(ngx_conf_t *cf);
 static void *ngx_stream_ssl_create_conf(ngx_conf_t *cf);
-static char *ngx_stream_ssl_merge_conf(ngx_conf_t *cf, void *parent,
-    void *child);
+static char *ngx_stream_ssl_merge_conf(ngx_conf_t *cf, void *parent, void *child);
 
-static char *ngx_stream_ssl_password_file(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
-static char *ngx_stream_ssl_session_cache(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+static char *ngx_stream_ssl_password_file(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *ngx_stream_ssl_session_cache(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static ngx_int_t ngx_stream_ssl_init(ngx_conf_t *cf);
 
 
@@ -314,15 +308,10 @@ ngx_stream_ssl_handler(ngx_stream_session_t *s)
     if (sslcf->verify) {
         rc = SSL_get_verify_result(c->ssl->connection);
 
-        if (rc != X509_V_OK
-            && (sslcf->verify != 3 || !ngx_ssl_verify_error_optional(rc)))
-        {
-            ngx_log_error(NGX_LOG_INFO, c->log, 0,
-                          "client SSL certificate verify error: (%l:%s)",
-                          rc, X509_verify_cert_error_string(rc));
+        if (rc != X509_V_OK && (sslcf->verify != 3 || !ngx_ssl_verify_error_optional(rc))) {
+            ngx_log_error(NGX_LOG_INFO, c->log, 0, "client SSL certificate verify error: (%l:%s)", rc, X509_verify_cert_error_string(rc));
 
-            ngx_ssl_remove_cached_session(c->ssl->session_ctx,
-                                       (SSL_get0_session(c->ssl->connection)));
+            ngx_ssl_remove_cached_session(c->ssl->session_ctx, (SSL_get0_session(c->ssl->connection)));
             return NGX_ERROR;
         }
 
@@ -330,11 +319,9 @@ ngx_stream_ssl_handler(ngx_stream_session_t *s)
             cert = SSL_get_peer_certificate(c->ssl->connection);
 
             if (cert == NULL) {
-                ngx_log_error(NGX_LOG_INFO, c->log, 0,
-                              "client sent no required SSL certificate");
+                ngx_log_error(NGX_LOG_INFO, c->log, 0, "client sent no required SSL certificate");
 
-                ngx_ssl_remove_cached_session(c->ssl->session_ctx,
-                                       (SSL_get0_session(c->ssl->connection)));
+                ngx_ssl_remove_cached_session(c->ssl->session_ctx, (SSL_get0_session(c->ssl->connection)));
                 return NGX_ERROR;
             }
 

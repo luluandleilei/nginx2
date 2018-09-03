@@ -56,8 +56,7 @@ static ngx_int_t ngx_stream_access_inet6(ngx_stream_session_t *s,
 static ngx_int_t ngx_stream_access_unix(ngx_stream_session_t *s,
     ngx_stream_access_srv_conf_t *ascf);
 #endif
-static ngx_int_t ngx_stream_access_found(ngx_stream_session_t *s,
-    ngx_uint_t deny);
+static ngx_int_t ngx_stream_access_found(ngx_stream_session_t *s, ngx_uint_t deny);
 static char *ngx_stream_access_rule(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 static void *ngx_stream_access_create_srv_conf(ngx_conf_t *cf);

@@ -12,15 +12,11 @@
 
 
 static char *ngx_stream_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-static ngx_int_t ngx_stream_init_phases(ngx_conf_t *cf,
-    ngx_stream_core_main_conf_t *cmcf);
-static ngx_int_t ngx_stream_init_phase_handlers(ngx_conf_t *cf,
-    ngx_stream_core_main_conf_t *cmcf);
-static ngx_int_t ngx_stream_add_ports(ngx_conf_t *cf, ngx_array_t *ports,
-    ngx_stream_listen_t *listen);
+static ngx_int_t ngx_stream_init_phases(ngx_conf_t *cf, ngx_stream_core_main_conf_t *cmcf);
+static ngx_int_t ngx_stream_init_phase_handlers(ngx_conf_t *cf, ngx_stream_core_main_conf_t *cmcf);
+static ngx_int_t ngx_stream_add_ports(ngx_conf_t *cf, ngx_array_t *ports, ngx_stream_listen_t *listen);
 static char *ngx_stream_optimize_servers(ngx_conf_t *cf, ngx_array_t *ports);
-static ngx_int_t ngx_stream_add_addrs(ngx_conf_t *cf, ngx_stream_port_t *stport,
-    ngx_stream_conf_addr_t *addr);
+static ngx_int_t ngx_stream_add_addrs(ngx_conf_t *cf, ngx_stream_port_t *stport, ngx_stream_conf_addr_t *addr);
 #if (NGX_HAVE_INET6)
 static ngx_int_t ngx_stream_add_addrs6(ngx_conf_t *cf,
     ngx_stream_port_t *stport, ngx_stream_conf_addr_t *addr);
@@ -103,8 +99,7 @@ ngx_stream_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     /* the stream main_conf context, it's the same in the all stream contexts */
 
-    ctx->main_conf = ngx_pcalloc(cf->pool,
-                                 sizeof(void *) * ngx_stream_max_module);
+    ctx->main_conf = ngx_pcalloc(cf->pool, sizeof(void *) * ngx_stream_max_module);
     if (ctx->main_conf == NULL) {
         return NGX_CONF_ERROR;
     }
@@ -115,8 +110,7 @@ ngx_stream_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
      * the server{}s' srv_conf's
      */
 
-    ctx->srv_conf = ngx_pcalloc(cf->pool,
-                                sizeof(void *) * ngx_stream_max_module);
+    ctx->srv_conf = ngx_pcalloc(cf->pool, sizeof(void *) * ngx_stream_max_module);
     if (ctx->srv_conf == NULL) {
         return NGX_CONF_ERROR;
     }
@@ -251,9 +245,7 @@ ngx_stream_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
-    if (ngx_array_init(&ports, cf->temp_pool, 4, sizeof(ngx_stream_conf_port_t))
-        != NGX_OK)
-    {
+    if (ngx_array_init(&ports, cf->temp_pool, 4, sizeof(ngx_stream_conf_port_t)) != NGX_OK) {
         return NGX_CONF_ERROR;
     }
 
@@ -272,45 +264,27 @@ ngx_stream_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 static ngx_int_t
 ngx_stream_init_phases(ngx_conf_t *cf, ngx_stream_core_main_conf_t *cmcf)
 {
-    if (ngx_array_init(&cmcf->phases[NGX_STREAM_POST_ACCEPT_PHASE].handlers,
-                       cf->pool, 1, sizeof(ngx_stream_handler_pt))
-        != NGX_OK)
-    {
+    if (ngx_array_init(&cmcf->phases[NGX_STREAM_POST_ACCEPT_PHASE].handlers, cf->pool, 1, sizeof(ngx_stream_handler_pt)) != NGX_OK) {
         return NGX_ERROR;
     }
 
-    if (ngx_array_init(&cmcf->phases[NGX_STREAM_PREACCESS_PHASE].handlers,
-                       cf->pool, 1, sizeof(ngx_stream_handler_pt))
-        != NGX_OK)
-    {
+    if (ngx_array_init(&cmcf->phases[NGX_STREAM_PREACCESS_PHASE].handlers, cf->pool, 1, sizeof(ngx_stream_handler_pt)) != NGX_OK) {
         return NGX_ERROR;
     }
 
-    if (ngx_array_init(&cmcf->phases[NGX_STREAM_ACCESS_PHASE].handlers,
-                       cf->pool, 1, sizeof(ngx_stream_handler_pt))
-        != NGX_OK)
-    {
+    if (ngx_array_init(&cmcf->phases[NGX_STREAM_ACCESS_PHASE].handlers, cf->pool, 1, sizeof(ngx_stream_handler_pt)) != NGX_OK) {
         return NGX_ERROR;
     }
 
-    if (ngx_array_init(&cmcf->phases[NGX_STREAM_SSL_PHASE].handlers,
-                       cf->pool, 1, sizeof(ngx_stream_handler_pt))
-        != NGX_OK)
-    {
+    if (ngx_array_init(&cmcf->phases[NGX_STREAM_SSL_PHASE].handlers, cf->pool, 1, sizeof(ngx_stream_handler_pt)) != NGX_OK) {
         return NGX_ERROR;
     }
 
-    if (ngx_array_init(&cmcf->phases[NGX_STREAM_PREREAD_PHASE].handlers,
-                       cf->pool, 1, sizeof(ngx_stream_handler_pt))
-        != NGX_OK)
-    {
+    if (ngx_array_init(&cmcf->phases[NGX_STREAM_PREREAD_PHASE].handlers, cf->pool, 1, sizeof(ngx_stream_handler_pt)) != NGX_OK) {
         return NGX_ERROR;
     }
 
-    if (ngx_array_init(&cmcf->phases[NGX_STREAM_LOG_PHASE].handlers,
-                       cf->pool, 1, sizeof(ngx_stream_handler_pt))
-        != NGX_OK)
-    {
+    if (ngx_array_init(&cmcf->phases[NGX_STREAM_LOG_PHASE].handlers, cf->pool, 1, sizeof(ngx_stream_handler_pt)) != NGX_OK) {
         return NGX_ERROR;
     }
 
@@ -334,8 +308,7 @@ ngx_stream_init_phase_handlers(ngx_conf_t *cf,
         n += cmcf->phases[i].handlers.nelts;
     }
 
-    ph = ngx_pcalloc(cf->pool,
-                     n * sizeof(ngx_stream_phase_handler_t) + sizeof(void *));
+    ph = ngx_pcalloc(cf->pool, n * sizeof(ngx_stream_phase_handler_t) + sizeof(void *));
     if (ph == NULL) {
         return NGX_ERROR;
     }
@@ -378,8 +351,7 @@ ngx_stream_init_phase_handlers(ngx_conf_t *cf,
 
 
 static ngx_int_t
-ngx_stream_add_ports(ngx_conf_t *cf, ngx_array_t *ports,
-    ngx_stream_listen_t *listen)
+ngx_stream_add_ports(ngx_conf_t *cf, ngx_array_t *ports, ngx_stream_listen_t *listen)
 {
     in_port_t                p;
     ngx_uint_t               i;
@@ -415,10 +387,7 @@ ngx_stream_add_ports(ngx_conf_t *cf, ngx_array_t *ports,
     port->type = listen->type;
     port->port = p;
 
-    if (ngx_array_init(&port->addrs, cf->temp_pool, 2,
-                       sizeof(ngx_stream_conf_addr_t))
-        != NGX_OK)
-    {
+    if (ngx_array_init(&port->addrs, cf->temp_pool, 2, sizeof(ngx_stream_conf_addr_t)) != NGX_OK) {
         return NGX_ERROR;
     }
 
@@ -551,8 +520,7 @@ ngx_stream_optimize_servers(ngx_conf_t *cf, ngx_array_t *ports)
 
 
 static ngx_int_t
-ngx_stream_add_addrs(ngx_conf_t *cf, ngx_stream_port_t *stport,
-    ngx_stream_conf_addr_t *addr)
+ngx_stream_add_addrs(ngx_conf_t *cf, ngx_stream_port_t *stport, ngx_stream_conf_addr_t *addr)
 {
     u_char                *p;
     size_t                 len;
@@ -561,8 +529,7 @@ ngx_stream_add_addrs(ngx_conf_t *cf, ngx_stream_port_t *stport,
     ngx_stream_in_addr_t  *addrs;
     u_char                 buf[NGX_SOCKADDR_STRLEN];
 
-    stport->addrs = ngx_pcalloc(cf->pool,
-                                stport->naddrs * sizeof(ngx_stream_in_addr_t));
+    stport->addrs = ngx_pcalloc(cf->pool, stport->naddrs * sizeof(ngx_stream_in_addr_t));
     if (stport->addrs == NULL) {
         return NGX_ERROR;
     }
@@ -580,8 +547,7 @@ ngx_stream_add_addrs(ngx_conf_t *cf, ngx_stream_port_t *stport,
 #endif
         addrs[i].conf.proxy_protocol = addr[i].opt.proxy_protocol;
 
-        len = ngx_sock_ntop(&addr[i].opt.sockaddr.sockaddr, addr[i].opt.socklen,
-                            buf, NGX_SOCKADDR_STRLEN, 1);
+        len = ngx_sock_ntop(&addr[i].opt.sockaddr.sockaddr, addr[i].opt.socklen, buf, NGX_SOCKADDR_STRLEN, 1);
 
         p = ngx_pnalloc(cf->pool, len);
         if (p == NULL) {
