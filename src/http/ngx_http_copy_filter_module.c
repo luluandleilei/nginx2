@@ -113,8 +113,7 @@ ngx_http_copy_filter(ngx_http_request_t *r, ngx_chain_t *in)
         clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
         ctx->sendfile = c->sendfile;
-        ctx->need_in_memory = r->main_filter_need_in_memory
-                              || r->filter_need_in_memory;
+        ctx->need_in_memory = r->main_filter_need_in_memory || r->filter_need_in_memory;
         ctx->need_in_temp = r->filter_need_temporary;
 
         ctx->alignment = clcf->directio_alignment;

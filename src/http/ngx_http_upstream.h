@@ -151,6 +151,7 @@ typedef struct {
     ngx_msec_t                       next_upstream_timeout;
 
     size_t                           send_lowat;
+	//Sets the size of the buffer used for reading the first part of the response received from the proxied server
     size_t                           buffer_size;
     size_t                           limit_rate;
 
@@ -162,13 +163,26 @@ typedef struct {
     size_t                           max_temp_file_size_conf;
     size_t                           temp_file_write_size_conf;
 
+	//Sets the number and size of the buffers used for reading a response from the proxied server, for a single connection.
     ngx_bufs_t                       bufs;
 
     ngx_uint_t                       ignore_headers;
     ngx_uint_t                       next_upstream;
     ngx_uint_t                       store_access;
     ngx_uint_t                       next_upstream_tries;
+	//Enables or disables buffering of responses from the proxied server.
     ngx_flag_t                       buffering;
+	/*
+	 Enables or disables buffering of a client request body.
+
+	 When buffering is enabled, the entire request body is read from the client before sending the request to a proxied server.
+
+	 When buffering is disabled, the request body is sent to the proxied server immediately as it is received. 
+	 In this case, the request cannot be passed to the next server if nginx already started sending the request body.
+
+	 When HTTP/1.1 chunked transfer encoding is used to send the original request body, 
+	 the request body will be buffered regardless of the directive value unless HTTP/1.1 is enabled for proxying.
+	*/
     ngx_flag_t                       request_buffering;
 	//Indicates whether the header fields of the original request are passed to the proxied server
     ngx_flag_t                       pass_request_headers;
@@ -309,18 +323,31 @@ typedef struct {
 } ngx_http_upstream_resolved_t;
 
 
-typedef void (*ngx_http_upstream_handler_pt)(ngx_http_request_t *r,
-    ngx_http_upstream_t *u);
+typedef void (*ngx_http_upstream_handler_pt)(ngx_http_request_t *r, ngx_http_upstream_t *u);
 
 
+/*
+upstream有3种处理上游响应包体的方式，
+当请求的ngx_http_request_t结构体中subrequest_in_memory标志位为1时，将采用第1种方式，即upstream不转发响应包体到下游，
+	由HTTP模块实现的input_filter方法处理包体；
+当subrequest_in_memory为0时，upstream会转发响应包体。
+	当ngx_http_upstream_conf t配置结构体中的buffering标志位为1时，将开启更多的内存和磁盘文件用于缓存上游的响应包体，这意味上游网速更快；
+	当buffering为0时，将使用固定大小的缓冲区（就是上面介绍的buffer缓冲区）来转发响应包体。
+
+*/
 struct ngx_http_upstream_s {
     ngx_http_upstream_handler_pt     read_event_handler;
     ngx_http_upstream_handler_pt     write_event_handler;
 
+	//表示主动向上游服务器发起的连接
     ngx_peer_connection_t            peer;
 
+	//当向下游客户端转发响应时（ngx_http_request_t结构体中的subrequest_in_memory标志住为0），如果打开了缓存且认为上游网速更快（conf
+    //配置中的buffering标志位为1），这时会使用pipe成员来转发响应。在使用这种方式转发响应时，必须由HTTP模块在使用upstream机制前构造
+    //pipe结构体，否则会出现严重的coredump错误 
     ngx_event_pipe_t                *pipe;
 
+   //存储所有需要发送到上游服务器的请求内容。
     ngx_chain_t                     *request_bufs;
 
     ngx_output_chain_ctx_t           output;
@@ -382,6 +409,7 @@ struct ngx_http_upstream_s {
     unsigned                         cache_status:3;
 #endif
 
+	//Enables or disables buffering of responses from the proxied server.
     unsigned                         buffering:1;
     unsigned                         keepalive:1;
     unsigned                         upgrade:1;

@@ -279,7 +279,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     }
 
 	//解析配置文件中的配置指令
-    if (ngx_conf_parse(&conf, &cycle->conf_file) != NGX_CONF_OK) {
+     if (ngx_conf_parse(&conf, &cycle->conf_file) != NGX_CONF_OK) {
         environ = senv;
         ngx_destroy_cycle_pools(&conf);
         return NULL;

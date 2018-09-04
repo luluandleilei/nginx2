@@ -1496,6 +1496,21 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_loc_conf_t, server_tokens),
       &ngx_http_core_server_tokens },
 
+	/*
+	 Syntax:	if_modified_since off | exact | before;
+	 Default: 	if_modified_since exact;
+	 Context:	http, server, location
+	 This directive appeared in version 0.7.24.
+
+	 Specifies how to compare modification time of a response with the time in the “If-Modified-Since” request header field:
+
+		off
+			the “If-Modified-Since” request header field is ignored (0.7.34);
+		exact
+			exact match;
+		before
+			modification time of a response is less than or equal to the time in the “If-Modified-Since” request header field.
+	*/
     { ngx_string("if_modified_since"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_enum_slot,

@@ -1501,7 +1501,7 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
         c->tcp_nopush = NGX_TCP_NOPUSH_DISABLED;
     }
 
-    if (c->pool == NULL) {
+    if (c->pool == NULL) {	//XXX:什么时候c->pool会不为NULL
 
         /* we need separate pool here to be able to cache SSL connections */
 
@@ -3198,8 +3198,7 @@ ngx_http_upstream_process_upgraded(ngx_http_request_t *r,
     c = r->connection;
     u = r->upstream;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "http upstream process upgraded, fu:%ui", from_upstream);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0, "http upstream process upgraded, fu:%ui", from_upstream);
 
     downstream = c;
     upstream = u->peer.connection;
@@ -3338,9 +3337,7 @@ ngx_http_upstream_process_upgraded(ngx_http_request_t *r,
         ngx_del_timer(upstream->read);
     }
 
-    if (ngx_handle_write_event(downstream->write, clcf->send_lowat)
-        != NGX_OK)
-    {
+    if (ngx_handle_write_event(downstream->write, clcf->send_lowat) != NGX_OK) {
         ngx_http_upstream_finalize_request(r, u, NGX_ERROR);
         return;
     }
@@ -3410,8 +3407,7 @@ ngx_http_upstream_process_non_buffered_upstream(ngx_http_request_t *r,
 
 
 static void
-ngx_http_upstream_process_non_buffered_request(ngx_http_request_t *r,
-    ngx_uint_t do_write)
+ngx_http_upstream_process_non_buffered_request(ngx_http_request_t *r, ngx_uint_t do_write)
 {
     size_t                     size;
     ssize_t                    n;
@@ -3441,8 +3437,7 @@ ngx_http_upstream_process_non_buffered_request(ngx_http_request_t *r,
                     return;
                 }
 
-                ngx_chain_update_chains(r->pool, &u->free_bufs, &u->busy_bufs,
-                                        &u->out_bufs, u->output.tag);
+                ngx_chain_update_chains(r->pool, &u->free_bufs, &u->busy_bufs, &u->out_bufs, u->output.tag);
             }
 
             if (u->busy_bufs == NULL) {
@@ -3455,17 +3450,14 @@ ngx_http_upstream_process_non_buffered_request(ngx_http_request_t *r,
                 }
 
                 if (upstream->read->eof) {
-                    ngx_log_error(NGX_LOG_ERR, upstream->log, 0,
-                                  "upstream prematurely closed connection");
+                    ngx_log_error(NGX_LOG_ERR, upstream->log, 0, "upstream prematurely closed connection");
 
-                    ngx_http_upstream_finalize_request(r, u,
-                                                       NGX_HTTP_BAD_GATEWAY);
+                    ngx_http_upstream_finalize_request(r, u, NGX_HTTP_BAD_GATEWAY);
                     return;
                 }
 
                 if (upstream->read->error) {
-                    ngx_http_upstream_finalize_request(r, u,
-                                                       NGX_HTTP_BAD_GATEWAY);
+                    ngx_http_upstream_finalize_request(r, u, NGX_HTTP_BAD_GATEWAY);
                     return;
                 }
 

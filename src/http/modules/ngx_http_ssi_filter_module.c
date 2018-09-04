@@ -70,8 +70,7 @@ typedef enum {
 } ngx_http_ssi_state_e;
 
 
-static ngx_int_t ngx_http_ssi_output(ngx_http_request_t *r,
-    ngx_http_ssi_ctx_t *ctx);
+static ngx_int_t ngx_http_ssi_output(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx);
 static void ngx_http_ssi_buffered(ngx_http_request_t *r,
     ngx_http_ssi_ctx_t *ctx);
 static ngx_int_t ngx_http_ssi_parse(ngx_http_request_t *r,
@@ -83,8 +82,7 @@ static ngx_int_t ngx_http_ssi_evaluate_string(ngx_http_request_t *r,
 static ngx_int_t ngx_http_ssi_regex_match(ngx_http_request_t *r,
     ngx_str_t *pattern, ngx_str_t *str);
 
-static ngx_int_t ngx_http_ssi_include(ngx_http_request_t *r,
-    ngx_http_ssi_ctx_t *ctx, ngx_str_t **params);
+static ngx_int_t ngx_http_ssi_include(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx, ngx_str_t **params);
 static ngx_int_t ngx_http_ssi_stub_output(ngx_http_request_t *r, void *data,
     ngx_int_t rc);
 static ngx_int_t ngx_http_ssi_set_variable(ngx_http_request_t *r, void *data,
@@ -121,8 +119,7 @@ static ngx_int_t ngx_http_ssi_filter_init(ngx_conf_t *cf);
 static ngx_command_t  ngx_http_ssi_filter_commands[] = {
 
     { ngx_string("ssi"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF
-                        |NGX_CONF_FLAG,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF |NGX_CONF_FLAG,
       ngx_conf_set_flag_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_ssi_loc_conf_t, enable),
@@ -311,11 +308,8 @@ static ngx_http_ssi_command_t  ngx_http_ssi_commands[] = {
 
 static ngx_http_variable_t  ngx_http_ssi_vars[] = {
 
-    { ngx_string("date_local"), NULL, ngx_http_ssi_date_gmt_local_variable, 0,
-      NGX_HTTP_VAR_NOCACHEABLE, 0 },
-
-    { ngx_string("date_gmt"), NULL, ngx_http_ssi_date_gmt_local_variable, 1,
-      NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("date_local"), NULL, ngx_http_ssi_date_gmt_local_variable, 0, NGX_HTTP_VAR_NOCACHEABLE, 0 }, 
+    { ngx_string("date_gmt"), NULL, ngx_http_ssi_date_gmt_local_variable, 1, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
       ngx_http_null_variable
 };
@@ -400,12 +394,7 @@ ngx_http_ssi_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_ssi_filter_module);
 
-    if (ctx == NULL
-        || (in == NULL
-            && ctx->buf == NULL
-            && ctx->in == NULL
-            && ctx->busy == NULL))
-    {
+    if (ctx == NULL || (in == NULL && ctx->buf == NULL && ctx->in == NULL && ctx->busy == NULL)) {
         return ngx_http_next_body_filter(r, in);
     }
 
@@ -417,30 +406,23 @@ ngx_http_ssi_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         }
     }
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http ssi filter \"%V?%V\"", &r->uri, &r->args);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http ssi filter \"%V?%V\"", &r->uri, &r->args);
 
     if (ctx->wait) {
 
         if (r != r->connection->data) {
-            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                           "http ssi filter wait \"%V?%V\" non-active",
-                           &ctx->wait->uri, &ctx->wait->args);
+            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http ssi filter wait \"%V?%V\" non-active", &ctx->wait->uri, &ctx->wait->args);
 
             return NGX_AGAIN;
         }
 
         if (ctx->wait->done) {
-            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                           "http ssi filter wait \"%V?%V\" done",
-                           &ctx->wait->uri, &ctx->wait->args);
+            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http ssi filter wait \"%V?%V\" done", &ctx->wait->uri, &ctx->wait->args);
 
             ctx->wait = NULL;
 
         } else {
-            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                           "http ssi filter wait \"%V?%V\"",
-                           &ctx->wait->uri, &ctx->wait->args);
+            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http ssi filter wait \"%V?%V\"", &ctx->wait->uri, &ctx->wait->args);
 
             return ngx_http_next_body_filter(r, NULL);
         }
@@ -624,17 +606,13 @@ ngx_http_ssi_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
             if (rc == NGX_OK) {
 
-                smcf = ngx_http_get_module_main_conf(r,
-                                                   ngx_http_ssi_filter_module);
+                smcf = ngx_http_get_module_main_conf(r, ngx_http_ssi_filter_module);
 
-                cmd = ngx_hash_find(&smcf->hash, ctx->key, ctx->command.data,
-                                    ctx->command.len);
+                cmd = ngx_hash_find(&smcf->hash, ctx->key, ctx->command.data, ctx->command.len);
 
                 if (cmd == NULL) {
                     if (ctx->output) {
-                        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                                      "invalid SSI command: \"%V\"",
-                                      &ctx->command);
+                        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "invalid SSI command: \"%V\"", &ctx->command);
                         goto ssi_error;
                     }
 
@@ -720,21 +698,16 @@ ngx_http_ssi_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
                     && (ctx->conditional == 0
                         || ctx->conditional > cmd->conditional))
                 {
-                    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                                  "invalid context of SSI command: \"%V\"",
-                                  &ctx->command);
+                    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "invalid context of SSI command: \"%V\"", &ctx->command);
                     goto ssi_error;
                 }
 
                 if (ctx->params.nelts > NGX_HTTP_SSI_MAX_PARAMS) {
-                    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                                  "too many SSI command parameters: \"%V\"",
-                                  &ctx->command);
+                    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "too many SSI command parameters: \"%V\"", &ctx->command);
                     goto ssi_error;
                 }
 
-                ngx_memzero(params,
-                           (NGX_HTTP_SSI_MAX_PARAMS + 1) * sizeof(ngx_str_t *));
+                ngx_memzero(params, (NGX_HTTP_SSI_MAX_PARAMS + 1) * sizeof(ngx_str_t *));
 
                 param = ctx->params.elts;
 
@@ -797,8 +770,7 @@ ngx_http_ssi_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
                 if (cmd->flush && ctx->out) {
 
-                    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                                   "ssi flush");
+                    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "ssi flush");
 
                     if (ngx_http_ssi_output(r, ctx) == NGX_ERROR) {
                         return NGX_ERROR;
@@ -2062,8 +2034,7 @@ ngx_http_ssi_include(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx, ngx_str_t *
             }
         }
 
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                      "\"stub\"=\"%V\" for \"include\" not found", stub);
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "\"stub\"=\"%V\" for \"include\" not found", stub);
         return NGX_HTTP_SSI_ERROR;
 
     found:
@@ -2824,10 +2795,7 @@ ngx_http_ssi_init_main_conf(ngx_conf_t *cf, void *conf)
     hash.pool = cf->pool;
     hash.temp_pool = NULL;
 
-    if (ngx_hash_init(&hash, smcf->commands.keys.elts,
-                      smcf->commands.keys.nelts)
-        != NGX_OK)
-    {
+    if (ngx_hash_init(&hash, smcf->commands.keys.elts, smcf->commands.keys.nelts) != NGX_OK) {
         return NGX_CONF_ERROR;
     }
 
@@ -2872,18 +2840,14 @@ ngx_http_ssi_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_conf_merge_value(conf->enable, prev->enable, 0);
     ngx_conf_merge_value(conf->silent_errors, prev->silent_errors, 0);
-    ngx_conf_merge_value(conf->ignore_recycled_buffers,
-                         prev->ignore_recycled_buffers, 0);
+    ngx_conf_merge_value(conf->ignore_recycled_buffers, prev->ignore_recycled_buffers, 0);
     ngx_conf_merge_value(conf->last_modified, prev->last_modified, 0);
 
     ngx_conf_merge_size_value(conf->min_file_chunk, prev->min_file_chunk, 1024);
     ngx_conf_merge_size_value(conf->value_len, prev->value_len, 255);
 
-    if (ngx_http_merge_types(cf, &conf->types_keys, &conf->types,
-                             &prev->types_keys, &prev->types,
-                             ngx_http_html_default_types)
-        != NGX_OK)
-    {
+    if (ngx_http_merge_types(cf, &conf->types_keys, &conf->types, &prev->types_keys, 
+			&prev->types, ngx_http_html_default_types) != NGX_OK) {
         return NGX_CONF_ERROR;
     }
 

@@ -193,7 +193,7 @@ typedef struct {
     ngx_table_elt_t                  *host;
     ngx_table_elt_t                  *connection;
     ngx_table_elt_t                  *if_modified_since;
-    ngx_table_elt_t                  *if_unmodified_since;
+    ngx_table_elt_t                  *if_unmodified_since;	//If-Modified-Since: Wed, 21 Oct 2015 07:28:00 GMT
     ngx_table_elt_t                  *if_match;
     ngx_table_elt_t                  *if_none_match;
     ngx_table_elt_t                  *user_agent;

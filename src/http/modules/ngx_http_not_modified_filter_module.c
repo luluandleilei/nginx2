@@ -32,8 +32,8 @@ static ngx_http_module_t  ngx_http_not_modified_filter_module_ctx = {
 
 
 /*
-默认打开，如果请求的if-modified-since等于回复的last-modified间值，说明回复没有变化，清空所有回复的内容，返回304。
-
+默认打开，如果请求的if-modified-since等于回复的last-modified间值，说明回复没有变化，
+清空所有回复的内容，返回304。
 */
 ngx_module_t  ngx_http_not_modified_filter_module = {
     NGX_MODULE_V1,

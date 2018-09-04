@@ -85,6 +85,7 @@ typedef struct {
 
     ngx_flag_t                     redirect;
 
+	//the HTTP protocol version for proxying.
     ngx_uint_t                     http_version;
 
     ngx_uint_t                     headers_hash_max_size;
@@ -401,6 +402,26 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       offsetof(ngx_http_proxy_loc_conf_t, upstream.store_access),
       NULL },
 
+	/*
+	 Syntax:	proxy_buffering on | off;
+	 Default:   proxy_buffering on;
+	 Context:	http, server, location
+
+	 Enables or disables buffering of responses from the proxied server.
+
+	 When buffering is enabled, nginx receives a response from the proxied server as soon as possible, 
+	 saving it into the buffers set by the 'proxy_buffer_size' and 'proxy_buffers' directives. If the 
+	 whole response does not fit into memory, a part of it can be saved to a temporary file on the disk. 
+	 Writing to temporary files is controlled by the 'proxy_max_temp_file_size' and 'proxy_temp_file_write_size'
+	 directives.
+
+	 When buffering is disabled, the response is passed to a client synchronously, immediately as it is
+	 received. nginx will not try to read the whole response from the proxied server. The maximum size of
+	 the data that nginx can receive from the server at a time is set by the 'proxy_buffer_size' directive.
+
+	 Buffering can also be enabled or disabled by passing “yes” or “no” in the “X-Accel-Buffering” 
+	 response header field. This capability can be disabled using the 'proxy_ignore_headers' directive
+	*/
     { ngx_string("proxy_buffering"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
       ngx_conf_set_flag_slot,
@@ -601,6 +622,15 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       offsetof(ngx_http_proxy_loc_conf_t, upstream.pass_request_body),
       NULL },
 
+	/*
+	 Syntax:	proxy_buffer_size size;
+	 Default: 	proxy_buffer_size 4k|8k;
+	 Context:	http, server, location
+
+	 Sets the size of the buffer used for reading the first part of the response received from the proxied
+	 server. This part usually contains a small response header. By default, the buffer size is equal to one 
+	 memory page. This is either 4K or 8K, depending on a platform. It can be made smaller, however.
+	*/
     { ngx_string("proxy_buffer_size"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_size_slot,
@@ -624,6 +654,15 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       offsetof(ngx_http_proxy_loc_conf_t, upstream.read_timeout),
       NULL },
 
+	/*
+	 Syntax:	proxy_buffers number size;
+	 Default: 	proxy_buffers 8 4k|8k;
+	 Context:	http, server, location
+
+	 Sets the number and size of the buffers used for reading a response from the proxied server, for a 
+	 single connection. By default, the buffer size is equal to one memory page. This is either 4K or 8K, 
+	 depending on a platform.
+	*/
     { ngx_string("proxy_buffers"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE2,
       ngx_conf_set_bufs_slot,
@@ -930,6 +969,16 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       offsetof(ngx_http_proxy_loc_conf_t, upstream.ignore_headers),
       &ngx_http_upstream_ignore_headers_masks },
 
+
+	/*
+	 Syntax:	proxy_http_version 1.0 | 1.1;
+	 Default: 	proxy_http_version 1.0;
+	 Context:	http, server, location
+	 This directive appeared in version 1.1.4.
+
+	 Sets the HTTP protocol version for proxying. By default, version 1.0 is used. Version 1.1 is 
+	 recommended for use with keepalive connections and NTLM authentication.
+	*/
     { ngx_string("proxy_http_version"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_enum_slot,
@@ -3205,8 +3254,7 @@ ngx_http_proxy_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_conf_merge_uint_value(conf->upstream.next_upstream_tries, prev->upstream.next_upstream_tries, 0);
 
-    ngx_conf_merge_value(conf->upstream.buffering,
-                              prev->upstream.buffering, 1);
+    ngx_conf_merge_value(conf->upstream.buffering, prev->upstream.buffering, 1);
 
     ngx_conf_merge_value(conf->upstream.request_buffering,
                               prev->upstream.request_buffering, 1);
