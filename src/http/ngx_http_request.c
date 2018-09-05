@@ -3538,8 +3538,7 @@ ngx_http_log_error(ngx_log_t *log, u_char *buf, size_t len)
 
 
 static u_char *
-ngx_http_log_error_handler(ngx_http_request_t *r, ngx_http_request_t *sr,
-    u_char *buf, size_t len)
+ngx_http_log_error_handler(ngx_http_request_t *r, ngx_http_request_t *sr, u_char *buf, size_t len)
 {
     char                      *uri_separator;
     u_char                    *p;
@@ -3587,16 +3586,13 @@ ngx_http_log_error_handler(ngx_http_request_t *r, ngx_http_request_t *sr,
         }
 #endif
 
-        p = ngx_snprintf(buf, len, ", upstream: \"%V%V%s%V\"",
-                         &u->schema, u->peer.name,
-                         uri_separator, &u->uri);
+        p = ngx_snprintf(buf, len, ", upstream: \"%V%V%s%V\"", &u->schema, u->peer.name, uri_separator, &u->uri);
         len -= p - buf;
         buf = p;
     }
 
     if (r->headers_in.host) {
-        p = ngx_snprintf(buf, len, ", host: \"%V\"",
-                         &r->headers_in.host->value);
+        p = ngx_snprintf(buf, len, ", host: \"%V\"", &r->headers_in.host->value);
         len -= p - buf;
         buf = p;
     }

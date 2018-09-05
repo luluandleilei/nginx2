@@ -104,8 +104,7 @@ typedef struct ngx_output_chain_ctx_s  ngx_output_chain_ctx_t;
 
 typedef ngx_int_t (*ngx_output_chain_filter_pt)(void *ctx, ngx_chain_t *in);
 
-typedef void (*ngx_output_chain_aio_pt)(ngx_output_chain_ctx_t *ctx,
-    ngx_file_t *file);
+typedef void (*ngx_output_chain_aio_pt)(ngx_output_chain_ctx_t *ctx, ngx_file_t *file);
 
 struct ngx_output_chain_ctx_s {
     ngx_buf_t                   *buf;
@@ -137,17 +136,17 @@ struct ngx_output_chain_ctx_s {
     ngx_pool_t                  *pool;
     ngx_int_t                    allocated;
     ngx_bufs_t                   bufs;
-    ngx_buf_tag_t                tag;
+    ngx_buf_tag_t                tag;			//[in]
 
-    ngx_output_chain_filter_pt   output_filter;
-    void                        *filter_ctx;
+    ngx_output_chain_filter_pt   output_filter;	//[in]
+    void                        *filter_ctx;	//[in]
 };
 
 
 typedef struct {
-    ngx_chain_t                 *out;
-    ngx_chain_t                **last;
-    ngx_connection_t            *connection;
+    ngx_chain_t                 *out;			//指向待输出的chain的头
+    ngx_chain_t                **last;			//指向待处处的chain的尾
+    ngx_connection_t            *connection;	//upstream connection
     ngx_pool_t                  *pool;
     off_t                        limit;
 } ngx_chain_writer_ctx_t;

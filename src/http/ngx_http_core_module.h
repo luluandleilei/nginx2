@@ -384,9 +384,16 @@ typedef struct {
 
 
 typedef struct {
+	//the error code
     ngx_int_t                  status;
+	//change the response code to overwrite
+	//-1: don't change the response code
+	// 0: change the responde code to the backend server response code
+	//>0: change the response code to overwrite
     ngx_int_t                  overwrite;
+	//the uri will redirect to
     ngx_http_complex_value_t   value;
+	//the args will redirect to
     ngx_str_t                  args;
 } ngx_http_err_page_t;
 
@@ -509,6 +516,7 @@ struct ngx_http_core_loc_conf_s {
     ngx_flag_t    msie_refresh;            /* msie_refresh */
     ngx_flag_t    log_not_found;           /* log_not_found */
     ngx_flag_t    log_subrequest;          /* log_subrequest */
+	//enables or disables doing several redirects using the error_page directive.
     ngx_flag_t    recursive_error_pages;   /* recursive_error_pages */
     ngx_uint_t    server_tokens;           /* server_tokens */
     ngx_flag_t    chunked_transfer_encoding; /* chunked_transfer_encoding */
@@ -535,6 +543,8 @@ struct ngx_http_core_loc_conf_s {
     ngx_http_complex_value_t  *disable_symlinks_from;
 #endif
 
+	//array of ngx_http_err_page_t
+	//Defines the URI that will be shown for the specified errors.
     ngx_array_t  *error_pages;             /* error_page */
 	
 	//a directory for storing temporary files holding client request bodies

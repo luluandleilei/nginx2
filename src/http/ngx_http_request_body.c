@@ -1233,7 +1233,7 @@ ngx_http_request_body_save_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     if (rb->rest > 0) {
 
-		//缓冲区已满，将缓冲区数据写入文件
+		//还有数据未读，此时缓冲区已满，将缓冲区数据写入文件
 		//XXX：这里rb->buf有可能为NULL吗？
 		//当处理r->header_in中的请求体中的数据的时候rb->buf为NULL
         if (rb->buf && rb->buf->last == rb->buf->end && ngx_http_write_request_body(r) != NGX_OK) {

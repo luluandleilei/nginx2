@@ -1482,6 +1482,14 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_loc_conf_t, log_subrequest),
       NULL },
 
+	/*
+	 Syntax:	recursive_error_pages on | off;
+	 Default: 	recursive_error_pages off;
+	 Context:	http, server, location
+
+	 Enables or disables doing several redirects using the 'error_page' directive. 
+	 The number of such redirects is limited.
+	*/
     { ngx_string("recursive_error_pages"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
       ngx_conf_set_flag_slot,
@@ -1557,21 +1565,25 @@ static ngx_command_t  ngx_http_core_commands[] = {
 	 Syntax:	error_page code ... [=[response]] uri;
 	 Default:	—
 	 Context:	http, server, location, if in location
+	 
 	 Defines the URI that will be shown for the specified errors. A uri value can contain variables.
 
 	 Example:
 		error_page 404             /404.html;
 		error_page 500 502 503 504 /50x.html;
 		
-	 This causes an internal redirect to the specified uri with the client request method changed to “GET” (for all methods other than “GET” and “HEAD”).
+	 This causes an internal redirect to the specified uri with the client request method changed to “GET” 
+	 (for all methods other than “GET” and “HEAD”).
 
 	 Furthermore, it is possible to change the response code to another using the “=response” syntax, for example:
 		error_page 404 =200 /empty.gif;
 		
-	 If an error response is processed by a proxied server or a FastCGI/uwsgi/SCGI/gRPC server, and the server may return different response codes (e.g., 200, 302, 401 or 404), it is possible to respond with the code it returns:
+	 If an error response is processed by a proxied server or a FastCGI/uwsgi/SCGI/gRPC server, and the server may
+	 return different response codes (e.g., 200, 302, 401 or 404), it is possible to respond with the code it returns:
 		error_page 404 = /404.php;
 		
-	 If there is no need to change URI and method during internal redirection it is possible to pass error processing into a named location:
+	 If there is no need to change URI and method during internal redirection it is possible to pass error processing 
+	 into a named location:
 		location / {
 		    error_page 404 = @fallback;
 		}
@@ -1584,11 +1596,13 @@ static ngx_command_t  ngx_http_core_commands[] = {
 	It is also possible to use URL redirects for error processing:
 		error_page 403      http://example.com/forbidden.html;
 		error_page 404 =301 http://example.com/notfound.html;
-	In this case, by default, the response code 302 is returned to the client. It can only be changed to one of the redirect status codes (301, 302, 303, 307, and 308).
+	In this case, by default, the response code 302 is returned to the client. It can only be changed to one of the 
+	redirect status codes (301, 302, 303, 307, and 308).
 	The code 307 was not treated as a redirect until versions 1.1.16 and 1.0.13.
 	The code 308 was not treated as a redirect until version 1.13.0.
 	
-	These directives are inherited from the previous level if and only if there are no error_page directives defined on the current level.
+	These directives are inherited from the previous level if and only if there are no error_page directives defined 
+	on the current level.
 	*/
     { ngx_string("error_page"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF |NGX_CONF_2MORE,
@@ -2605,6 +2619,10 @@ ngx_http_test_content_type(ngx_http_request_t *r, ngx_hash_t *types_hash)
 }
 
 
+/*
+设置响应头的Content-Type头部
+根据URI中的文件扩展名并对应着mime.type来设置Content-Type值,取值如:image/jpeg*/
+*/
 ngx_int_t
 ngx_http_set_content_type(ngx_http_request_t *r)
 {

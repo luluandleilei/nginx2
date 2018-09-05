@@ -40,7 +40,7 @@ struct ngx_peer_connection_s {
     ngx_str_t                       *name;
 
     ngx_uint_t                       tries;
-    ngx_msec_t                       start_time;
+    ngx_msec_t                       start_time;	//[internal]
 
     ngx_event_get_peer_pt            get;
     ngx_event_free_peer_pt           free;

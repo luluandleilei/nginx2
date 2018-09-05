@@ -460,7 +460,7 @@ ngx_http_special_response_handler(ngx_http_request_t *r, ngx_int_t error)
         err_page = clcf->error_pages->elts;
 
         for (i = 0; i < clcf->error_pages->nelts; i++) {
-            if (err_page[i].status == error) {
+            if (err_page[i].status == error) {	 //按照error_pages配置，发送ngx_http_error_pages对应状态码的内容
                 return ngx_http_send_error_page(r, &err_page[i]);
             }
         }
@@ -549,9 +549,7 @@ ngx_http_filter_finalize_request(ngx_http_request_t *r, ngx_module_t *m, ngx_int
 void
 ngx_http_clean_header(ngx_http_request_t *r)
 {
-    ngx_memzero(&r->headers_out.status,
-                sizeof(ngx_http_headers_out_t)
-                    - offsetof(ngx_http_headers_out_t, status));
+    ngx_memzero(&r->headers_out.status, sizeof(ngx_http_headers_out_t) - offsetof(ngx_http_headers_out_t, status));
 
     r->headers_out.headers.part.nelts = 0;
     r->headers_out.headers.part.next = NULL;

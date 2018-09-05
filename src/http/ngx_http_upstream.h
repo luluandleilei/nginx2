@@ -58,14 +58,14 @@
 
 typedef struct {
     ngx_uint_t                       status;
-    ngx_msec_t                       response_time;
-    ngx_msec_t                       connect_time;
+    ngx_msec_t                       response_time;		//记录从发起请求到请求结束的时长
+    ngx_msec_t                       connect_time;		//记录从发起连接到连接成功的时长
     ngx_msec_t                       header_time;
     ngx_msec_t                       queue_time;
     off_t                            response_length;
     off_t                            bytes_received;
 
-    ngx_str_t                       *peer;
+    ngx_str_t                       *peer;				//XXX:连接的对端节点的ip:port字符串
 } ngx_http_upstream_state_t;
 
 
@@ -351,10 +351,12 @@ struct ngx_http_upstream_s {
     ngx_chain_t                     *request_bufs;
 
     ngx_output_chain_ctx_t           output;
+	////参考ngx_chain_writer，里面会将输出buf一个个连接到这里。 writer赋值给了u->output.filter_ctx，见ngx_http_upstream_init_request
+    //调用ngx_output_chain后，要发送的数据都会放在这里，然后发送，然后更新这个链表，指向剩下的还没有调用writev发送的。
     ngx_chain_writer_ctx_t           writer;
 
-    ngx_http_upstream_conf_t        *conf;
-    ngx_http_upstream_srv_conf_t    *upstream;
+    ngx_http_upstream_conf_t        *conf;		//[in]
+    ngx_http_upstream_srv_conf_t    *upstream;	//[internal]
 #if (NGX_HTTP_CACHE)
     ngx_array_t                     *caches;
 #endif
@@ -372,28 +374,29 @@ struct ngx_http_upstream_s {
     ngx_chain_t                     *busy_bufs;
     ngx_chain_t                     *free_bufs;
 
-    ngx_int_t                      (*input_filter_init)(void *data);
-    ngx_int_t                      (*input_filter)(void *data, ssize_t bytes);
-    void                            *input_filter_ctx;
+    ngx_int_t                      (*input_filter_init)(void *data);			//[in]
+    ngx_int_t                      (*input_filter)(void *data, ssize_t bytes);	//[in]
+    void                            *input_filter_ctx;							//[in]
 
 #if (NGX_HTTP_CACHE)
     ngx_int_t                      (*create_key)(ngx_http_request_t *r);
 #endif
-    ngx_int_t                      (*create_request)(ngx_http_request_t *r);
-    ngx_int_t                      (*reinit_request)(ngx_http_request_t *r);
-    ngx_int_t                      (*process_header)(ngx_http_request_t *r);
+    ngx_int_t                      (*create_request)(ngx_http_request_t *r);	//[in]
+    ngx_int_t                      (*reinit_request)(ngx_http_request_t *r);	//[in]
+    ngx_int_t                      (*process_header)(ngx_http_request_t *r);	//[in]
     void                           (*abort_request)(ngx_http_request_t *r);
-    void                           (*finalize_request)(ngx_http_request_t *r, ngx_int_t rc);
-    ngx_int_t                      (*rewrite_redirect)(ngx_http_request_t *r, ngx_table_elt_t *h, size_t prefix);
-    ngx_int_t                      (*rewrite_cookie)(ngx_http_request_t *r, ngx_table_elt_t *h);
+    void                           (*finalize_request)(ngx_http_request_t *r, ngx_int_t rc);	//[in]
+    ngx_int_t                      (*rewrite_redirect)(ngx_http_request_t *r, ngx_table_elt_t *h, size_t prefix);	//[in]
+    ngx_int_t                      (*rewrite_cookie)(ngx_http_request_t *r, ngx_table_elt_t *h);	//[in]
 
     ngx_msec_t                       timeout;
 
     ngx_http_upstream_state_t       *state;
 
     ngx_str_t                        method;
-    ngx_str_t                        schema;
-    ngx_str_t                        uri;
+	//schema和uri当前仅在记录日志时用到
+    ngx_str_t                        uri;		//[in]
+    ngx_str_t                        schema;	//[in] http://, https://, redis2://, memcached://
 
 #if (NGX_HTTP_SSL || NGX_COMPAT)
     ngx_str_t                        ssl_name;
@@ -414,10 +417,10 @@ struct ngx_http_upstream_s {
     unsigned                         keepalive:1;
     unsigned                         upgrade:1;
 
-    unsigned                         request_sent:1;
-    unsigned                         request_body_sent:1;
+    unsigned                         request_sent:1;		//表示已经发送requset给upstream，不一定全部发送完成
+    unsigned                         request_body_sent:1;	//表示已经发送request给upstream，且发送完成
     unsigned                         request_body_blocked:1;
-    unsigned                         header_sent:1;
+    unsigned                         header_sent:1;			//表示已经将从upstream收到的header发送给了downstream
 };
 
 

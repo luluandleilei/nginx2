@@ -459,6 +459,26 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       offsetof(ngx_http_proxy_loc_conf_t, upstream.ignore_client_abort),
       NULL },
 
+	/*
+	 Syntax:	proxy_bind address [transparent] | off;
+	 Default:	—
+	 Context:	http, server, location
+	 This directive appeared in version 0.8.22.
+
+	 Makes outgoing connections to a proxied server originate from the specified local IP address with an optional port (1.11.2). 
+	 Parameter value can contain variables (1.3.12). The special value off (1.3.12) cancels the effect of the proxy_bind directive
+	 inherited from the previous configuration level, which allows the system to auto-assign the local IP address and port.
+
+	 The transparent parameter (1.11.0) allows outgoing connections to a proxied server originate from a non-local IP address, 
+	 for example, from a real IP address of a client:
+
+		proxy_bind $remote_addr transparent;
+
+	 In order for this parameter to work, it is usually necessary to run nginx worker processes with the superuser privileges. 
+	 On Linux it is not required (1.13.8) as if the transparent parameter is specified, worker processes inherit the CAP_NET_RAW 
+	 capability from the master process. It is also necessary to configure kernel routing table to intercept network traffic from 
+	 the proxied server.
+	*/
     { ngx_string("proxy_bind"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE12,
       ngx_http_upstream_bind_set_slot,

@@ -42,6 +42,10 @@ static ngx_int_t ngx_output_chain_get_buf(ngx_output_chain_ctx_t *ctx,
 static ngx_int_t ngx_output_chain_copy_buf(ngx_output_chain_ctx_t *ctx);
 
 
+/*
+函数目的是发送 in 中的数据，ctx 用来保存发送的上下文，因为发送通常情况下，不能一次完成。
+
+*/
 ngx_int_t
 ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in)
 {
@@ -686,9 +690,7 @@ ngx_chain_writer(void *data, ngx_chain_t *in)
 
         size += ngx_buf_size(in->buf);
 
-        ngx_log_debug2(NGX_LOG_DEBUG_CORE, c->log, 0,
-                       "chain writer buf fl:%d s:%uO",
-                       in->buf->flush, ngx_buf_size(in->buf));
+        ngx_log_debug2(NGX_LOG_DEBUG_CORE, c->log, 0, "chain writer buf fl:%d s:%uO", in->buf->flush, ngx_buf_size(in->buf));
 
         cl = ngx_alloc_chain_link(ctx->pool);
         if (cl == NULL) {
@@ -701,8 +703,7 @@ ngx_chain_writer(void *data, ngx_chain_t *in)
         ctx->last = &cl->next;
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_CORE, c->log, 0,
-                   "chain writer in: %p", ctx->out);
+    ngx_log_debug1(NGX_LOG_DEBUG_CORE, c->log, 0, "chain writer in: %p", ctx->out);
 
     for (cl = ctx->out; cl; cl = cl->next) {
 
@@ -728,7 +729,7 @@ ngx_chain_writer(void *data, ngx_chain_t *in)
         }
 #endif
 
-        size += ngx_buf_size(cl->buf);
+        size += ngx_buf_size(cl->buf);	//XXX: size将in参数大小统计了两次？？
     }
 
     if (size == 0 && !c->buffered) {
@@ -737,8 +738,7 @@ ngx_chain_writer(void *data, ngx_chain_t *in)
 
     chain = c->send_chain(c, ctx->out, ctx->limit);
 
-    ngx_log_debug1(NGX_LOG_DEBUG_CORE, c->log, 0,
-                   "chain writer out: %p", chain);
+    ngx_log_debug1(NGX_LOG_DEBUG_CORE, c->log, 0, "chain writer out: %p", chain);
 
     if (chain == NGX_CHAIN_ERROR) {
         return NGX_ERROR;

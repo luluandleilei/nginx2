@@ -33,11 +33,9 @@ static void ngx_http_memcached_abort_request(ngx_http_request_t *r);
 static void ngx_http_memcached_finalize_request(ngx_http_request_t *r, ngx_int_t rc);
 
 static void *ngx_http_memcached_create_loc_conf(ngx_conf_t *cf);
-static char *ngx_http_memcached_merge_loc_conf(ngx_conf_t *cf,
-    void *parent, void *child);
+static char *ngx_http_memcached_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
 
-static char *ngx_http_memcached_pass(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+static char *ngx_http_memcached_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 
 static ngx_conf_bitmask_t  ngx_http_memcached_next_upstream_masks[] = {
@@ -525,8 +523,7 @@ ngx_http_memcached_filter(void *data, ssize_t bytes)
     last += (size_t) (u->length - NGX_HTTP_MEMCACHED_END);
 
     if (ngx_strncmp(last, ngx_http_memcached_end, b->last - last) != 0) {
-        ngx_log_error(NGX_LOG_ERR, ctx->request->connection->log, 0,
-                      "memcached sent invalid trailer");
+        ngx_log_error(NGX_LOG_ERR, ctx->request->connection->log, 0, "memcached sent invalid trailer");
 
         b->last = last;
         cl->buf->last = last;

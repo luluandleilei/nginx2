@@ -657,7 +657,8 @@ struct ngx_http_request_s {
 	//Flag indicating that the current request is internal. 
 	//To enter the internal state, a request must pass through an internal redirect or be a subrequest. 
 	//Internal requests are allowed to enter internal locations.
-    unsigned                          internal:1;			
+    unsigned                          internal:1;		
+	//表示已经执行过error page 重定向，将不会再次执行
     unsigned                          error_page:1;
     unsigned                          filter_finalize:1;
     unsigned                          post_action:1;

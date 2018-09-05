@@ -145,8 +145,7 @@ static ngx_int_t ngx_http_upstream_cookie_variable(ngx_http_request_t *r,
 static char *ngx_http_upstream(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy);
 static char *ngx_http_upstream_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
-static ngx_int_t ngx_http_upstream_set_local(ngx_http_request_t *r,
-  ngx_http_upstream_t *u, ngx_http_upstream_local_t *local);
+static ngx_int_t ngx_http_upstream_set_local(ngx_http_request_t *r, ngx_http_upstream_t *u, ngx_http_upstream_local_t *local);
 
 static void *ngx_http_upstream_create_main_conf(ngx_conf_t *cf);
 static char *ngx_http_upstream_init_main_conf(ngx_conf_t *cf, void *conf);
@@ -517,14 +516,20 @@ ngx_http_upstream_init(ngx_http_request_t *r)
 #endif
 
 	//XXX:这个定时器是用来判断什么的？？
-	//XXX:为什么要删除掉？？？
+	//XXX:为什么要删除掉？？？ 
+	//此时已经读取完客户端发来的的数据(request_in_buffer?)，故没有读事件超时，(此时的读事件回调函数是什么)
+	//下一步将决定发送什么应答数据到客户端（发送上游响应到客户端）
     if (c->read->timer_set) {	//XXX：什么时候c->read->timer_set为1， 什么时候为0
         ngx_del_timer(c->read);
     }
 
-	//XXX：添加写事件？？
+	//XXX：添加写事件？？用于稍后将上游服务器的内容转发给下游客户端？
 	//XXX: 为什么仅在ngx_event_flags & NGX_USE_CLEAR_EVENT时添加？？？
 	//XXX: 这个触发一次ngx_http_upstream_wr_check_broken_connection函数的调用
+	//XXX: 此时读事件是否还在事件驱动中？？？
+	//c->read->active == 1;
+	//c->read->handler == ngx_http_request_handler;
+	//r->read_event_handler == ngx_http_block_reading;
     if (ngx_event_flags & NGX_USE_CLEAR_EVENT) {
 
         if (!c->write->active) {
@@ -608,6 +613,10 @@ ngx_http_upstream_init_request(ngx_http_request_t *r)
 
     u->store = u->conf->store;
 
+	//设置Nginx与下游客户端之间TCP连接的检查方法
+    //实际上，这两个方法都会通过ngx_http_upstream_check_broken_connection方法检查Nginx与下游的连接是否正常，
+    //如果出现错误，就会立即终止连接。
+    //XXX:这几个条件是什么意思？
     if (!u->store && !r->post_action && !u->conf->ignore_client_abort) {
         r->read_event_handler = ngx_http_upstream_rd_check_broken_connection;
         r->write_event_handler = ngx_http_upstream_wr_check_broken_connection;
@@ -634,7 +643,7 @@ ngx_http_upstream_init_request(ngx_http_request_t *r)
     u->output.bufs.num = 1;
     u->output.bufs.size = clcf->client_body_buffer_size;
 
-    if (u->output.output_filter == NULL) {
+    if (u->output.output_filter == NULL) {	//XXX: u->create_request中可能设置了u->output.output_filter
         u->output.output_filter = ngx_chain_writer;
         u->output.filter_ctx = &u->writer;
     }
@@ -651,6 +660,8 @@ ngx_http_upstream_init_request(ngx_http_request_t *r)
 
     } else {
 
+		//XXX:什么时候r->upstream_states != NULL
+		//XXX：为什么这里需要分配u->state， ngx_http_upstream_connect里面也会分配
         u->state = ngx_array_push(r->upstream_states);
         if (u->state == NULL) {
             ngx_http_upstream_finalize_request(r, u, NGX_HTTP_INTERNAL_SERVER_ERROR);
@@ -671,6 +682,7 @@ ngx_http_upstream_init_request(ngx_http_request_t *r)
     cln->data = r;
     u->cleanup = &cln->handler;
 
+	//XXX:
     if (u->resolved == NULL) {
 
         uscf = u->conf->upstream;
@@ -1221,11 +1233,11 @@ ngx_http_upstream_handler(ngx_event_t *ev)
     ngx_http_request_t   *r;
     ngx_http_upstream_t  *u;
 
-    c = ev->data;
+    c = ev->data;		//upstream connection
     r = c->data;
 
     u = r->upstream;
-    c = r->connection;
+    c = r->connection;	//downstream connection
 
     ngx_http_set_log_request(c->log, r);
 
@@ -1444,10 +1456,12 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     r->connection->log->action = "connecting to upstream";
 
+	//XXX:设置上一次的upstream的state响应时长
     if (u->state && u->state->response_time) {
         u->state->response_time = ngx_current_msec - u->state->response_time;
     }
 
+	//XXX：创建一个新的state
     u->state = ngx_array_push(r->upstream_states);
     if (u->state == NULL) {
         ngx_http_upstream_finalize_request(r, u, NGX_HTTP_INTERNAL_SERVER_ERROR);
@@ -1460,6 +1474,7 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
     u->state->connect_time = (ngx_msec_t) -1;
     u->state->header_time = (ngx_msec_t) -1;
 
+	//XXX:连接upstream
     rc = ngx_event_connect_peer(&u->peer);
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http upstream connect: %i", rc);
@@ -1494,10 +1509,10 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
     u->write_event_handler = ngx_http_upstream_send_request_handler;
     u->read_event_handler = ngx_http_upstream_process_header;
 
-    c->sendfile &= r->connection->sendfile;
-    u->output.sendfile = c->sendfile;
+    c->sendfile &= r->connection->sendfile;	//XXX: ??
+    u->output.sendfile = c->sendfile;		//XXX: ??
 
-    if (r->connection->tcp_nopush == NGX_TCP_NOPUSH_DISABLED) {
+    if (r->connection->tcp_nopush == NGX_TCP_NOPUSH_DISABLED) {	//XXX: ??
         c->tcp_nopush = NGX_TCP_NOPUSH_DISABLED;
     }
 
@@ -1902,10 +1917,12 @@ ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u, ng
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0, "http upstream send request");
 
+	//XXX:设置upstream的连接时长
     if (u->state->connect_time == (ngx_msec_t) -1) {
         u->state->connect_time = ngx_current_msec - u->state->response_time;
     }
 
+	//XXX:为什么仅当u->request_send为0的时候才判断连接是否建立成功
     if (!u->request_sent && ngx_http_upstream_test_connect(c) != NGX_OK) {
         ngx_http_upstream_next(r, u, NGX_HTTP_UPSTREAM_FT_ERROR);
         return;
@@ -2184,6 +2201,7 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
         return;
     }
 
+	//XXX:为什么仅当u->request_send为0的时候才判断连接是否建立成功
     if (!u->request_sent && ngx_http_upstream_test_connect(c) != NGX_OK) {
         ngx_http_upstream_next(r, u, NGX_HTTP_UPSTREAM_FT_ERROR);
         return;
@@ -3084,9 +3102,7 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     p->length = -1;
 
-    if (u->input_filter_init
-        && u->input_filter_init(p->input_ctx) != NGX_OK)
-    {
+    if (u->input_filter_init && u->input_filter_init(p->input_ctx) != NGX_OK) {
         ngx_http_upstream_finalize_request(r, u, NGX_ERROR);
         return;
     }
@@ -3367,8 +3383,7 @@ ngx_http_upstream_process_non_buffered_downstream(ngx_http_request_t *r)
     u = r->upstream;
     wev = c->write;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "http upstream process non buffered downstream");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0, "http upstream process non buffered downstream");
 
     c->log->action = "sending to client";
 
@@ -3442,9 +3457,7 @@ ngx_http_upstream_process_non_buffered_request(ngx_http_request_t *r, ngx_uint_t
 
             if (u->busy_bufs == NULL) {
 
-                if (u->length == 0
-                    || (upstream->read->eof && u->length == -1))
-                {
+                if (u->length == 0 || (upstream->read->eof && u->length == -1)) {
                     ngx_http_upstream_finalize_request(r, u, 0);
                     return;
                 }
@@ -5839,8 +5852,7 @@ ngx_http_upstream_add(ngx_conf_t *cf, ngx_url_t *u, ngx_uint_t flags)
 
 
 char *
-ngx_http_upstream_bind_set_slot(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf)
+ngx_http_upstream_bind_set_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     char  *p = conf;
 
