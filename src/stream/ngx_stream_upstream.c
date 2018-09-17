@@ -316,7 +316,7 @@ ngx_stream_upstream(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
     value = cf->args->elts;
     u.host = value[1];
     u.no_resolve = 1;
-    u.no_port = 1;
+    u.no_port = 1;		//XXX:no_port不是输出的结果参数么，设置有什么用？
 
     uscf = ngx_stream_upstream_add(cf, &u, NGX_STREAM_UPSTREAM_CREATE
                                            |NGX_STREAM_UPSTREAM_WEIGHT
@@ -340,8 +340,7 @@ ngx_stream_upstream(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
 
     /* the upstream{}'s srv_conf */
 
-    ctx->srv_conf = ngx_pcalloc(cf->pool,
-                                sizeof(void *) * ngx_stream_max_module);
+    ctx->srv_conf = ngx_pcalloc(cf->pool, sizeof(void *) * ngx_stream_max_module);
     if (ctx->srv_conf == NULL) {
         return NGX_CONF_ERROR;
     }
@@ -367,8 +366,7 @@ ngx_stream_upstream(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
         }
     }
 
-    uscf->servers = ngx_array_create(cf->pool, 4,
-                                     sizeof(ngx_stream_upstream_server_t));
+    uscf->servers = ngx_array_create(cf->pool, 4, sizeof(ngx_stream_upstream_server_t));
     if (uscf->servers == NULL) {
         return NGX_CONF_ERROR;
     }
@@ -542,16 +540,13 @@ ngx_stream_upstream_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
 invalid:
 
-    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                       "invalid parameter \"%V\"", &value[i]);
+    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid parameter \"%V\"", &value[i]);
 
     return NGX_CONF_ERROR;
 
 not_supported:
 
-    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                       "balancing method does not support parameter \"%V\"",
-                       &value[i]);
+    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "balancing method does not support parameter \"%V\"", &value[i]);
 
     return NGX_CONF_ERROR;
 }
@@ -582,25 +577,17 @@ ngx_stream_upstream_add(ngx_conf_t *cf, ngx_url_t *u, ngx_uint_t flags)
 
     for (i = 0; i < umcf->upstreams.nelts; i++) {
 
-        if (uscfp[i]->host.len != u->host.len
-            || ngx_strncasecmp(uscfp[i]->host.data, u->host.data, u->host.len)
-               != 0)
-        {
+        if (uscfp[i]->host.len != u->host.len || ngx_strncasecmp(uscfp[i]->host.data, u->host.data, u->host.len) != 0) {
             continue;
         }
 
-        if ((flags & NGX_STREAM_UPSTREAM_CREATE)
-             && (uscfp[i]->flags & NGX_STREAM_UPSTREAM_CREATE))
-        {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "duplicate upstream \"%V\"", &u->host);
+        if ((flags & NGX_STREAM_UPSTREAM_CREATE) && (uscfp[i]->flags & NGX_STREAM_UPSTREAM_CREATE)) {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "duplicate upstream \"%V\"", &u->host);
             return NULL;
         }
 
         if ((uscfp[i]->flags & NGX_STREAM_UPSTREAM_CREATE) && !u->no_port) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "upstream \"%V\" may not have port %d",
-                               &u->host, u->port);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "upstream \"%V\" may not have port %d", &u->host, u->port);
             return NULL;
         }
 
@@ -636,8 +623,7 @@ ngx_stream_upstream_add(ngx_conf_t *cf, ngx_url_t *u, ngx_uint_t flags)
     uscf->no_port = u->no_port;
 
     if (u->naddrs == 1 && (u->port || u->family == AF_UNIX)) {
-        uscf->servers = ngx_array_create(cf->pool, 1,
-                                         sizeof(ngx_stream_upstream_server_t));
+        uscf->servers = ngx_array_create(cf->pool, 1, sizeof(ngx_stream_upstream_server_t));
         if (uscf->servers == NULL) {
             return NULL;
         }
@@ -674,10 +660,7 @@ ngx_stream_upstream_create_main_conf(ngx_conf_t *cf)
         return NULL;
     }
 
-    if (ngx_array_init(&umcf->upstreams, cf->pool, 4,
-                       sizeof(ngx_stream_upstream_srv_conf_t *))
-        != NGX_OK)
-    {
+    if (ngx_array_init(&umcf->upstreams, cf->pool, 4, sizeof(ngx_stream_upstream_srv_conf_t *)) != NGX_OK) {
         return NULL;
     }
 

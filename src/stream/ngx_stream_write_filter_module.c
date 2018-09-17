@@ -230,9 +230,11 @@ ngx_stream_write_filter(ngx_stream_session_t *s, ngx_chain_t *in, ngx_uint_t fro
         return NGX_AGAIN;
     }
 
+	/* chain == NULL */
+
     c->buffered &= ~NGX_STREAM_WRITE_BUFFERED;
 
-    if (c->buffered & NGX_LOWLEVEL_BUFFERED) {
+    if (c->buffered & NGX_LOWLEVEL_BUFFERED) {	//XXX：什么意思？
         return NGX_AGAIN;
     }
 

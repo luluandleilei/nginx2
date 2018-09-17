@@ -193,8 +193,7 @@ ngx_stream_map_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         mcf->hash_bucket_size = ngx_cacheline_size;
 
     } else {
-        mcf->hash_bucket_size = ngx_align(mcf->hash_bucket_size,
-                                          ngx_cacheline_size);
+        mcf->hash_bucket_size = ngx_align(mcf->hash_bucket_size, ngx_cacheline_size);
     }
 
     map = ngx_pcalloc(cf->pool, sizeof(ngx_stream_map_ctx_t));
@@ -282,8 +281,7 @@ ngx_stream_map_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         var->flags |= NGX_STREAM_VAR_NOCACHEABLE;
     }
 
-    map->default_value = ctx.default_value ? ctx.default_value:
-                                             &ngx_stream_variable_null_value;
+    map->default_value = ctx.default_value ? ctx.default_value: &ngx_stream_variable_null_value;
 
     map->hostnames = ctx.hostnames;
 
@@ -297,9 +295,7 @@ ngx_stream_map_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         hash.hash = &map->map.hash.hash;
         hash.temp_pool = NULL;
 
-        if (ngx_hash_init(&hash, ctx.keys.keys.elts, ctx.keys.keys.nelts)
-            != NGX_OK)
-        {
+        if (ngx_hash_init(&hash, ctx.keys.keys.elts, ctx.keys.keys.nelts) != NGX_OK) {
             ngx_destroy_pool(pool);
             return NGX_CONF_ERROR;
         }
@@ -307,17 +303,12 @@ ngx_stream_map_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     if (ctx.keys.dns_wc_head.nelts) {
 
-        ngx_qsort(ctx.keys.dns_wc_head.elts,
-                  (size_t) ctx.keys.dns_wc_head.nelts,
-                  sizeof(ngx_hash_key_t), ngx_stream_map_cmp_dns_wildcards);
+        ngx_qsort(ctx.keys.dns_wc_head.elts, (size_t) ctx.keys.dns_wc_head.nelts, sizeof(ngx_hash_key_t), ngx_stream_map_cmp_dns_wildcards);
 
         hash.hash = NULL;
         hash.temp_pool = pool;
 
-        if (ngx_hash_wildcard_init(&hash, ctx.keys.dns_wc_head.elts,
-                                   ctx.keys.dns_wc_head.nelts)
-            != NGX_OK)
-        {
+        if (ngx_hash_wildcard_init(&hash, ctx.keys.dns_wc_head.elts, ctx.keys.dns_wc_head.nelts) != NGX_OK) {
             ngx_destroy_pool(pool);
             return NGX_CONF_ERROR;
         }
@@ -327,17 +318,12 @@ ngx_stream_map_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     if (ctx.keys.dns_wc_tail.nelts) {
 
-        ngx_qsort(ctx.keys.dns_wc_tail.elts,
-                  (size_t) ctx.keys.dns_wc_tail.nelts,
-                  sizeof(ngx_hash_key_t), ngx_stream_map_cmp_dns_wildcards);
+        ngx_qsort(ctx.keys.dns_wc_tail.elts, (size_t) ctx.keys.dns_wc_tail.nelts, sizeof(ngx_hash_key_t), ngx_stream_map_cmp_dns_wildcards);
 
         hash.hash = NULL;
         hash.temp_pool = pool;
 
-        if (ngx_hash_wildcard_init(&hash, ctx.keys.dns_wc_tail.elts,
-                                   ctx.keys.dns_wc_tail.nelts)
-            != NGX_OK)
-        {
+        if (ngx_hash_wildcard_init(&hash, ctx.keys.dns_wc_tail.elts, ctx.keys.dns_wc_tail.nelts) != NGX_OK) {
             ngx_destroy_pool(pool);
             return NGX_CONF_ERROR;
         }

@@ -1263,8 +1263,7 @@ ngx_http_uwsgi_process_header(ngx_http_request_t *r)
                 ngx_strlow(h->lowcase_key, h->key.data, h->key.len);
             }
 
-            hh = ngx_hash_find(&umcf->headers_in_hash, h->hash,
-                               h->lowcase_key, h->key.len);
+            hh = ngx_hash_find(&umcf->headers_in_hash, h->hash, h->lowcase_key, h->key.len);
 
             if (hh && hh->handler(r, h, hh->offset) != NGX_OK) {
                 return NGX_ERROR;

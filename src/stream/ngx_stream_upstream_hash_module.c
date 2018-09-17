@@ -59,8 +59,7 @@ static ngx_int_t ngx_stream_upstream_get_chash_peer(ngx_peer_connection_t *pc,
     void *data);
 
 static void *ngx_stream_upstream_hash_create_conf(ngx_conf_t *cf);
-static char *ngx_stream_upstream_hash(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+static char *ngx_stream_upstream_hash(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 
 static ngx_command_t  ngx_stream_upstream_hash_commands[] = {
@@ -658,8 +657,7 @@ ngx_stream_upstream_hash(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     uscf = ngx_stream_conf_get_module_srv_conf(cf, ngx_stream_upstream_module);
 
     if (uscf->peer.init_upstream) {
-        ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
-                           "load balancing method redefined");
+        ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "load balancing method redefined");
     }
 
     uscf->flags = NGX_STREAM_UPSTREAM_CREATE
@@ -676,8 +674,7 @@ ngx_stream_upstream_hash(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         uscf->peer.init_upstream = ngx_stream_upstream_init_chash;
 
     } else {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid parameter \"%V\"", &value[2]);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid parameter \"%V\"", &value[2]);
         return NGX_CONF_ERROR;
     }
 

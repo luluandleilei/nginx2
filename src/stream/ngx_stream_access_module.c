@@ -184,9 +184,7 @@ ngx_stream_access_inet(ngx_stream_session_t *s,
     rule = ascf->rules->elts;
     for (i = 0; i < ascf->rules->nelts; i++) {
 
-        ngx_log_debug3(NGX_LOG_DEBUG_STREAM, s->connection->log, 0,
-                       "access: %08XD %08XD %08XD",
-                       addr, rule[i].mask, rule[i].addr);
+        ngx_log_debug3(NGX_LOG_DEBUG_STREAM, s->connection->log, 0, "access: %08XD %08XD %08XD", addr, rule[i].mask, rule[i].addr);
 
         if ((addr & rule[i].mask) == rule[i].addr) {
             return ngx_stream_access_found(s, rule[i].deny);
@@ -272,8 +270,7 @@ static ngx_int_t
 ngx_stream_access_found(ngx_stream_session_t *s, ngx_uint_t deny)
 {
     if (deny) {
-        ngx_log_error(NGX_LOG_ERR, s->connection->log, 0,
-                      "access forbidden by rule");
+        ngx_log_error(NGX_LOG_ERR, s->connection->log, 0, "access forbidden by rule");
         return NGX_STREAM_FORBIDDEN;
     }
 

@@ -498,9 +498,7 @@ ngx_http_set_charset(ngx_http_request_t *r, ngx_str_t *charset)
         return;
     }
 
-    if (r->headers_out.status == NGX_HTTP_MOVED_PERMANENTLY
-        || r->headers_out.status == NGX_HTTP_MOVED_TEMPORARILY)
-    {
+    if (r->headers_out.status == NGX_HTTP_MOVED_PERMANENTLY || r->headers_out.status == NGX_HTTP_MOVED_TEMPORARILY) {
         /*
          * do not set charset for the redirect because NN 4.x
          * use this charset instead of the next page charset

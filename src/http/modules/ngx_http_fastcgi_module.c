@@ -1896,8 +1896,7 @@ ngx_http_fastcgi_process_header(ngx_http_request_t *r)
                     buf.pos = p;
 
                     for (i = 0; i < f->split_parts->nelts; i++) {
-                        p = ngx_cpymem(p, part[i].start,
-                                       part[i].end - part[i].start);
+                        p = ngx_cpymem(p, part[i].start, part[i].end - part[i].start);
                     }
 
                     p = ngx_cpymem(p, part_start, u->buffer.pos - part_start);
@@ -1909,9 +1908,7 @@ ngx_http_fastcgi_process_header(ngx_http_request_t *r)
                     rc = ngx_http_parse_header_line(r, &buf, 1);
 
                     if (rc != NGX_OK) {
-                        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
-                                      "invalid header after joining "
-                                      "FastCGI records");
+                        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0, "invalid header after joining " "FastCGI records");
                         h->hash = 0;
                         return NGX_ERROR;
                     }
@@ -1934,17 +1931,14 @@ ngx_http_fastcgi_process_header(ngx_http_request_t *r)
                     h->key.len = r->header_name_end - r->header_name_start;
                     h->value.len = r->header_end - r->header_start;
 
-                    h->key.data = ngx_pnalloc(r->pool,
-                                              h->key.len + 1 + h->value.len + 1
-                                              + h->key.len);
+                    h->key.data = ngx_pnalloc(r->pool, h->key.len + 1 + h->value.len + 1 + h->key.len);
                     if (h->key.data == NULL) {
                         h->hash = 0;
                         return NGX_ERROR;
                     }
 
                     h->value.data = h->key.data + h->key.len + 1;
-                    h->lowcase_key = h->key.data + h->key.len + 1
-                                     + h->value.len + 1;
+                    h->lowcase_key = h->key.data + h->key.len + 1 + h->value.len + 1;
 
                     ngx_memcpy(h->key.data, r->header_name_start, h->key.len);
                     h->key.data[h->key.len] = '\0';
@@ -1961,8 +1955,7 @@ ngx_http_fastcgi_process_header(ngx_http_request_t *r)
                     ngx_strlow(h->lowcase_key, h->key.data, h->key.len);
                 }
 
-                hh = ngx_hash_find(&umcf->headers_in_hash, h->hash,
-                                   h->lowcase_key, h->key.len);
+                hh = ngx_hash_find(&umcf->headers_in_hash, h->hash, h->lowcase_key, h->key.len);
 
                 if (hh && hh->handler(r, h, hh->offset) != NGX_OK) {
                     return NGX_ERROR;

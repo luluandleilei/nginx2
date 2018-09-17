@@ -2196,17 +2196,20 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     c->log->action = "reading response header from upstream";
 
+	//XXX:检查是否读事件超时
     if (c->read->timedout) {
         ngx_http_upstream_next(r, u, NGX_HTTP_UPSTREAM_FT_TIMEOUT);
         return;
     }
 
+	//XXX:检查是否由于连接断开造成可读？？
 	//XXX:为什么仅当u->request_send为0的时候才判断连接是否建立成功
     if (!u->request_sent && ngx_http_upstream_test_connect(c) != NGX_OK) {
         ngx_http_upstream_next(r, u, NGX_HTTP_UPSTREAM_FT_ERROR);
         return;
     }
 
+	//XXX:为读入数据分配存储空间
     if (u->buffer.start == NULL) {
         u->buffer.start = ngx_palloc(r->pool, u->conf->buffer_size);
         if (u->buffer.start == NULL) {
@@ -2756,9 +2759,7 @@ ngx_http_upstream_process_trailers(ngx_http_request_t *r,
             i = 0;
         }
 
-        if (ngx_hash_find(&u->conf->hide_headers_hash, h[i].hash,
-                          h[i].lowcase_key, h[i].key.len))
-        {
+        if (ngx_hash_find(&u->conf->hide_headers_hash, h[i].hash, h[i].lowcase_key, h[i].key.len)) {
             continue;
         }
 
@@ -2823,10 +2824,8 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
         u->pipe->downstream_error = 1;
     }
 
-    if (r->request_body && r->request_body->temp_file
-        && r == r->main && !r->preserve_body
-        && !u->conf->preserve_output)
-    {
+    if (r->request_body && r->request_body->temp_file && r == r->main && 
+			!r->preserve_body && !u->conf->preserve_output) {
         ngx_pool_run_cleanup_file(r->pool, r->request_body->temp_file->file.fd);
         r->request_body->temp_file->file.fd = NGX_INVALID_FILE;
     }

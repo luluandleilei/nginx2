@@ -1251,8 +1251,7 @@ ngx_http_process_request_headers(ngx_event_t *rev)
 
             h = ngx_list_push(&r->headers_in.headers);
             if (h == NULL) {
-				//XXX：为什么不调用ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR); ？？？
-                ngx_http_close_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);	
+                ngx_http_close_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);	//XXX：为什么不调用ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR); ？？？
                 return;
             }
 
@@ -1268,8 +1267,7 @@ ngx_http_process_request_headers(ngx_event_t *rev)
 
             h->lowcase_key = ngx_pnalloc(r->pool, h->key.len);
             if (h->lowcase_key == NULL) {
-				//XXX：为什么不调用ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR); ？？？
-                ngx_http_close_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
+                ngx_http_close_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);	//XXX：为什么不调用ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR); ？？？
                 return;
             }
 
@@ -3181,8 +3179,7 @@ ngx_http_set_lingering_close(ngx_http_request_t *r)
     }
 
     if (ngx_shutdown_socket(c->fd, NGX_WRITE_SHUTDOWN) == -1) {
-        ngx_connection_error(c, ngx_socket_errno,
-                             ngx_shutdown_socket_n " failed");
+        ngx_connection_error(c, ngx_socket_errno, ngx_shutdown_socket_n " failed");
         ngx_http_close_request(r, 0);
         return;
     }

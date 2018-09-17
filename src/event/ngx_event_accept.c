@@ -303,7 +303,7 @@ ngx_event_accept(ngx_event_t *ev)
         log->data = NULL;
         log->handler = NULL;
 
-        ls->handler(c);	//ngx_http_init_connection()
+        ls->handler(c);	//ngx_http_init_connection() ngx_stream_init_connection()
 
         if (ngx_event_flags & NGX_USE_KQUEUE_EVENT) {
             ev->available--;

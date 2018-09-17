@@ -27,8 +27,7 @@ static ngx_int_t ngx_stream_variable_server_addr(ngx_stream_session_t *s,
     ngx_stream_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_stream_variable_server_port(ngx_stream_session_t *s,
     ngx_stream_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_stream_variable_bytes(ngx_stream_session_t *s,
-    ngx_stream_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_stream_variable_bytes(ngx_stream_session_t *s, ngx_stream_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_stream_variable_session_time(ngx_stream_session_t *s,
     ngx_stream_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_stream_variable_status(ngx_stream_session_t *s,
@@ -42,8 +41,7 @@ static ngx_int_t ngx_stream_variable_hostname(ngx_stream_session_t *s,
     ngx_stream_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_stream_variable_pid(ngx_stream_session_t *s,
     ngx_stream_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_stream_variable_msec(ngx_stream_session_t *s,
-    ngx_stream_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_stream_variable_msec(ngx_stream_session_t *s, ngx_stream_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_stream_variable_time_iso8601(ngx_stream_session_t *s,
     ngx_stream_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_stream_variable_time_local(ngx_stream_session_t *s,
@@ -75,11 +73,9 @@ static ngx_stream_variable_t  ngx_stream_core_variables[] = {
     { ngx_string("server_port"), NULL,
       ngx_stream_variable_server_port, 0, 0, 0 },
 
-    { ngx_string("bytes_sent"), NULL, ngx_stream_variable_bytes,
-      0, 0, 0 },
+    { ngx_string("bytes_sent"), NULL, ngx_stream_variable_bytes, 0, 0, 0 },
 
-    { ngx_string("bytes_received"), NULL, ngx_stream_variable_bytes,
-      1, 0, 0 },
+    { ngx_string("bytes_received"), NULL, ngx_stream_variable_bytes, 1, 0, 0 },
 
     { ngx_string("session_time"), NULL, ngx_stream_variable_session_time,
       0, NGX_STREAM_VAR_NOCACHEABLE, 0 },
@@ -156,8 +152,7 @@ ngx_stream_add_variable(ngx_conf_t *cf, ngx_str_t *name, ngx_uint_t flags)
         v = key[i].value;
 
         if (!(v->flags & NGX_STREAM_VAR_CHANGEABLE)) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "the duplicate \"%V\" variable", name);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "the duplicate \"%V\" variable", name);
             return NULL;
         }
 
@@ -194,8 +189,7 @@ ngx_stream_add_variable(ngx_conf_t *cf, ngx_str_t *name, ngx_uint_t flags)
     }
 
     if (rc == NGX_BUSY) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "conflicting variable name \"%V\"", name);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "conflicting variable name \"%V\"", name);
         return NULL;
     }
 
@@ -224,8 +218,7 @@ ngx_stream_add_prefix_variable(ngx_conf_t *cf, ngx_str_t *name,
         v = &v[i];
 
         if (!(v->flags & NGX_STREAM_VAR_CHANGEABLE)) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "the duplicate \"%V\" variable", name);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "the duplicate \"%V\" variable", name);
             return NULL;
         }
 
@@ -328,8 +321,7 @@ ngx_stream_get_indexed_variable(ngx_stream_session_t *s, ngx_uint_t index)
     cmcf = ngx_stream_get_module_main_conf(s, ngx_stream_core_module);
 
     if (cmcf->variables.nelts <= index) {
-        ngx_log_error(NGX_LOG_ALERT, s->connection->log, 0,
-                      "unknown variable index: %ui", index);
+        ngx_log_error(NGX_LOG_ALERT, s->connection->log, 0, "unknown variable index: %ui", index);
         return NULL;
     }
 
@@ -340,17 +332,13 @@ ngx_stream_get_indexed_variable(ngx_stream_session_t *s, ngx_uint_t index)
     v = cmcf->variables.elts;
 
     if (ngx_stream_variable_depth == 0) {
-        ngx_log_error(NGX_LOG_ERR, s->connection->log, 0,
-                      "cycle while evaluating variable \"%V\"",
-                      &v[index].name);
+        ngx_log_error(NGX_LOG_ERR, s->connection->log, 0, "cycle while evaluating variable \"%V\"", &v[index].name);
         return NULL;
     }
 
     ngx_stream_variable_depth--;
 
-    if (v[index].get_handler(s, &s->variables[index], v[index].data)
-        == NGX_OK)
-    {
+    if (v[index].get_handler(s, &s->variables[index], v[index].data) == NGX_OK) {
         ngx_stream_variable_depth++;
 
         if (v[index].flags & NGX_STREAM_VAR_NOCACHEABLE) {
@@ -655,8 +643,7 @@ ngx_stream_variable_server_port(ngx_stream_session_t *s,
 
 
 static ngx_int_t
-ngx_stream_variable_bytes(ngx_stream_session_t *s,
-    ngx_stream_variable_value_t *v, uintptr_t data)
+ngx_stream_variable_bytes(ngx_stream_session_t *s, ngx_stream_variable_value_t *v, uintptr_t data)
 {
     u_char  *p;
 

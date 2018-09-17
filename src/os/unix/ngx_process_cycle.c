@@ -591,13 +591,9 @@ ngx_reap_children(ngx_cycle_t *cycle)
 
             if (ngx_processes[i].pid == ngx_new_binary) {
 
-                ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx,
-                                                       ngx_core_module);
+                ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
 
-                if (ngx_rename_file((char *) ccf->oldpid.data,
-                                    (char *) ccf->pid.data)
-                    == NGX_FILE_ERROR)
-                {
+                if (ngx_rename_file((char *) ccf->oldpid.data, (char *) ccf->pid.data) == NGX_FILE_ERROR) {
                     ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
                                   ngx_rename_file_n " %s back to %s failed "
                                   "after the new binary process \"%s\" exited",
@@ -1007,8 +1003,7 @@ ngx_channel_handler(ngx_event_t *ev)
             return;
         }
 
-        ngx_log_debug1(NGX_LOG_DEBUG_CORE, ev->log, 0,
-                       "channel command: %ui", ch.command);
+        ngx_log_debug1(NGX_LOG_DEBUG_CORE, ev->log, 0, "channel command: %ui", ch.command);
 
         switch (ch.command) {
 
@@ -1026,9 +1021,7 @@ ngx_channel_handler(ngx_event_t *ev)
 
         case NGX_CMD_OPEN_CHANNEL:
 
-            ngx_log_debug3(NGX_LOG_DEBUG_CORE, ev->log, 0,
-                           "get channel s:%i pid:%P fd:%d",
-                           ch.slot, ch.pid, ch.fd);
+            ngx_log_debug3(NGX_LOG_DEBUG_CORE, ev->log, 0, "get channel s:%i pid:%P fd:%d", ch.slot, ch.pid, ch.fd);
 
             ngx_processes[ch.slot].pid = ch.pid;
             ngx_processes[ch.slot].channel[0] = ch.fd;
@@ -1042,8 +1035,7 @@ ngx_channel_handler(ngx_event_t *ev)
                            ngx_processes[ch.slot].channel[0]);
 
             if (close(ngx_processes[ch.slot].channel[0]) == -1) {
-                ngx_log_error(NGX_LOG_ALERT, ev->log, ngx_errno,
-                              "close() channel failed");
+                ngx_log_error(NGX_LOG_ALERT, ev->log, ngx_errno, "close() channel failed");
             }
 
             ngx_processes[ch.slot].channel[0] = -1;

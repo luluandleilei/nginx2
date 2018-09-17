@@ -28,8 +28,7 @@ static uintptr_t ngx_stream_script_exit_code = (uintptr_t) NULL;
 
 
 void
-ngx_stream_script_flush_complex_value(ngx_stream_session_t *s,
-    ngx_stream_complex_value_t *val)
+ngx_stream_script_flush_complex_value(ngx_stream_session_t *s, ngx_stream_complex_value_t *val)
 {
     ngx_uint_t *index;
 
@@ -145,9 +144,7 @@ ngx_stream_compile_complex_value(ngx_stream_compile_complex_value_t *ccv)
 
     n = nv + 1;
 
-    if (ngx_array_init(&flushes, ccv->cf->pool, n, sizeof(ngx_uint_t))
-        != NGX_OK)
-    {
+    if (ngx_array_init(&flushes, ccv->cf->pool, n, sizeof(ngx_uint_t)) != NGX_OK) {
         return NGX_ERROR;
     }
 

@@ -14,28 +14,21 @@
                                       + ((p)->next ? (p)->next->number : 0))
 
 
-static ngx_stream_upstream_rr_peer_t *ngx_stream_upstream_get_peer(
-    ngx_stream_upstream_rr_peer_data_t *rrp);
-static void ngx_stream_upstream_notify_round_robin_peer(
-    ngx_peer_connection_t *pc, void *data, ngx_uint_t state);
+static ngx_stream_upstream_rr_peer_t *ngx_stream_upstream_get_peer( ngx_stream_upstream_rr_peer_data_t *rrp);
+static void ngx_stream_upstream_notify_round_robin_peer( ngx_peer_connection_t *pc, void *data, ngx_uint_t state);
 
 #if (NGX_STREAM_SSL)
 
-static ngx_int_t ngx_stream_upstream_set_round_robin_peer_session(
-    ngx_peer_connection_t *pc, void *data);
-static void ngx_stream_upstream_save_round_robin_peer_session(
-    ngx_peer_connection_t *pc, void *data);
-static ngx_int_t ngx_stream_upstream_empty_set_session(
-    ngx_peer_connection_t *pc, void *data);
-static void ngx_stream_upstream_empty_save_session(ngx_peer_connection_t *pc,
-    void *data);
+static ngx_int_t ngx_stream_upstream_set_round_robin_peer_session( ngx_peer_connection_t *pc, void *data);
+static void ngx_stream_upstream_save_round_robin_peer_session( ngx_peer_connection_t *pc, void *data);
+static ngx_int_t ngx_stream_upstream_empty_set_session( ngx_peer_connection_t *pc, void *data);
+static void ngx_stream_upstream_empty_save_session(ngx_peer_connection_t *pc, void *data);
 
 #endif
 
 
 ngx_int_t
-ngx_stream_upstream_init_round_robin(ngx_conf_t *cf,
-    ngx_stream_upstream_srv_conf_t *us)
+ngx_stream_upstream_init_round_robin(ngx_conf_t *cf, ngx_stream_upstream_srv_conf_t *us)
 {
     ngx_url_t                        u;
     ngx_uint_t                       i, j, n, w;
@@ -61,9 +54,7 @@ ngx_stream_upstream_init_round_robin(ngx_conf_t *cf,
         }
 
         if (n == 0) {
-            ngx_log_error(NGX_LOG_EMERG, cf->log, 0,
-                          "no servers in upstream \"%V\" in %s:%ui",
-                          &us->host, us->file_name, us->line);
+            ngx_log_error(NGX_LOG_EMERG, cf->log, 0, "no servers in upstream \"%V\" in %s:%ui", &us->host, us->file_name, us->line);
             return NGX_ERROR;
         }
 
@@ -183,9 +174,7 @@ ngx_stream_upstream_init_round_robin(ngx_conf_t *cf,
     /* an upstream implicitly defined by proxy_pass, etc. */
 
     if (us->port == 0) {
-        ngx_log_error(NGX_LOG_EMERG, cf->log, 0,
-                      "no port in upstream \"%V\" in %s:%ui",
-                      &us->host, us->file_name, us->line);
+        ngx_log_error(NGX_LOG_EMERG, cf->log, 0, "no port in upstream \"%V\" in %s:%ui", &us->host, us->file_name, us->line);
         return NGX_ERROR;
     }
 
@@ -196,9 +185,7 @@ ngx_stream_upstream_init_round_robin(ngx_conf_t *cf,
 
     if (ngx_inet_resolve_host(cf->pool, &u) != NGX_OK) {
         if (u.err) {
-            ngx_log_error(NGX_LOG_EMERG, cf->log, 0,
-                          "%s in upstream \"%V\" in %s:%ui",
-                          u.err, &us->host, us->file_name, us->line);
+            ngx_log_error(NGX_LOG_EMERG, cf->log, 0, "%s in upstream \"%V\" in %s:%ui", u.err, &us->host, us->file_name, us->line);
         }
 
         return NGX_ERROR;
@@ -304,8 +291,7 @@ ngx_stream_upstream_init_round_robin_peer(ngx_stream_session_t *s,
 
 
 ngx_int_t
-ngx_stream_upstream_create_round_robin_peer(ngx_stream_session_t *s,
-    ngx_stream_upstream_resolved_t *ur)
+ngx_stream_upstream_create_round_robin_peer(ngx_stream_session_t *s, ngx_stream_upstream_resolved_t *ur)
 {
     u_char                              *p;
     size_t                               len;
@@ -319,8 +305,7 @@ ngx_stream_upstream_create_round_robin_peer(ngx_stream_session_t *s,
     rrp = s->upstream->peer.data;
 
     if (rrp == NULL) {
-        rrp = ngx_palloc(s->connection->pool,
-                         sizeof(ngx_stream_upstream_rr_peer_data_t));
+        rrp = ngx_palloc(s->connection->pool, sizeof(ngx_stream_upstream_rr_peer_data_t));
         if (rrp == NULL) {
             return NGX_ERROR;
         }
@@ -328,14 +313,12 @@ ngx_stream_upstream_create_round_robin_peer(ngx_stream_session_t *s,
         s->upstream->peer.data = rrp;
     }
 
-    peers = ngx_pcalloc(s->connection->pool,
-                        sizeof(ngx_stream_upstream_rr_peers_t));
+    peers = ngx_pcalloc(s->connection->pool, sizeof(ngx_stream_upstream_rr_peers_t));
     if (peers == NULL) {
         return NGX_ERROR;
     }
 
-    peer = ngx_pcalloc(s->connection->pool,
-                       sizeof(ngx_stream_upstream_rr_peer_t) * ur->naddrs);
+    peer = ngx_pcalloc(s->connection->pool, sizeof(ngx_stream_upstream_rr_peer_t) * ur->naddrs);
     if (peer == NULL) {
         return NGX_ERROR;
     }
@@ -402,8 +385,7 @@ ngx_stream_upstream_create_round_robin_peer(ngx_stream_session_t *s,
         rrp->data = 0;
 
     } else {
-        n = (rrp->peers->number + (8 * sizeof(uintptr_t) - 1))
-                / (8 * sizeof(uintptr_t));
+        n = (rrp->peers->number + (8 * sizeof(uintptr_t) - 1)) / (8 * sizeof(uintptr_t));
 
         rrp->tried = ngx_pcalloc(s->connection->pool, n * sizeof(uintptr_t));
         if (rrp->tried == NULL) {
@@ -433,8 +415,7 @@ ngx_stream_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
     ngx_stream_upstream_rr_peer_t   *peer;
     ngx_stream_upstream_rr_peers_t  *peers;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_STREAM, pc->log, 0,
-                   "get rr peer, try: %ui", pc->tries);
+    ngx_log_debug1(NGX_LOG_DEBUG_STREAM, pc->log, 0, "get rr peer, try: %ui", pc->tries);
 
     pc->connection = NULL;
 
@@ -464,9 +445,7 @@ ngx_stream_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
             goto failed;
         }
 
-        ngx_log_debug2(NGX_LOG_DEBUG_STREAM, pc->log, 0,
-                       "get rr peer, current: %p %i",
-                       peer, peer->current_weight);
+        ngx_log_debug2(NGX_LOG_DEBUG_STREAM, pc->log, 0, "get rr peer, current: %p %i", peer, peer->current_weight);
     }
 
     pc->sockaddr = peer->sockaddr;

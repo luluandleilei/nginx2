@@ -2253,9 +2253,7 @@ ngx_http_ssi_echo(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx, ngx_str_t **pa
             ctx->encoding = NGX_HTTP_SSI_ENTITY_ENCODING;
 
         } else {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                          "unknown encoding \"%V\" in the \"echo\" command",
-                          enc);
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "unknown encoding \"%V\" in the \"echo\" command", enc);
         }
     }
 
@@ -2264,8 +2262,7 @@ ngx_http_ssi_echo(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx, ngx_str_t **pa
     switch (ctx->encoding) {
 
     case NGX_HTTP_SSI_URL_ENCODING:
-        len = 2 * ngx_escape_uri(NULL, value->data, value->len,
-                                 NGX_ESCAPE_HTML);
+        len = 2 * ngx_escape_uri(NULL, value->data, value->len, NGX_ESCAPE_HTML);
 
         if (len) {
             p = ngx_pnalloc(r->pool, value->len + len);

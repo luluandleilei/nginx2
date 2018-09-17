@@ -415,7 +415,7 @@ struct ngx_http_upstream_s {
 	//Enables or disables buffering of responses from the proxied server.
     unsigned                         buffering:1;
     unsigned                         keepalive:1;
-    unsigned                         upgrade:1;
+    unsigned                         upgrade:1;				//[in]
 
     unsigned                         request_sent:1;		//表示已经发送requset给upstream，不一定全部发送完成
     unsigned                         request_body_sent:1;	//表示已经发送request给upstream，且发送完成

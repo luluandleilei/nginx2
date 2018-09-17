@@ -142,8 +142,7 @@ ngx_stream_realip_set_addr(ngx_stream_session_t *s, ngx_addr_t *addr)
         return NGX_ERROR;
     }
 
-    len = ngx_sock_ntop(addr->sockaddr, addr->socklen, text,
-                        NGX_SOCKADDR_STRLEN, 0);
+    len = ngx_sock_ntop(addr->sockaddr, addr->socklen, text, NGX_SOCKADDR_STRLEN, 0);
     if (len == 0) {
         return NGX_ERROR;
     }

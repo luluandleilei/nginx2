@@ -10,12 +10,9 @@
 #include <ngx_stream.h>
 
 
-static ngx_int_t ngx_stream_upstream_init_least_conn_peer(
-    ngx_stream_session_t *s, ngx_stream_upstream_srv_conf_t *us);
-static ngx_int_t ngx_stream_upstream_get_least_conn_peer(
-    ngx_peer_connection_t *pc, void *data);
-static char *ngx_stream_upstream_least_conn(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+static ngx_int_t ngx_stream_upstream_init_least_conn_peer( ngx_stream_session_t *s, ngx_stream_upstream_srv_conf_t *us);
+static ngx_int_t ngx_stream_upstream_get_least_conn_peer( ngx_peer_connection_t *pc, void *data);
+static char *ngx_stream_upstream_least_conn(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 
 static ngx_command_t  ngx_stream_upstream_least_conn_commands[] = {
@@ -292,8 +289,7 @@ ngx_stream_upstream_least_conn(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     uscf = ngx_stream_conf_get_module_srv_conf(cf, ngx_stream_upstream_module);
 
     if (uscf->peer.init_upstream) {
-        ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
-                           "load balancing method redefined");
+        ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "load balancing method redefined");
     }
 
     uscf->peer.init_upstream = ngx_stream_upstream_init_least_conn;

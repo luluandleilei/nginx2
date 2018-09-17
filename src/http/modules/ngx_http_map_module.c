@@ -191,8 +191,7 @@ ngx_http_map_variable(ngx_http_request_t *r, ngx_http_variable_value_t *v, uintp
     ngx_http_complex_value_t   *cv;
     ngx_http_variable_value_t  *value;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http map started");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "http map started");
 
     if (ngx_http_complex_value(r, &map->value, &val) != NGX_OK) {
         return NGX_ERROR;
@@ -625,13 +624,11 @@ found:
     }
 
     if (rv == NGX_DECLINED) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid hostname or wildcard \"%V\"", &value[0]);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid hostname or wildcard \"%V\"", &value[0]);
     }
 
     if (rv == NGX_BUSY) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "conflicting parameter \"%V\"", &value[0]);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "conflicting parameter \"%V\"", &value[0]);
     }
 
     return NGX_CONF_ERROR;

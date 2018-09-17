@@ -310,13 +310,13 @@ ngx_stream_core_preread_phase(ngx_stream_session_t *s, ngx_stream_phase_handler_
 
     cscf = ngx_stream_get_module_srv_conf(s, ngx_stream_core_module);
 
-    if (c->read->timedout) {
+    if (c->read->timedout) { 			//timeout for the preread phase
         rc = NGX_STREAM_OK;
 
-    } else if (c->read->timer_set) {
+    } else if (c->read->timer_set) {	//XXX:有数据可读
         rc = NGX_AGAIN;
 
-    } else {
+    } else {							//前一个phase handler已经读取了数据，直接调用当前pahsehandler进行处理
         rc = ph->handler(s);
     }
 
@@ -349,7 +349,7 @@ ngx_stream_core_preread_phase(ngx_stream_session_t *s, ngx_stream_phase_handler_
                 break;
             }
 
-            if (!c->read->timer_set) {
+            if (!c->read->timer_set) {	//XXX: c->read->timer_set可能为1吗？
                 ngx_add_timer(c->read, cscf->preread_timeout);
             }
 
@@ -376,12 +376,12 @@ ngx_stream_core_preread_phase(ngx_stream_session_t *s, ngx_stream_phase_handler_
         ngx_del_timer(c->read);
     }
 
-    if (rc == NGX_OK) {
+    if (rc == NGX_OK) {			//next phase
         s->phase_handler = ph->next;
         return NGX_AGAIN;
     }
 
-    if (rc == NGX_DECLINED) {
+    if (rc == NGX_DECLINED) {	//next phase hander
         s->phase_handler++;
         return NGX_AGAIN;
     }
@@ -548,11 +548,9 @@ ngx_stream_core_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_conf_merge_value(conf->tcp_nodelay, prev->tcp_nodelay, 1);
 
-    ngx_conf_merge_size_value(conf->preread_buffer_size,
-                              prev->preread_buffer_size, 16384);
+    ngx_conf_merge_size_value(conf->preread_buffer_size, prev->preread_buffer_size, 16384);
 
-    ngx_conf_merge_msec_value(conf->preread_timeout,
-                              prev->preread_timeout, 30000);
+    ngx_conf_merge_msec_value(conf->preread_timeout, prev->preread_timeout, 30000);
 
     return NGX_CONF_OK;
 }

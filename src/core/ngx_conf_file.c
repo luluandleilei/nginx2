@@ -504,7 +504,7 @@ ngx_conf_read_token(ngx_conf_t *cf)
     s_quoted = 0;
     d_quoted = 0;
 
-    cf->args->nelts = 0;
+    cf->args->nelts = 0;				//每次解析前重置存放结果的数组
     b = cf->conf_file->buffer;
     dump = cf->conf_file->dump;
     start = b->pos;						//表示当前token的起始位置

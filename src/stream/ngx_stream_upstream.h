@@ -28,22 +28,19 @@
 
 
 typedef struct {
-    ngx_array_t                        upstreams;
-                                           /* ngx_stream_upstream_srv_conf_t */
+    ngx_array_t                        upstreams; /* array of ngx_stream_upstream_srv_conf_t */
 } ngx_stream_upstream_main_conf_t;
 
 
 typedef struct ngx_stream_upstream_srv_conf_s  ngx_stream_upstream_srv_conf_t;
 
 
-typedef ngx_int_t (*ngx_stream_upstream_init_pt)(ngx_conf_t *cf,
-    ngx_stream_upstream_srv_conf_t *us);
-typedef ngx_int_t (*ngx_stream_upstream_init_peer_pt)(ngx_stream_session_t *s,
-    ngx_stream_upstream_srv_conf_t *us);
+typedef ngx_int_t (*ngx_stream_upstream_init_pt)(ngx_conf_t *cf, ngx_stream_upstream_srv_conf_t *us);
+typedef ngx_int_t (*ngx_stream_upstream_init_peer_pt)(ngx_stream_session_t *s, ngx_stream_upstream_srv_conf_t *us);
 
 
 typedef struct {
-    ngx_stream_upstream_init_pt        init_upstream;
+    ngx_stream_upstream_init_pt        init_upstream;	//load balancing method
     ngx_stream_upstream_init_peer_pt   init;
     void                              *data;
 } ngx_stream_upstream_peer_t;
@@ -71,8 +68,7 @@ struct ngx_stream_upstream_srv_conf_s {
     ngx_stream_upstream_peer_t         peer;
     void                             **srv_conf;
 
-    ngx_array_t                       *servers;
-                                              /* ngx_stream_upstream_server_t */
+    ngx_array_t                       *servers; /* ngx_stream_upstream_server_t */
 
     ngx_uint_t                         flags;
     ngx_str_t                          host;
@@ -117,26 +113,26 @@ typedef struct {
 typedef struct {
     ngx_peer_connection_t              peer;
 
-    ngx_buf_t                          downstream_buf;
-    ngx_buf_t                          upstream_buf;
+    ngx_buf_t                          downstream_buf;	//用于接收downstream的数据的缓冲区
+    ngx_buf_t                          upstream_buf;	//用于接收upstream的数据的缓冲区
 
     ngx_chain_t                       *free;
-    ngx_chain_t                       *upstream_out;
+    ngx_chain_t                       *upstream_out;	//需要发送给downstream的chain
     ngx_chain_t                       *upstream_busy;
-    ngx_chain_t                       *downstream_out;
+    ngx_chain_t                       *downstream_out;	//需要发送给upstream的chain
     ngx_chain_t                       *downstream_busy;
 
-    off_t                              received;
+    off_t                              received;	//统计从upstream接收的字节数
     time_t                             start_sec;
-    ngx_uint_t                         requests;
-    ngx_uint_t                         responses;
+    ngx_uint_t                         requests;	//统计从downstream收到的UDP请求包的个数
+    ngx_uint_t                         responses;	//统计从upstream收到的udp响应包的个数
 
     ngx_str_t                          ssl_name;
 
     ngx_stream_upstream_srv_conf_t    *upstream;
     ngx_stream_upstream_resolved_t    *resolved;
     ngx_stream_upstream_state_t       *state;
-    unsigned                           connected:1;
+    unsigned                           connected:1;		//表示与upstream成功建立连接
     unsigned                           proxy_protocol:1;
 } ngx_stream_upstream_t;
 

@@ -20,8 +20,7 @@ struct ngx_udp_connection_s {
 
 
 static void ngx_close_accepted_udp_connection(ngx_connection_t *c);
-static ssize_t ngx_udp_shared_recv(ngx_connection_t *c, u_char *buf,
-    size_t size);
+static ssize_t ngx_udp_shared_recv(ngx_connection_t *c, u_char *buf, size_t size);
 static ngx_int_t ngx_insert_udp_connection(ngx_connection_t *c);
 static void ngx_delete_udp_connection(void *data);
 static ngx_connection_t *ngx_lookup_udp_connection(ngx_listening_t *ls,
@@ -395,7 +394,7 @@ ngx_event_recvmsg(ngx_event_t *ev)
         log->data = NULL;
         log->handler = NULL;
 
-        ls->handler(c);
+        ls->handler(c);	//ngx_stream_init_connection
 
     next:
 

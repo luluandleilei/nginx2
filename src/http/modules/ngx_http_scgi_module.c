@@ -1036,9 +1036,7 @@ ngx_http_scgi_process_header(ngx_http_request_t *r)
             h->key.len = r->header_name_end - r->header_name_start;
             h->value.len = r->header_end - r->header_start;
 
-            h->key.data = ngx_pnalloc(r->pool,
-                                      h->key.len + 1 + h->value.len + 1
-                                      + h->key.len);
+            h->key.data = ngx_pnalloc(r->pool, h->key.len + 1 + h->value.len + 1 + h->key.len);
             if (h->key.data == NULL) {
                 h->hash = 0;
                 return NGX_ERROR;

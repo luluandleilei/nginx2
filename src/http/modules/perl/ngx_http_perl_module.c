@@ -857,14 +857,11 @@ ngx_http_perl_preconfiguration(ngx_conf_t *cf)
 
     smcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_ssi_filter_module);
 
-    rc = ngx_hash_add_key(&smcf->commands, &ngx_http_perl_ssi_command.name,
-                          &ngx_http_perl_ssi_command, NGX_HASH_READONLY_KEY);
+    rc = ngx_hash_add_key(&smcf->commands, &ngx_http_perl_ssi_command.name, &ngx_http_perl_ssi_command, NGX_HASH_READONLY_KEY);
 
     if (rc != NGX_OK) {
         if (rc == NGX_BUSY) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "conflicting SSI command \"%V\"",
-                               &ngx_http_perl_ssi_command.name);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "conflicting SSI command \"%V\"", &ngx_http_perl_ssi_command.name);
         }
 
         return NGX_ERROR;

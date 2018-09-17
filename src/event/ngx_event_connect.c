@@ -304,11 +304,8 @@ ngx_event_connect_set_transparent(ngx_peer_connection_t *pc, ngx_socket_t s)
 
 #if defined(SO_BINDANY)
 
-    if (setsockopt(s, SOL_SOCKET, SO_BINDANY,
-                   (const void *) &value, sizeof(int)) == -1)
-    {
-        ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno,
-                      "setsockopt(SO_BINDANY) failed");
+    if (setsockopt(s, SOL_SOCKET, SO_BINDANY, (const void *) &value, sizeof(int)) == -1) {
+        ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno, "setsockopt(SO_BINDANY) failed");
         return NGX_ERROR;
     }
 
@@ -320,21 +317,15 @@ ngx_event_connect_set_transparent(ngx_peer_connection_t *pc, ngx_socket_t s)
 
 #if defined(IP_TRANSPARENT)
 
-        if (setsockopt(s, IPPROTO_IP, IP_TRANSPARENT,
-                       (const void *) &value, sizeof(int)) == -1)
-        {
-            ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno,
-                          "setsockopt(IP_TRANSPARENT) failed");
+        if (setsockopt(s, IPPROTO_IP, IP_TRANSPARENT, (const void *) &value, sizeof(int)) == -1) {
+            ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno, "setsockopt(IP_TRANSPARENT) failed");
             return NGX_ERROR;
         }
 
 #elif defined(IP_BINDANY)
 
-        if (setsockopt(s, IPPROTO_IP, IP_BINDANY,
-                       (const void *) &value, sizeof(int)) == -1)
-        {
-            ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno,
-                          "setsockopt(IP_BINDANY) failed");
+        if (setsockopt(s, IPPROTO_IP, IP_BINDANY, (const void *) &value, sizeof(int)) == -1) {
+            ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno, "setsockopt(IP_BINDANY) failed");
             return NGX_ERROR;
         }
 

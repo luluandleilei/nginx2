@@ -1660,8 +1660,7 @@ ngx_http_v2_state_process_header(ngx_http_v2_connection_t *h2c, u_char *pos,
 
         cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
 
-        hh = ngx_hash_find(&cmcf->headers_in_hash, h->hash,
-                           h->lowcase_key, h->key.len);
+        hh = ngx_hash_find(&cmcf->headers_in_hash, h->hash, h->lowcase_key, h->key.len);
 
         if (hh && hh->handler(r, h, hh->offset) != NGX_OK) {
             goto error;
@@ -3351,8 +3350,7 @@ ngx_http_v2_parse_path(ngx_http_request_t *r, ngx_str_t *value)
     r->uri_end = value->data + value->len;
 
     if (ngx_http_parse_uri(r) != NGX_OK) {
-        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
-                      "client sent invalid :path header: \"%V\"", value);
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0, "client sent invalid :path header: \"%V\"", value);
 
         return NGX_DECLINED;
     }

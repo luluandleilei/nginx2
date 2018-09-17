@@ -21,11 +21,15 @@ typedef struct {
 
 typedef struct {
     ngx_msec_t                       connect_timeout;
+	//the timeout between two successive read or write operations on client or proxied server
+	//connections. If no data is transmitted within this time, the connection is closed.
     ngx_msec_t                       timeout;
     ngx_msec_t                       next_upstream_timeout;
     size_t                           buffer_size;
     size_t                           upload_rate;
     size_t                           download_rate;
+	//the number of datagrams expected from the proxied server in response to a client datagram if
+	//the UDP protocol is used. The number serves as a hint for session termination.
     ngx_uint_t                       responses;
     ngx_uint_t                       next_upstream_tries;
     ngx_flag_t                       next_upstream;
@@ -65,12 +69,10 @@ static void ngx_stream_proxy_init_upstream(ngx_stream_session_t *s);
 static void ngx_stream_proxy_resolve_handler(ngx_resolver_ctx_t *ctx);
 static void ngx_stream_proxy_upstream_handler(ngx_event_t *ev);
 static void ngx_stream_proxy_downstream_handler(ngx_event_t *ev);
-static void ngx_stream_proxy_process_connection(ngx_event_t *ev,
-    ngx_uint_t from_upstream);
+static void ngx_stream_proxy_process_connection(ngx_event_t *ev, ngx_uint_t from_upstream);
 static void ngx_stream_proxy_connect_handler(ngx_event_t *ev);
 static ngx_int_t ngx_stream_proxy_test_connect(ngx_connection_t *c);
-static void ngx_stream_proxy_process(ngx_stream_session_t *s,
-    ngx_uint_t from_upstream, ngx_uint_t do_write);
+static void ngx_stream_proxy_process(ngx_stream_session_t *s, ngx_uint_t from_upstream, ngx_uint_t do_write);
 static void ngx_stream_proxy_next_upstream(ngx_stream_session_t *s);
 static void ngx_stream_proxy_finalize(ngx_stream_session_t *s, ngx_uint_t rc);
 static u_char *ngx_stream_proxy_log_error(ngx_log_t *log, u_char *buf,
@@ -140,6 +142,14 @@ static ngx_command_t  ngx_stream_proxy_commands[] = {
       offsetof(ngx_stream_proxy_srv_conf_t, connect_timeout),
       NULL },
 
+	/*
+	 Syntax:	proxy_timeout timeout;
+	 Default: 	proxy_timeout 10m;
+	 Context:	stream, server
+
+	 Sets the timeout between two successive read or write operations on client or proxied server
+	 connections. If no data is transmitted within this time, the connection is closed.
+	*/
     { ngx_string("proxy_timeout"),
       NGX_STREAM_MAIN_CONF|NGX_STREAM_SRV_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_msec_slot,
@@ -182,6 +192,16 @@ static ngx_command_t  ngx_stream_proxy_commands[] = {
       offsetof(ngx_stream_proxy_srv_conf_t, download_rate),
       NULL },
 
+	/*
+	 Syntax:	proxy_responses number;
+	 Default:	—
+	 Context:	stream, server
+	 This directive appeared in version 1.9.13.
+
+	 Sets the number of datagrams expected from the proxied server in response to a client datagram if
+	 the UDP protocol is used. The number serves as a hint for session termination. By default, the number
+	 of datagrams is not limited.
+	*/
     { ngx_string("proxy_responses"),
       NGX_STREAM_MAIN_CONF|NGX_STREAM_SRV_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_num_slot,
@@ -407,6 +427,8 @@ ngx_stream_proxy_handler(ngx_stream_session_t *s)
     u->downstream_buf.pos = p;
     u->downstream_buf.last = p;
 
+	//XXX:什么情况下c->read->ready会为1 ???
+	//在预读阶段
     if (c->read->ready) {
         ngx_post_event(c->read, &ngx_posted_events);
     }
@@ -430,6 +452,7 @@ ngx_stream_proxy_handler(ngx_stream_session_t *s)
 
         host = &u->resolved->host;
 
+		//(1)upstream 查找
         umcf = ngx_stream_get_module_main_conf(s, ngx_stream_upstream_module);
 
         uscfp = umcf->upstreams.elts;
@@ -439,14 +462,14 @@ ngx_stream_proxy_handler(ngx_stream_session_t *s)
             uscf = uscfp[i];
 
             if (uscf->host.len == host->len
-                && ((uscf->port == 0 && u->resolved->no_port)
-                     || uscf->port == u->resolved->port)
+                && ((uscf->port == 0 && u->resolved->no_port) || uscf->port == u->resolved->port)
                 && ngx_strncasecmp(uscf->host.data, host->data, host->len) == 0)
             {
                 goto found;
             }
         }
 
+		//(2)直接指定的ip:port
         if (u->resolved->sockaddr) {
 
             if (u->resolved->port == 0 && u->resolved->sockaddr->sa_family != AF_UNIX) {
@@ -465,6 +488,7 @@ ngx_stream_proxy_handler(ngx_stream_session_t *s)
             return;
         }
 
+		//(3)domain:port格式，进行域名解析
         if (u->resolved->port == 0) {
             ngx_log_error(NGX_LOG_ERR, c->log, 0, "no port in upstream \"%V\"", host);
             ngx_stream_proxy_finalize(s, NGX_STREAM_INTERNAL_SERVER_ERROR);
@@ -533,8 +557,7 @@ found:
 
 
 static ngx_int_t
-ngx_stream_proxy_eval(ngx_stream_session_t *s,
-    ngx_stream_proxy_srv_conf_t *pscf)
+ngx_stream_proxy_eval(ngx_stream_session_t *s, ngx_stream_proxy_srv_conf_t *pscf)
 {
     ngx_str_t               host;
     ngx_url_t               url;
@@ -559,8 +582,7 @@ ngx_stream_proxy_eval(ngx_stream_session_t *s,
 
     u = s->upstream;
 
-    u->resolved = ngx_pcalloc(s->connection->pool,
-                              sizeof(ngx_stream_upstream_resolved_t));
+    u->resolved = ngx_pcalloc(s->connection->pool, sizeof(ngx_stream_upstream_resolved_t));
     if (u->resolved == NULL) {
         return NGX_ERROR;
     }
@@ -705,6 +727,8 @@ ngx_stream_proxy_connect(ngx_stream_session_t *s)
         return;
     }
 
+	//连接建立成功读事件被激活
+	//对端断开连接,XX事件被激活
     pc->read->handler = ngx_stream_proxy_connect_handler;
     pc->write->handler = ngx_stream_proxy_connect_handler;
 
@@ -793,6 +817,7 @@ ngx_stream_proxy_init_upstream(ngx_stream_session_t *s)
         u->upstream_buf.last = p;
     }
 
+	//XXX:若有预读数据，将其存储到u->upstream_out中
     if (c->buffer && c->buffer->pos < c->buffer->last) {
         ngx_log_debug1(NGX_LOG_DEBUG_STREAM, c->log, 0, "stream proxy add preread buffer: %uz", c->buffer->last - c->buffer->pos);
 
@@ -851,6 +876,7 @@ ngx_stream_proxy_init_upstream(ngx_stream_session_t *s)
     pc->read->handler = ngx_stream_proxy_upstream_handler;
     pc->write->handler = ngx_stream_proxy_upstream_handler;
 
+	//XXX:什么时候会设置pc->read->ready ？？？
     if (pc->read->ready) {
         ngx_post_event(pc->read, &ngx_posted_events);
     }
@@ -1226,9 +1252,7 @@ ngx_stream_proxy_resolve_handler(ngx_resolver_ctx_t *ctx)
 
     pscf = ngx_stream_get_module_srv_conf(s, ngx_stream_proxy_module);
 
-    if (pscf->next_upstream_tries
-        && u->peer.tries > pscf->next_upstream_tries)
-    {
+    if (pscf->next_upstream_tries && u->peer.tries > pscf->next_upstream_tries) {
         u->peer.tries = pscf->next_upstream_tries;
     }
 
@@ -1256,6 +1280,7 @@ ngx_stream_proxy_process_connection(ngx_event_t *ev, ngx_uint_t from_upstream)
     s = c->data;
     u = s->upstream;
 
+	//(1)
     if (c->close) {
         ngx_log_error(NGX_LOG_INFO, c->log, 0, "shutdown timeout");
         ngx_stream_proxy_finalize(s, NGX_STREAM_OK);
@@ -1270,9 +1295,10 @@ ngx_stream_proxy_process_connection(ngx_event_t *ev, ngx_uint_t from_upstream)
     if (ev->timedout) {
         ev->timedout = 0;
 
-        if (ev->delayed) {
+        if (ev->delayed) {	//限速定时器到期，可以发送数据了
             ev->delayed = 0;
 
+			//XXX:即使ev->ready == 0，感觉此时ev一定已经被添加到事件驱动中，不需要再添加到事件驱动中
             if (!ev->ready) {
                 if (ngx_handle_read_event(ev, 0) != NGX_OK) {
                     ngx_stream_proxy_finalize(s, NGX_STREAM_INTERNAL_SERVER_ERROR);
@@ -1286,7 +1312,9 @@ ngx_stream_proxy_process_connection(ngx_event_t *ev, ngx_uint_t from_upstream)
                 return;
             }
 
-        } else {
+			/* ev->ready == 1 */
+
+        } else {	//读/写定时器到期，结束请求
             if (s->connection->type == SOCK_DGRAM) {
                 if (pscf->responses == NGX_MAX_INT32_VALUE) {
 
@@ -1315,7 +1343,7 @@ ngx_stream_proxy_process_connection(ngx_event_t *ev, ngx_uint_t from_upstream)
 
                 ngx_connection_error(pc, NGX_ETIMEDOUT, "upstream timed out");
 
-                pc->read->error = 1;
+                pc->read->error = 1;	//XXX:为什么要将pc->read->error 设置为1
 
                 ngx_stream_proxy_finalize(s, NGX_STREAM_BAD_GATEWAY);
 
@@ -1340,6 +1368,9 @@ ngx_stream_proxy_process_connection(ngx_event_t *ev, ngx_uint_t from_upstream)
         return;
     }
 
+	//XXX:什么时候会发生这种情况？
+	//downstream的写事件
+	//XXX: 什么时候把downstream的读事件添加到了事件驱动中？
     if (from_upstream && !u->connected) {
         return;
     }
@@ -1420,6 +1451,11 @@ ngx_stream_proxy_test_connect(ngx_connection_t *c)
 }
 
 
+/*
+from_upstrem: 1表示upstream可读或者downstream可写，0表示downstream可读或者upstream可写
+			1表示数据从upstream流向downstream， 0表示数据从downstream流向upstream
+do_write： 表示事件是读事件还是写事件
+*/
 static void
 ngx_stream_proxy_process(ngx_stream_session_t *s, ngx_uint_t from_upstream, ngx_uint_t do_write)
 {
@@ -1459,7 +1495,7 @@ ngx_stream_proxy_process(ngx_stream_session_t *s, ngx_uint_t from_upstream, ngx_
 
     pscf = ngx_stream_get_module_srv_conf(s, ngx_stream_proxy_module);
 
-    if (from_upstream) {
+    if (from_upstream) {	//upstream --> downstream
         src = pc;
         dst = c;
         b = &u->upstream_buf;
@@ -1471,7 +1507,7 @@ ngx_stream_proxy_process(ngx_stream_session_t *s, ngx_uint_t from_upstream, ngx_
         recv_action = "proxying and reading from upstream";
         send_action = "proxying and sending to client";
 
-    } else {
+    } else {				//downstream --> upstream
         src = c;
         dst = pc;
         b = &u->downstream_buf;
@@ -1486,7 +1522,10 @@ ngx_stream_proxy_process(ngx_stream_session_t *s, ngx_uint_t from_upstream, ngx_
 
     for ( ;; ) {
 
-        if (do_write && dst) {
+		//XXX:若是写事件，且有数据需要发送，则发送数据
+		//XXX:为什么需要判断dst是否为NULL？
+		//XXX:downstream读事件，读到数据，而upstream还没有连接成功
+        if (do_write && dst) {	
 
             if (*out || *busy || dst->buffered) {
                 c->log->action = send_action;
@@ -1498,6 +1537,8 @@ ngx_stream_proxy_process(ngx_stream_session_t *s, ngx_uint_t from_upstream, ngx_
                     return;
                 }
 
+				/* rc == NGX_OK, NGX_AGAIN */
+				
                 ngx_chain_update_chains(c->pool, &u->free, busy, out, (ngx_buf_tag_t) &ngx_stream_proxy_module);
 
                 if (*busy == NULL) {
@@ -1507,10 +1548,15 @@ ngx_stream_proxy_process(ngx_stream_session_t *s, ngx_uint_t from_upstream, ngx_
             }
         }
 
+		//XXX：若发生的是写事件，为什么不是等到读事件可读时进行读取，而在此时尝试进行读取??
+		//读事件可能发生了但由于写事件限速的限制无法读取，
+		//读事件可能发生了但由于缓冲区大小的限制无法读取
+
         size = b->end - b->last;
 
+		//缓冲区有剩余空间，且有数据可读
         if (size && src->read->ready && !src->read->delayed && !src->read->error) {
-            if (limit_rate) {
+            if (limit_rate) {	//通过对读事件读速率的限制来实现对应的写事件的写速率的限制
                 limit = (off_t) limit_rate * (ngx_time() - u->start_sec + 1) - *received;
 
                 if (limit <= 0) {
@@ -1533,12 +1579,14 @@ ngx_stream_proxy_process(ngx_stream_session_t *s, ngx_uint_t from_upstream, ngx_
                 break;
             }
 
-            if (n == NGX_ERROR) {
-                src->read->eof = 1;
+			//XXX：为什么不是直接调用ngx_stream_proxy_finalize(s, NGX_STREAM_OK)结束请求？
+            if (n == NGX_ERROR) {	
+                src->read->eof = 1;	//XXX:这里为什么设置这个标志位？后面判断需要用
                 n = 0;
             }
 
             if (n >= 0) {
+				//XXX: 读之前已经对限速进行了判断，为什么这里还有进行一次判断？
                 if (limit_rate) {
                     delay = (ngx_msec_t) (n * 1000 / limit_rate);
 
@@ -1589,7 +1637,7 @@ ngx_stream_proxy_process(ngx_stream_session_t *s, ngx_uint_t from_upstream, ngx_
     if (c->type == SOCK_DGRAM
         && pscf->responses != NGX_MAX_INT32_VALUE
         && u->responses >= pscf->responses * u->requests
-        && !src->buffered && dst && !dst->buffered)
+        && !src->buffered && dst && !dst->buffered)	//XXX:  这是干嘛!src->buffered && dst && !dst->buffered 
     {
         handler = c->log->handler;
         c->log->handler = NULL;
@@ -1640,10 +1688,10 @@ ngx_stream_proxy_process(ngx_stream_session_t *s, ngx_uint_t from_upstream, ngx_
             return;
         }
 
-        if (!c->read->delayed && !pc->read->delayed) {
-            ngx_add_timer(c->write, pscf->timeout);
+        if (!c->read->delayed && !pc->read->delayed) {	//当前upstream和downstream都没有处于限速状态
+            ngx_add_timer(c->write, pscf->timeout);	
 
-        } else if (c->write->timer_set) {
+        } else if (c->write->timer_set) {	//若被限速了，则删除读写超时定时器
             ngx_del_timer(c->write);
         }
     }
@@ -2136,15 +2184,12 @@ ngx_stream_proxy_bind(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 #if (NGX_HAVE_TRANSPARENT_PROXY)
             ngx_core_conf_t  *ccf;
 
-            ccf = (ngx_core_conf_t *) ngx_get_conf(cf->cycle->conf_ctx,
-                                                   ngx_core_module);
+            ccf = (ngx_core_conf_t *) ngx_get_conf(cf->cycle->conf_ctx, ngx_core_module);
 
             ccf->transparent = 1;
             local->transparent = 1;
 #else
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "transparent proxying is not supported "
-                               "on this platform, ignored");
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "transparent proxying is not supported " "on this platform, ignored");
 #endif
         } else {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,

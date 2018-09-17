@@ -1069,8 +1069,7 @@ process_formats:
         name = value[2];
 
     } else {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "log format is not specified");
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "log format is not specified");
         return NGX_CONF_ERROR;
     }
 
@@ -1085,8 +1084,7 @@ process_formats:
     }
 
     if (log->format == NULL) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "unknown log format \"%V\"", &name);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unknown log format \"%V\"", &name);
         return NGX_CONF_ERROR;
     }
 
@@ -1118,8 +1116,7 @@ process_formats:
             flush = ngx_parse_time(&s, 0);
 
             if (flush == (ngx_msec_t) NGX_ERROR || flush == 0) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "invalid flush time \"%V\"", &s);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid flush time \"%V\"", &s);
                 return NGX_CONF_ERROR;
             }
 

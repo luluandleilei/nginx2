@@ -37,10 +37,8 @@ static char *ngx_http_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *dumm
 static char *ngx_http_core_location(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy);
 static ngx_int_t ngx_http_core_regex_location(ngx_conf_t *cf, ngx_http_core_loc_conf_t *clcf, ngx_str_t *regex, ngx_uint_t caseless);
 
-static char *ngx_http_core_types(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
-static char *ngx_http_core_type(ngx_conf_t *cf, ngx_command_t *dummy,
-    void *conf);
+static char *ngx_http_core_types(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *ngx_http_core_type(ngx_conf_t *cf, ngx_command_t *dummy, void *conf);
 
 static char *ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_http_core_server_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);

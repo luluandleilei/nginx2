@@ -124,8 +124,7 @@ typedef enum {
 
 typedef struct ngx_stream_phase_handler_s  ngx_stream_phase_handler_t;
 
-typedef ngx_int_t (*ngx_stream_phase_handler_pt)(ngx_stream_session_t *s,
-    ngx_stream_phase_handler_t *ph);
+typedef ngx_int_t (*ngx_stream_phase_handler_pt)(ngx_stream_session_t *s, ngx_stream_phase_handler_t *ph);
 typedef ngx_int_t (*ngx_stream_handler_pt)(ngx_stream_session_t *s);
 typedef void (*ngx_stream_content_handler_pt)(ngx_stream_session_t *s);
 
@@ -178,6 +177,7 @@ typedef struct {
 
     ngx_flag_t                     tcp_nodelay;
     size_t                         preread_buffer_size;
+	//specifies a timeout of the preread phase.
     ngx_msec_t                     preread_timeout;
 
     ngx_log_t                     *error_log;
@@ -196,7 +196,7 @@ struct ngx_stream_session_s {
 
     ngx_connection_t              *connection;
 
-    off_t                          received;
+    off_t                          received;	//统计从downstream接收的字节数
     time_t                         start_sec;
     ngx_msec_t                     start_msec;
 
@@ -207,8 +207,7 @@ struct ngx_stream_session_s {
     void                         **srv_conf;
 
     ngx_stream_upstream_t         *upstream;
-    ngx_array_t                   *upstream_states;
-                                           /* of ngx_stream_upstream_state_t */
+    ngx_array_t                   *upstream_states; /* of ngx_stream_upstream_state_t */
     ngx_stream_variable_value_t   *variables;
 
 #if (NGX_PCRE)
@@ -236,8 +235,7 @@ typedef struct {
     char                        *(*init_main_conf)(ngx_conf_t *cf, void *conf);
 
     void                        *(*create_srv_conf)(ngx_conf_t *cf);
-    char                        *(*merge_srv_conf)(ngx_conf_t *cf, void *prev,
-                                                   void *conf);
+    char                        *(*merge_srv_conf)(ngx_conf_t *cf, void *prev, void *conf);
 } ngx_stream_module_t;
 
 

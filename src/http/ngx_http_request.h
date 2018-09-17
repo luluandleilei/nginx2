@@ -493,7 +493,8 @@ struct ngx_http_request_s {
 	//Pointer to the parent request of a subrequest.
     ngx_http_request_t               *parent;		
     //List of output buffers and subrequests (of this request), in the order in which they are sent and created. 
-    //The list is used by the postpone filter to provide consistent request output when parts of it are created by subrequests.
+    //The list is used by the postpone filter to provide consistent request output when parts of it are created 
+    //by subrequests.
     ngx_http_postponed_request_t     *postponed;	
 	//Pointer to a handler with the context to be called when a subrequest gets finalized.
 	//Unused for main requests.

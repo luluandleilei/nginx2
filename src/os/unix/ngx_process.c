@@ -608,8 +608,7 @@ ngx_os_signal_process(ngx_cycle_t *cycle, char *name, ngx_pid_t pid)
                 return 0;
             }
 
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                          "kill(%P, %d) failed", pid, sig->signo);
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno, "kill(%P, %d) failed", pid, sig->signo);
         }
     }
 

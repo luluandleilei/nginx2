@@ -206,9 +206,7 @@ ngx_stream_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             cf->ctx = cscfp[s]->ctx;
 
             if (module->merge_srv_conf) {
-                rv = module->merge_srv_conf(cf,
-                                            ctx->srv_conf[mi],
-                                            cscfp[s]->ctx->srv_conf[mi]);
+                rv = module->merge_srv_conf(cf, ctx->srv_conf[mi], cscfp[s]->ctx->srv_conf[mi]);
                 if (rv != NGX_CONF_OK) {
                     *cf = pcf;
                     return rv;
@@ -293,8 +291,7 @@ ngx_stream_init_phases(ngx_conf_t *cf, ngx_stream_core_main_conf_t *cmcf)
 
 
 static ngx_int_t
-ngx_stream_init_phase_handlers(ngx_conf_t *cf,
-    ngx_stream_core_main_conf_t *cmcf)
+ngx_stream_init_phase_handlers(ngx_conf_t *cf, ngx_stream_core_main_conf_t *cmcf)
 {
     ngx_int_t                     j;
     ngx_uint_t                    i, n;

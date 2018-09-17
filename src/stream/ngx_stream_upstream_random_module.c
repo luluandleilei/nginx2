@@ -460,8 +460,7 @@ ngx_stream_upstream_random(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     uscf = ngx_stream_conf_get_module_srv_conf(cf, ngx_stream_upstream_module);
 
     if (uscf->peer.init_upstream) {
-        ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
-                           "load balancing method redefined");
+        ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "load balancing method redefined");
     }
 
     uscf->peer.init_upstream = ngx_stream_upstream_init_random;

@@ -289,7 +289,7 @@ static ngx_command_t  ngx_http_log_commands[] = {
 	/*
 	 Syntax:	open_log_file_cache max=N [inactive=time] [min_uses=N] [valid=time];
 				open_log_file_cache off;
-	 Default: open_log_file_cache off;
+	 Default: 	open_log_file_cache off;
 	 Context:	http, server, location
 
 	 Defines a cache that stores the file descriptors of frequently used logs whose names contain variables. 

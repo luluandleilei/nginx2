@@ -439,7 +439,7 @@ found:
         elt->value = names[n].value;
         elt->len = (u_short) names[n].key.len;
 
-        ngx_strlow(elt->name, names[n].key.data, names[n].key.len);
+        ngx_strlow(elt->name, names[n].key.data, names[n].key.len);			//XXX:将所有key转换成了小写存储 ？？？
 
         test[key] = (u_short) (test[key] + NGX_HASH_ELT_SIZE(&names[n]));	//桶中元素按sizeof(void*)进行对齐
     }
@@ -469,8 +469,7 @@ found:
         elt = buckets[i];
 
         if (elt == NULL) {
-            ngx_log_error(NGX_LOG_ALERT, hinit->pool->log, 0,
-                          "%ui: NULL", i);
+            ngx_log_error(NGX_LOG_ALERT, hinit->pool->log, 0, "%ui: NULL", i);
             continue;
         }
 
@@ -480,11 +479,9 @@ found:
 
             key = hinit->key(val.data, val.len);
 
-            ngx_log_error(NGX_LOG_ALERT, hinit->pool->log, 0,
-                          "%ui: %p \"%V\" %ui", i, elt, &val, key);
+            ngx_log_error(NGX_LOG_ALERT, hinit->pool->log, 0, "%ui: %p \"%V\" %ui", i, elt, &val, key);
 
-            elt = (ngx_hash_elt_t *) ngx_align_ptr(&elt->name[0] + elt->len,
-                                                   sizeof(void *));
+            elt = (ngx_hash_elt_t *) ngx_align_ptr(&elt->name[0] + elt->len, sizeof(void *));
         }
     }
 
@@ -818,7 +815,7 @@ ngx_hash_add_key(ngx_hash_keys_arrays_t *ha, ngx_str_t *key, void *value, ngx_ui
     k = 0;
 
     for (i = 0; i < last; i++) {
-        if (!(flags & NGX_HASH_READONLY_KEY)) {
+        if (!(flags & NGX_HASH_READONLY_KEY)) {	//若没有NGX_HASH_READONLY_KEY标志，表示key是可以改写的，会将key转换为小写，再计算hash值
             key->data[i] = ngx_tolower(key->data[i]);
         }
         k = ngx_hash(k, key->data[i]);

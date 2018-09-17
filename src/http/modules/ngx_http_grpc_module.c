@@ -1483,21 +1483,15 @@ ngx_http_grpc_process_header(ngx_http_request_t *r)
              */
 
             if (ctx->type == NGX_HTTP_V2_DATA_FRAME
-                || (ctx->type == NGX_HTTP_V2_CONTINUATION_FRAME
-                    && !ctx->parsing_headers)
-                || (ctx->type != NGX_HTTP_V2_CONTINUATION_FRAME
-                    && ctx->parsing_headers))
+                || (ctx->type == NGX_HTTP_V2_CONTINUATION_FRAME && !ctx->parsing_headers)
+                || (ctx->type != NGX_HTTP_V2_CONTINUATION_FRAME && ctx->parsing_headers))
             {
-                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                              "upstream sent unexpected http2 frame: %d",
-                              ctx->type);
+                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "upstream sent unexpected http2 frame: %d", ctx->type);
                 return NGX_HTTP_UPSTREAM_INVALID_HEADER;
             }
 
             if (ctx->stream_id && ctx->stream_id != ctx->id) {
-                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                              "upstream sent frame for unknown stream %ui",
-                              ctx->stream_id);
+                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "upstream sent frame for unknown stream %ui", ctx->stream_id);
                 return NGX_HTTP_UPSTREAM_INVALID_HEADER;
             }
         }
@@ -1516,9 +1510,7 @@ ngx_http_grpc_process_header(ngx_http_request_t *r)
                 return NGX_HTTP_UPSTREAM_INVALID_HEADER;
             }
 
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                          "upstream rejected request with error %ui",
-                          ctx->error);
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "upstream rejected request with error %ui", ctx->error);
 
             return NGX_HTTP_UPSTREAM_INVALID_HEADER;
         }
@@ -1548,9 +1540,7 @@ ngx_http_grpc_process_header(ngx_http_request_t *r)
 
                 /* TODO: we can retry non-idempotent requests */
 
-                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                              "upstream sent goaway with error %ui",
-                              ctx->error);
+                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "upstream sent goaway with error %ui", ctx->error);
 
                 return NGX_HTTP_UPSTREAM_INVALID_HEADER;
             }
@@ -1618,9 +1608,7 @@ ngx_http_grpc_process_header(ngx_http_request_t *r)
             return NGX_HTTP_UPSTREAM_INVALID_HEADER;
         }
 
-        if (ctx->type != NGX_HTTP_V2_HEADERS_FRAME
-            && ctx->type != NGX_HTTP_V2_CONTINUATION_FRAME)
-        {
+        if (ctx->type != NGX_HTTP_V2_HEADERS_FRAME && ctx->type != NGX_HTTP_V2_CONTINUATION_FRAME) {
             /* priority, unknown frames */
 
             if (b->last - b->pos < (ssize_t) ctx->rest) {
@@ -1724,8 +1712,7 @@ ngx_http_grpc_process_header(ngx_http_request_t *r)
                 h->lowcase_key = h->key.data;
                 h->hash = ngx_hash_key(h->key.data, h->key.len);
 
-                hh = ngx_hash_find(&umcf->headers_in_hash, h->hash,
-                                   h->lowcase_key, h->key.len);
+                hh = ngx_hash_find(&umcf->headers_in_hash, h->hash, h->lowcase_key, h->key.len);
 
                 if (hh && hh->handler(r, h, hh->offset) != NGX_OK) {
                     return NGX_ERROR;
@@ -2088,8 +2075,7 @@ ngx_http_grpc_filter(void *data, ssize_t bytes)
 
                     /* a whole header has been parsed successfully */
 
-                    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                                   "grpc trailer done");
+                    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "grpc trailer done");
 
                     if (ctx->end_stream) {
                         u->length = 0;

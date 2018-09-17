@@ -1656,8 +1656,7 @@ ngx_http_proxy_create_request(ngx_http_request_t *r)
                 continue;
             }
 
-            len += header[i].key.len + sizeof(": ") - 1
-                + header[i].value.len + sizeof(CRLF) - 1;
+            len += header[i].key.len + sizeof(": ") - 1 + header[i].value.len + sizeof(CRLF) - 1;
         }
     }
 

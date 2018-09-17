@@ -213,8 +213,7 @@ ngx_stream_proxy_protocol_handler(ngx_event_t *rev)
     c = rev->data;
     s = c->data;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_STREAM, c->log, 0,
-                   "stream PROXY protocol handler");
+    ngx_log_debug0(NGX_LOG_DEBUG_STREAM, c->log, 0, "stream PROXY protocol handler");
 
     if (rev->timedout) {
         ngx_log_error(NGX_LOG_INFO, c->log, NGX_ETIMEDOUT, "client timed out");
@@ -240,8 +239,7 @@ ngx_stream_proxy_protocol_handler(ngx_event_t *rev)
             }
 
             if (ngx_handle_read_event(rev, 0) != NGX_OK) {
-                ngx_stream_finalize_session(s,
-                                            NGX_STREAM_INTERNAL_SERVER_ERROR);
+                ngx_stream_finalize_session(s, NGX_STREAM_INTERNAL_SERVER_ERROR);
             }
 
             return;
@@ -326,8 +324,7 @@ ngx_stream_close_connection(ngx_connection_t *c)
 {
     ngx_pool_t  *pool;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_STREAM, c->log, 0,
-                   "close stream connection: %d", c->fd);
+    ngx_log_debug1(NGX_LOG_DEBUG_STREAM, c->log, 0, "close stream connection: %d", c->fd);
 
 #if (NGX_STREAM_SSL)
 
