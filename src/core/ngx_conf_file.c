@@ -634,6 +634,10 @@ ngx_conf_read_token(ngx_conf_t *cf)
             start = b->pos - 1;	//记录第一个非空白字符作为token开始位置
             start_line = cf->conf_file->line;
 
+            if (ch == ' ' || ch == '\t' || ch == CR || ch == LF) {
+                continue;
+            }
+
             switch (ch) {
 
             case ';':

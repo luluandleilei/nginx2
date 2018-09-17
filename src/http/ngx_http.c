@@ -1622,11 +1622,6 @@ ngx_http_init_listening(ngx_conf_t *cf, ngx_http_conf_port_t *port)
 	            break;
         }
 
-		//XXX:
-        if (ngx_clone_listening(cf, ls) != NGX_OK) {
-            return NGX_ERROR;
-        }
-
         addr++;
         last--;
     }

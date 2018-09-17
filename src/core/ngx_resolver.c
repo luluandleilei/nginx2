@@ -848,7 +848,15 @@ ngx_resolve_name_locked(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx, ngx_str_t *n
 
 	//XXX: 发送dns查询请求
     if (ngx_resolver_send_query(r, rn) != NGX_OK) {
-        goto failed;
+
+        /* immediately retry once on failure */
+
+        rn->last_connection++;
+        if (rn->last_connection == r->connections.nelts) {
+            rn->last_connection = 0;
+        }
+
+        (void) ngx_resolver_send_query(r, rn);
     }
 
 	//XXX：设置上层请求dns查询对象的超时事件
@@ -1057,7 +1065,15 @@ ngx_resolve_addr(ngx_resolver_ctx_t *ctx)
     rn->nsrvs = 0;
 
     if (ngx_resolver_send_query(r, rn) != NGX_OK) {
-        goto failed;
+
+        /* immediately retry once on failure */
+
+        rn->last_connection++;
+        if (rn->last_connection == r->connections.nelts) {
+            rn->last_connection = 0;
+        }
+
+        (void) ngx_resolver_send_query(r, rn);
     }
 
     if (ngx_resolver_set_timeout(r, ctx) != NGX_OK) {

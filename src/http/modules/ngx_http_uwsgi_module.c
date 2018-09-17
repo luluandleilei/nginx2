@@ -954,11 +954,17 @@ ngx_http_uwsgi_create_request(ngx_http_request_t *r)
 #if 0
     /* allow custom uwsgi packet */
     if (len > 0 && len < 2) {
-        ngx_log_error (NGX_LOG_ALERT, r->connection->log, 0,
-                       "uwsgi request is too little: %uz", len);
+        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
+                      "uwsgi request is too little: %uz", len);
         return NGX_ERROR;
     }
 #endif
+
+    if (len > 65535) {
+        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
+                      "uwsgi request is too big: %uz", len);
+        return NGX_ERROR;
+    }
 
     b = ngx_create_temp_buf(r->pool, len + 4);
     if (b == NULL) {
@@ -2141,7 +2147,7 @@ ngx_http_uwsgi_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
-    if (clcf->name.data[clcf->name.len - 1] == '/') {
+    if (clcf->name.len && clcf->name.data[clcf->name.len - 1] == '/') {
         clcf->auto_redirect = 1;
     }
 
@@ -2386,6 +2392,13 @@ ngx_http_uwsgi_set_ssl(ngx_conf_t *cf, ngx_http_uwsgi_loc_conf_t *uwcf)
         if (ngx_ssl_crl(cf, uwcf->upstream.ssl, &uwcf->ssl_crl) != NGX_OK) {
             return NGX_ERROR;
         }
+    }
+
+    if (ngx_ssl_client_session_cache(cf, uwcf->upstream.ssl,
+                                     uwcf->upstream.ssl_session_reuse)
+        != NGX_OK)
+    {
+        return NGX_ERROR;
     }
 
     return NGX_OK;

@@ -109,8 +109,10 @@ typedef struct {
 
     unsigned                   header_sent:1;
     unsigned                   output_closed:1;
+    unsigned                   output_blocked:1;
     unsigned                   parsing_headers:1;
     unsigned                   end_stream:1;
+    unsigned                   done:1;
     unsigned                   status:1;
 
     ngx_http_request_t        *request;
@@ -1071,8 +1073,10 @@ ngx_http_grpc_reinit_request(ngx_http_request_t *r)
     ctx->state = 0;
     ctx->header_sent = 0;
     ctx->output_closed = 0;
+    ctx->output_blocked = 0;
     ctx->parsing_headers = 0;
     ctx->end_stream = 0;
+    ctx->done = 0;
     ctx->status = 0;
     ctx->connection = NULL;
 
@@ -1092,6 +1096,7 @@ ngx_http_grpc_body_output_filter(void *data, ngx_chain_t *in)
     ngx_int_t               rc;
     ngx_uint_t              next, last;
     ngx_chain_t            *cl, *out, **ll;
+    ngx_http_upstream_t    *u;
     ngx_http_grpc_ctx_t    *ctx;
     ngx_http_grpc_frame_t  *f;
 
@@ -1403,6 +1408,36 @@ ngx_http_grpc_body_output_filter(void *data, ngx_chain_t *in)
 
     if (rc == NGX_OK && ctx->in) {
         rc = NGX_AGAIN;
+    }
+
+    if (rc == NGX_AGAIN) {
+        ctx->output_blocked = 1;
+
+    } else {
+        ctx->output_blocked = 0;
+    }
+
+    if (ctx->done) {
+
+        /*
+         * We have already got the response and were sending some additional
+         * control frames.  Even if there is still something unsent, stop
+         * here anyway.
+         */
+
+        u = r->upstream;
+        u->length = 0;
+
+        if (ctx->in == NULL
+            && ctx->out == NULL
+            && ctx->output_closed
+            && !ctx->output_blocked
+            && ctx->state == ngx_http_grpc_st_start)
+        {
+            u->keepalive = 1;
+        }
+
+        ngx_post_event(u->peer.connection->read, &ngx_posted_events);
     }
 
     return rc;
@@ -1734,6 +1769,7 @@ ngx_http_grpc_process_header(ngx_http_request_t *r)
                     if (ctx->in == NULL
                         && ctx->out == NULL
                         && ctx->output_closed
+                        && !ctx->output_blocked
                         && b->last == b->pos)
                     {
                         u->keepalive = 1;
@@ -1817,6 +1853,34 @@ ngx_http_grpc_filter(void *data, ssize_t bytes)
             rc = ngx_http_grpc_parse_frame(r, ctx, b);
 
             if (rc == NGX_AGAIN) {
+
+                if (ctx->done) {
+
+                    /*
+                     * We have finished parsing the response and the
+                     * remaining control frames.  If there are unsent
+                     * control frames, post a write event to send them.
+                     */
+
+                    if (ctx->out) {
+                        ngx_post_event(u->peer.connection->write,
+                                       &ngx_posted_events);
+                        return NGX_AGAIN;
+                    }
+
+                    u->length = 0;
+
+                    if (ctx->in == NULL
+                        && ctx->output_closed
+                        && !ctx->output_blocked
+                        && ctx->state == ngx_http_grpc_st_start)
+                    {
+                        u->keepalive = 1;
+                    }
+
+                    break;
+                }
+
                 return NGX_AGAIN;
             }
 
@@ -1883,6 +1947,13 @@ ngx_http_grpc_filter(void *data, ssize_t bytes)
                 return NGX_ERROR;
             }
 
+            if (ctx->stream_id && ctx->done) {
+                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                              "upstream sent frame for closed stream %ui",
+                              ctx->stream_id);
+                return NGX_ERROR;
+            }
+
             ctx->padding = 0;
         }
 
@@ -1899,17 +1970,7 @@ ngx_http_grpc_filter(void *data, ssize_t bytes)
             ctx->state = ngx_http_grpc_st_start;
 
             if (ctx->flags & NGX_HTTP_V2_END_STREAM_FLAG) {
-                u->length = 0;
-
-                if (ctx->in == NULL
-                    && ctx->out == NULL
-                    && ctx->output_closed
-                    && b->last == b->pos)
-                {
-                    u->keepalive = 1;
-                }
-
-                break;
+                ctx->done = 1;
             }
 
             continue;
@@ -2078,17 +2139,8 @@ ngx_http_grpc_filter(void *data, ssize_t bytes)
                     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "grpc trailer done");
 
                     if (ctx->end_stream) {
-                        u->length = 0;
-
-                        if (ctx->in == NULL
-                            && ctx->out == NULL
-                            && ctx->output_closed
-                            && b->last == b->pos)
-                        {
-                            u->keepalive = 1;
-                        }
-
-                        return NGX_OK;
+                        ctx->done = 1;
+                        break;
                     }
 
                     ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
@@ -2103,6 +2155,10 @@ ngx_http_grpc_filter(void *data, ssize_t bytes)
                               "upstream sent invalid trailer");
 
                 return NGX_ERROR;
+            }
+
+            if (rc == NGX_HTTP_PARSE_HEADER_DONE) {
+                continue;
             }
 
             /* rc == NGX_AGAIN */
@@ -2221,17 +2277,7 @@ ngx_http_grpc_filter(void *data, ssize_t bytes)
         ctx->state = ngx_http_grpc_st_start;
 
         if (ctx->flags & NGX_HTTP_V2_END_STREAM_FLAG) {
-            u->length = 0;
-
-            if (ctx->in == NULL
-                && ctx->out == NULL
-                && ctx->output_closed
-                && b->last == b->pos)
-            {
-                u->keepalive = 1;
-            }
-
-            break;
+            ctx->done = 1;
         }
     }
 
@@ -4509,7 +4555,7 @@ ngx_http_grpc_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     clcf->handler = ngx_http_grpc_handler;
 
-    if (clcf->name.data[clcf->name.len - 1] == '/') {
+    if (clcf->name.len && clcf->name.data[clcf->name.len - 1] == '/') {
         clcf->auto_redirect = 1;
     }
 
@@ -4609,6 +4655,13 @@ ngx_http_grpc_set_ssl(ngx_conf_t *cf, ngx_http_grpc_loc_conf_t *glcf)
         if (ngx_ssl_crl(cf, glcf->upstream.ssl, &glcf->ssl_crl) != NGX_OK) {
             return NGX_ERROR;
         }
+    }
+
+    if (ngx_ssl_client_session_cache(cf, glcf->upstream.ssl,
+                                     glcf->upstream.ssl_session_reuse)
+        != NGX_OK)
+    {
+        return NGX_ERROR;
     }
 
 #ifdef TLSEXT_TYPE_application_layer_protocol_negotiation
