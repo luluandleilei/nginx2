@@ -358,7 +358,7 @@ ngx_stream_core_preread_phase(ngx_stream_session_t *s, ngx_stream_phase_handler_
             break;
         }
 
-        c->buffer->last += n;
+        c->buffer->last += n;	//XXX: 接收到的字节未统计-- s->received += n;
 
         rc = ph->handler(s);
     }
@@ -369,7 +369,9 @@ ngx_stream_core_preread_phase(ngx_stream_session_t *s, ngx_stream_phase_handler_
             return NGX_OK;
         }
 
-        if (!c->read->timer_set) {	//XXX: c->read->timer_set可能为1吗？
+		//XXX: c->read->timer_set可能为1吗？第二次c->recv返回NGX_AGAIN会为1
+		//此处判断是为了在多次读到数据时不更新定时器时间，仅有一个总的preread超时
+        if (!c->read->timer_set) {
             ngx_add_timer(c->read, cscf->preread_timeout);
         }
 

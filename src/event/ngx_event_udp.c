@@ -119,7 +119,7 @@ ngx_event_recvmsg(ngx_event_t *ev)
 
             if (err == NGX_EAGAIN) {
                 ngx_log_debug0(NGX_LOG_DEBUG_EVENT, ev->log, err, "recvmsg() not ready");
-                return;
+                return;	//XXX:为什么不像TCP一样添加读事件？
             }
 
             ngx_log_error(NGX_LOG_ALERT, ev->log, err, "recvmsg() failed");
